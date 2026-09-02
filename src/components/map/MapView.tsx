@@ -8,14 +8,14 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { INITIAL_VIEW_STATE, type LayerId } from "@/lib/map/config";
+import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
 import type { P1Output } from "@/lib/contracts/p1";
 import type { P4Output } from "@/lib/contracts/p4";
 import type { P5Output, VesselTrack } from "@/lib/contracts/p5";
 import { DEFAULT_P1_DATA } from "@/lib/adapters/p1Adapter";
 import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
-import { DEFAULT_P5_DATA } from "@/lib/adapters/p5Adapter";
+import { DEFAULT_P5_DATA, getVesselPositionsAtHour } from "@/lib/adapters/p5Adapter";
 import type { MapTooltipInfo } from "@/lib/map/types";
 
 export interface MapViewProps {
@@ -25,7 +25,10 @@ export interface MapViewProps {
   p5Data?: P5Output;
   relativeHour?: number;
   sarOpacity?: number;
-  selectedVesselId?: string | null;
+  selectedTrackId?: string;
+  selectedTrackColor?: [number, number, number];
+  followTrack?: boolean;
+  theme?: ThemeMode;
   onSelectVessel?: (vessel: VesselTrack) => void;
 }
 
@@ -40,13 +43,18 @@ export default function MapView({
   p5Data = DEFAULT_P5_DATA,
   relativeHour = 0,
   sarOpacity = 0.55,
-  selectedVesselId,
+  selectedTrackId = "all",
+  selectedTrackColor = [34, 197, 94],
+  followTrack = false,
+  theme = "dark",
   onSelectVessel,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [tooltip, setTooltip] = useState<MapTooltipInfo | null>(null);
+
+  const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
 
   const layers = useMemo(
     () =>
@@ -57,20 +65,33 @@ export default function MapView({
         p5Data,
         relativeHour,
         sarOpacity,
-        selectedVesselId,
+        selectedTrackId,
+        selectedTrackColor,
+        followTrack,
         onHover: (info) => setTooltip(info),
         onSelectVessel,
       }),
-    [visibility, p1Data, p4Data, p5Data, relativeHour, sarOpacity, selectedVesselId, onSelectVessel]
+    [
+      visibility,
+      p1Data,
+      p4Data,
+      p5Data,
+      relativeHour,
+      sarOpacity,
+      selectedTrackId,
+      selectedTrackColor,
+      followTrack,
+      onSelectVessel,
+    ]
   );
 
+  // Initialize Map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: (import.meta.env["VITE_MAP_STYLE_URL"] as string | undefined) ??
-        "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: styleUrl,
       center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
       zoom: INITIAL_VIEW_STATE.zoom,
       pitch: INITIAL_VIEW_STATE.pitch,
@@ -95,9 +116,33 @@ export default function MapView({
     };
   }, []);
 
+  // Update style when theme changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(styleUrl);
+  }, [styleUrl]);
+
+  // Update deck.gl overlay layers
   useEffect(() => {
     overlayRef.current?.setProps({ layers });
   }, [layers]);
+
+  // Follow Selected Track Camera Movement
+  useEffect(() => {
+    if (!mapRef.current || !followTrack || selectedTrackId === "all") return;
+
+    const positions = getVesselPositionsAtHour(p5Data, relativeHour);
+    const target = positions.find((p) => p.vessel.vesselId === selectedTrackId);
+
+    if (target && target.currentPosition) {
+      mapRef.current.flyTo({
+        center: target.currentPosition,
+        zoom: Math.max(12, mapRef.current.getZoom()),
+        essential: true,
+        duration: 900,
+      });
+    }
+  }, [followTrack, selectedTrackId, relativeHour, p5Data]);
 
   return (
     <div
@@ -108,24 +153,24 @@ export default function MapView({
       {/* Polished Glass Tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-30 rounded-xl border border-slate-700/80 bg-slate-950/95 px-3.5 py-2.5 text-xs shadow-2xl shadow-black/80 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+          className="pointer-events-none absolute z-30 rounded-xl border border-border/80 bg-card/95 px-3.5 py-2.5 text-xs shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
           style={{
             left: tooltip.x + 14,
             top: tooltip.y + 14,
             maxWidth: "260px",
           }}
         >
-          <div className="font-bold text-slate-100 truncate border-b border-slate-800/80 pb-1 mb-1.5 flex items-center justify-between">
+          <div className="font-bold text-foreground truncate border-b border-border/80 pb-1 mb-1.5 flex items-center justify-between">
             <span className="truncate">{tooltip.title}</span>
-            <span className="ml-1 text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
+            <span className="ml-1 text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-primary/20 text-primary font-bold">
               {tooltip.type}
             </span>
           </div>
           <div className="space-y-1 font-mono text-[11px]">
             {tooltip.items.map((item, idx) => (
               <div key={idx} className="flex justify-between gap-3">
-                <span className="text-slate-400 font-medium">{item.label}:</span>
-                <span className="font-semibold text-slate-200 truncate">{item.value}</span>
+                <span className="text-muted-foreground font-medium">{item.label}:</span>
+                <span className="font-semibold text-foreground truncate">{item.value}</span>
               </div>
             ))}
           </div>

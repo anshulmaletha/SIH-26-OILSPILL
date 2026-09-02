@@ -3,9 +3,16 @@
  * No maplibre/deck.gl imports here — this module is imported by SSR routes.
  */
 
+export const BASEMAP_STYLES = {
+  dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+} as const;
+
+export type ThemeMode = "dark" | "light";
+
 export const MAP_STYLE_URL =
   (import.meta.env["VITE_MAP_STYLE_URL"] as string | undefined) ??
-  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+  BASEMAP_STYLES.dark;
 
 /** Initial camera: Singapore Strait — a busy AIS / maritime monitoring region. */
 export const INITIAL_VIEW_STATE = {
@@ -66,3 +73,19 @@ export const DEFAULT_VISIBILITY: Record<LayerId, boolean> = {
   [LAYER_IDS.h3Corridor]: true,
   [LAYER_IDS.aisTracks]: true,
 };
+
+export interface TrackColorOption {
+  id: string;
+  name: string;
+  hex: string;
+  rgb: [number, number, number];
+}
+
+export const TRACK_COLOR_OPTIONS: TrackColorOption[] = [
+  { id: "green", name: "Green", hex: "#22c55e", rgb: [34, 197, 94] },
+  { id: "blue", name: "Blue", hex: "#38bdf8", rgb: [56, 189, 248] },
+  { id: "pink", name: "Pink", hex: "#ec4899", rgb: [236, 72, 153] },
+  { id: "orange", name: "Orange", hex: "#f97316", rgb: [249, 115, 22] },
+  { id: "purple", name: "Purple", hex: "#a855f7", rgb: [168, 85, 247] },
+  { id: "amber", name: "Amber", hex: "#fbbf24", rgb: [251, 191, 36] },
+];

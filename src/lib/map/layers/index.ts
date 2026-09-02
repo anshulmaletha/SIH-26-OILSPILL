@@ -18,17 +18,19 @@ export interface BuildLayersOptions {
   p5Data: P5Output;
   relativeHour: number;
   sarOpacity?: number;
-  selectedVesselId?: string | null;
+  selectedTrackId?: string;
+  selectedTrackColor?: [number, number, number];
+  followTrack?: boolean;
   onHover?: (info: MapTooltipInfo | null) => void;
   onSelectVessel?: (vessel: VesselTrack) => void;
 }
 
 /**
- * Builds all modular Deck.gl layers for Day 2:
+ * Builds all modular Deck.gl layers for SIH 26143:
  * 1. SAR Raster overlay (P1)
  * 2. Oil Slick Polygon overlay (P1)
- * 3. H3 Hexagonal Density Corridor overlay (P4) — updates by observation time
- * 4. AIS Vessel Tracks overlay (P5) — updates positions by observation time
+ * 3. H3 Hexagonal Density Corridor overlay (P4)
+ * 4. AIS Vessel Tracks overlay (P5) with track selection & color customizer
  */
 export function buildLayers({
   visibility,
@@ -37,7 +39,9 @@ export function buildLayers({
   p5Data,
   relativeHour,
   sarOpacity = 0.55,
-  selectedVesselId,
+  selectedTrackId = "all",
+  selectedTrackColor = [34, 197, 94],
+  followTrack = false,
   onHover,
   onSelectVessel,
 }: BuildLayersOptions): Layer[] {
@@ -79,7 +83,9 @@ export function buildLayers({
     vessels: p5Data.vessels,
     activePositions,
     visible: !!visibility["ais-tracks"],
-    selectedVesselId,
+    selectedTrackId,
+    selectedTrackColor,
+    followTrack,
     onHover,
     onSelectVessel,
   });

@@ -8,28 +8,39 @@ export interface AisTrackLayerOptions {
   vessels: VesselTrack[];
   activePositions: ActiveVesselPosition[];
   visible: boolean;
-  selectedVesselId?: string | null;
+  selectedTrackId?: string; // "all" | specific vesselId
+  selectedTrackColor?: [number, number, number]; // custom RGB chosen by user
+  followTrack?: boolean;
   onHover?: (info: MapTooltipInfo | null) => void;
   onSelectVessel?: (vessel: VesselTrack) => void;
 }
 
-const TRACK_COLORS: [number, number, number][] = [
-  [74, 222, 128], // Emerald Green
-  [96, 165, 250], // Sky Blue
-  [244, 114, 182], // Soft Pink
-  [251, 191, 36], // Amber
+const DEFAULT_TRACK_COLORS: [number, number, number][] = [
+  [34, 197, 94],   // Emerald Green
+  [56, 189, 248],  // Sky Blue
+  [236, 72, 153],  // Pink / Magenta
+  [249, 115, 22],  // Vibrant Orange
+  [168, 85, 247],  // Purple
+  [251, 191, 36],  // Amber
 ];
 
-/** Dedicated AIS vessel tracks overlay layer (P5 integration) */
+/**
+ * Dedicated AIS vessel tracks overlay layer (P5 integration).
+ * Supports path selection, custom color styling, and follow mode.
+ */
 export function createAisTrackLayers({
   vessels,
   activePositions,
   visible,
-  selectedVesselId,
+  selectedTrackId = "all",
+  selectedTrackColor = [34, 197, 94],
+  followTrack = false,
   onHover,
   onSelectVessel,
 }: AisTrackLayerOptions) {
   if (!visible) return [];
+
+  const isSpecificSelected = selectedTrackId !== "all";
 
   // 1. Vessel historical track paths
   const tracks = new PathLayer<VesselTrack>({
@@ -37,16 +48,35 @@ export function createAisTrackLayers({
     visible,
     data: vessels,
     getPath: (d) => d.path,
-    getColor: (_d, { index }) => {
-      if (_d.vesselId === selectedVesselId) return [56, 189, 248, 255];
-      return TRACK_COLORS[index % TRACK_COLORS.length] ?? [74, 222, 128];
+    getColor: (d, { index }) => {
+      const isThisSelected = d.vesselId === selectedTrackId;
+
+      if (isThisSelected) {
+        // High-contrast full opacity user-selected color
+        return [...selectedTrackColor, 255] as [number, number, number, number];
+      }
+
+      const baseColor = DEFAULT_TRACK_COLORS[index % DEFAULT_TRACK_COLORS.length] ?? [34, 197, 94];
+
+      if (isSpecificSelected) {
+        // De-emphasize other tracks when a specific track is selected
+        return [...baseColor, 90] as [number, number, number, number];
+      }
+
+      // Normal mode: all tracks clearly visible
+      return [...baseColor, 200] as [number, number, number, number];
     },
-    getWidth: (_d) => (_d.vesselId === selectedVesselId ? 4 : 2.5),
+    getWidth: (d) => {
+      if (d.vesselId === selectedTrackId) {
+        return 4.5; // Thicker line with emphasis
+      }
+      return isSpecificSelected ? 1.8 : 2.8;
+    },
     widthUnits: "pixels",
     pickable: true,
     updateTriggers: {
-      getColor: [selectedVesselId],
-      getWidth: [selectedVesselId],
+      getColor: [selectedTrackId, selectedTrackColor, followTrack],
+      getWidth: [selectedTrackId, followTrack],
     },
     onHover: (info) => {
       if (!onHover) return;
@@ -65,6 +95,7 @@ export function createAisTrackLayers({
           { label: "Flag", value: v.flag },
           { label: "Type", value: v.vesselType },
           { label: "Destination", value: v.destination },
+          { label: "Track Status", value: v.vesselId === selectedTrackId ? "SELECTED (ACTIVE)" : "Monitored" },
         ],
         vesselData: v,
       });
@@ -82,19 +113,28 @@ export function createAisTrackLayers({
     visible,
     data: activePositions,
     getPosition: (d) => d.currentPosition,
-    getRadius: 70,
+    getRadius: (d) => (d.vessel.vesselId === selectedTrackId ? 95 : 65),
     radiusUnits: "meters",
     getFillColor: (d) => {
-      if (d.vessel.vesselId === selectedVesselId) return [56, 189, 248, 255];
-      return [255, 255, 255, 230];
+      if (d.vessel.vesselId === selectedTrackId) {
+        return [...selectedTrackColor, 255] as [number, number, number, number];
+      }
+      return [255, 255, 255, isSpecificSelected ? 140 : 230];
     },
-    getLineColor: [74, 222, 128, 255],
+    getLineColor: (d, { index }) => {
+      if (d.vessel.vesselId === selectedTrackId) {
+        return [255, 255, 255, 255];
+      }
+      const baseColor = DEFAULT_TRACK_COLORS[index % DEFAULT_TRACK_COLORS.length] ?? [34, 197, 94];
+      return [...baseColor, isSpecificSelected ? 120 : 255] as [number, number, number, number];
+    },
     lineWidthMinPixels: 2,
     stroked: true,
     pickable: true,
     updateTriggers: {
       getPosition: [activePositions],
-      getFillColor: [selectedVesselId],
+      getFillColor: [selectedTrackId, selectedTrackColor],
+      getRadius: [selectedTrackId],
     },
     onHover: (info) => {
       if (!onHover) return;
@@ -113,6 +153,7 @@ export function createAisTrackLayers({
           { label: "Speed (SOG)", value: `${p.speedKnots.toFixed(1)} knots` },
           { label: "Heading", value: `${p.heading.toFixed(0)}°` },
           { label: "Position", value: `${p.currentPosition[0].toFixed(3)}°E, ${p.currentPosition[1].toFixed(3)}°N` },
+          { label: "Selected", value: p.vessel.vesselId === selectedTrackId ? "YES" : "No" },
         ],
         vesselData: p.vessel,
       });
