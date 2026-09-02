@@ -7,7 +7,7 @@ import { createSarRasterLayer } from "./sarRasterLayer";
 import { createSlickPolygonLayer } from "./slickPolygonLayer";
 import { createH3CorridorLayer } from "./h3CorridorLayer";
 import { createAisTrackLayers } from "./aisTracksLayer";
-import { getH3TimestepForHour } from "../../adapters/p4Adapter";
+import { getH3CorridorForTrackAndHour } from "../../adapters/p4Adapter";
 import { getVesselPositionsAtHour } from "../../adapters/p5Adapter";
 import type { MapTooltipInfo } from "../types";
 
@@ -29,7 +29,7 @@ export interface BuildLayersOptions {
  * Builds all modular Deck.gl layers for SIH 26143:
  * 1. SAR Raster overlay (P1)
  * 2. Oil Slick Polygon overlay (P1)
- * 3. H3 Hexagonal Density Corridor overlay (P4)
+ * 3. H3 Hexagonal Density Corridor overlay (P4) — dynamically linked to selected AIS track & observation hour
  * 4. AIS Vessel Tracks overlay (P5) with track selection & color customizer
  */
 export function buildLayers({
@@ -53,12 +53,17 @@ export function buildLayers({
     if (sar) layers.push(sar);
   }
 
-  // 2. H3 Density Corridor Layer (P4)
+  // 2. H3 Density Corridor Layer (P4) — Dynamically linked to selected AIS track
   if (visibility["h3-corridor"]) {
-    const h3Timestep = getH3TimestepForHour(p4Data, relativeHour);
-    if (h3Timestep && h3Timestep.cells.length > 0) {
+    const h3Cells = getH3CorridorForTrackAndHour(
+      p4Data,
+      p5Data,
+      selectedTrackId,
+      relativeHour
+    );
+    if (h3Cells && h3Cells.length > 0) {
       const h3Layer = createH3CorridorLayer(
-        h3Timestep.cells,
+        h3Cells,
         true,
         relativeHour,
         onHover
