@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, ChevronUp, ChevronDown, Radar, Flame, Hexagon, Ship, Sliders } from "lucide-react";
+import { Layers, ChevronUp, ChevronDown, Radar, Flame, Hexagon, Ship, Sliders, Info } from "lucide-react";
 import { LAYER_META, type LayerId } from "@/lib/map/config";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -27,19 +27,19 @@ export function LayerPanel({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="w-80 rounded-2xl border border-slate-800/90 bg-slate-950/85 shadow-2xl shadow-black/60 backdrop-blur-xl transition-all duration-300 overflow-hidden">
+    <div className="w-72 sm:w-80 rounded-2xl border border-slate-800/90 bg-slate-950/90 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all duration-300 overflow-hidden flex flex-col max-h-[calc(100vh-85px)]">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800/80 px-4 py-3 bg-slate-900/40">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+      <div className="flex items-center justify-between border-b border-slate-800/80 px-3.5 py-2.5 bg-slate-900/50 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
             <Layers className="h-4 w-4" />
           </div>
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-100">
-              Maritime Layers
+              Layer Controls
             </h2>
             <p className="text-[10px] text-slate-400">
-              P1, P4 & P5 Cross-Pipeline Overlays
+              Geospatial Overlays (P1 • P4 • P5)
             </p>
           </div>
         </div>
@@ -57,7 +57,8 @@ export function LayerPanel({
 
       {/* Body */}
       {!isCollapsed && (
-        <div className="p-3.5 space-y-3 animate-in fade-in duration-200">
+        <div className="p-3 space-y-2.5 overflow-y-auto custom-scrollbar">
+          {/* Layer List */}
           <ul className="space-y-1.5">
             {LAYER_META.map((meta) => {
               const active = visibility[meta.id];
@@ -69,13 +70,13 @@ export function LayerPanel({
                     type="button"
                     onClick={() => onToggle(meta.id)}
                     aria-pressed={active}
-                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all duration-200 cursor-pointer ${
                       active
-                        ? "border-slate-700/80 bg-slate-900/70 hover:bg-slate-850"
+                        ? "border-slate-700/90 bg-slate-900/80 hover:bg-slate-850"
                         : "border-transparent bg-transparent opacity-60 hover:opacity-90 hover:bg-slate-900/30"
                     }`}
                   >
-                    {/* Layer Icon + Swatch Indicator */}
+                    {/* Layer Icon Swatch */}
                     <div
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all"
                       style={{
@@ -97,7 +98,7 @@ export function LayerPanel({
                       </span>
                     </span>
 
-                    {/* Custom Toggle Switch */}
+                    {/* Toggle Switch */}
                     <span
                       className={`relative h-4 w-7 shrink-0 rounded-full transition-colors duration-200 ${
                         active ? "bg-cyan-500" : "bg-slate-700"
@@ -115,9 +116,9 @@ export function LayerPanel({
             })}
           </ul>
 
-          {/* SAR Opacity Control Slider */}
+          {/* SAR Opacity Slider */}
           {visibility["sar-raster"] && onChangeSarOpacity && (
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/50 p-2.5 pt-2">
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-2.5">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <div className="flex items-center gap-1.5 text-slate-300 font-semibold text-[11px]">
                   <Sliders className="h-3 w-3 text-cyan-400" />

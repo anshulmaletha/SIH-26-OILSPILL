@@ -1,45 +1,26 @@
-# Map Explorer
+# SIH 26143 — Maritime Situation & Oil Spill Intelligence Platform
 
-I am responsible for P6 of a team project.
+Geospatial intelligence platform for maritime monitoring, SAR radar detection, oil slick segmentation, time-animated H3 corridor matching, and AIS vessel tracks.
 
-P6 is responsible for:
+## Features (Day 2 Integration)
 
-- Full-stack UI
+1. **MapLibre GL & Deck.gl Map Dashboard**: High-contrast, dark maritime base map of Singapore Strait with interactive zoom, pitch, and bearing controls.
+2. **SAR Raster Overlay**: Synthetic Aperture Radar Sentinel-1 backscatter scene integration with live opacity control.
+3. **Oil Slick Polygon**: High-confidence oil slick extent polygon with forensic classification metadata.
+4. **Time-Animated H3 Hexagonal Corridor**: Dynamic H3 density corridor adapting in real-time across observation timestamps (`-24h → -18h → -12h → -6h → 0h`) using particle density color gradients.
+5. **AIS Vessel Tracks Overlay**: Vessel historical trajectories and interpolated position pings mapped to observation timestamps.
+6. **Observation Time Slider**: Interactive timeline scrubber with Play Demo animation, milestone snaps, and live UTC clock.
+7. **Clean Pipeline Adapters**: Standardized data contracts for cross-pipeline data injection (P1, P4, P5).
 
-- Map dashboard
+## Getting Started
 
-- Demo reliability
+```bash
+# Install dependencies
+npm install
 
-For Day 1 I need to:
+# Start development server
+npm run dev
 
-1. Set up the frontend project using React
-
-2. Use MapLibre GL JS for the map
-
-3. Use Deck.gl for geospatial visualization layers
-
-4. Create a clean project/repository structure
-
-5. Set up .gitignore and .env handling
-
-6. Prepare placeholder layers for:
-
-   - SAR raster
-
-   - slick polygon
-
-   - H3 corridor
-
-   - AIS tracks
-
-Do NOT build the entire application yet.
-
-First, inspect the current folder and tell me:
-
-- what files exist
-
-- what needs to be created
-
-- the recommended architecture
-
-- the commands you will run
+# Build production bundle
+npm run build
+```

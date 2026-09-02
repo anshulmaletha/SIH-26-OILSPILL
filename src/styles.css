@@ -140,5 +140,39 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    overflow: hidden;
   }
 }
+
+/* Offset MapLibre controls to clear the top header bar */
+.maplibregl-ctrl-top-right {
+  top: 64px !important;
+  right: 12px !important;
+}
+
+.maplibregl-ctrl-bottom-right {
+  bottom: 12px !important;
+  right: 12px !important;
+}
+
+.maplibregl-ctrl-group {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  overflow: hidden !important;
+}
+
+.maplibregl-ctrl-group button {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.2);
+}
+
