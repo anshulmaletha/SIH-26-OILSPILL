@@ -16,6 +16,7 @@ import { LAYER_META, type LayerId, TRACK_COLOR_OPTIONS } from "@/lib/map/config"
 import type { VesselTrack } from "@/lib/contracts/p5";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { MapLegend } from "./MapLegend";
 
 const LAYER_ICONS: Record<LayerId, typeof Layers> = {
   "sar-raster": Radar,
@@ -318,11 +319,15 @@ export function TrackSelectionCard({
 }
 
 /**
- * Combined Left Control Stack with both independent collapsible cards
+ * Combined Left Control Stack:
+ * 1. Layer Controls Card
+ * 2. Track Selection Card (when AIS tracks is active)
+ * 3. Map Legend Card (flows dynamically with gap-2.5, ZERO OVERLAP guaranteed)
  */
 export function LayerPanel(props: LayerPanelProps) {
   return (
-    <div className="flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pr-1">
+    <div className="flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pr-1 pb-4">
+      {/* 1. Layer Controls Card */}
       <LayerControlsCard
         visibility={props.visibility}
         onToggle={props.onToggle}
@@ -330,6 +335,7 @@ export function LayerPanel(props: LayerPanelProps) {
         onChangeSarOpacity={props.onChangeSarOpacity}
       />
 
+      {/* 2. Track Selection Card */}
       {props.visibility["ais-tracks"] && (
         <TrackSelectionCard
           vessels={props.vessels}
@@ -341,6 +347,9 @@ export function LayerPanel(props: LayerPanelProps) {
           onToggleFollowTrack={props.onToggleFollowTrack}
         />
       )}
+
+      {/* 3. Map Legend Card — dynamically sits below Track Selection */}
+      <MapLegend visibility={props.visibility} />
     </div>
   );
 }

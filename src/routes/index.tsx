@@ -3,7 +3,6 @@ import { Suspense, lazy, useState, useEffect } from "react";
 import { ShieldAlert, Radio, Flame, Ship, Sun, Moon } from "lucide-react";
 
 import { LayerPanel } from "@/components/map/LayerPanel";
-import { MapLegend } from "@/components/map/MapLegend";
 import { TimeSlider } from "@/components/map/TimeSlider";
 import {
   DEFAULT_VISIBILITY,
@@ -188,7 +187,7 @@ function DashboardPage() {
           />
         </Suspense>
 
-        {/* Floating Layer Control Panel (Top Left) */}
+        {/* Floating Left Control Dock (Top Left) */}
         <div className="absolute left-4 top-16 z-10">
           <LayerPanel
             visibility={visibility}
@@ -203,11 +202,6 @@ function DashboardPage() {
             followTrack={followTrack}
             onToggleFollowTrack={setFollowTrack}
           />
-        </div>
-
-        {/* Floating Map Legend (Bottom Left) */}
-        <div className="absolute bottom-6 left-4 z-10">
-          <MapLegend visibility={visibility} />
         </div>
 
         {/* Observation Time Slider (Bottom Right) */}
