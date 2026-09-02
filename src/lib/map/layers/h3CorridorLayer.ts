@@ -1,28 +1,53 @@
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
-import { gridDisk, latLngToCell } from "h3-js";
-
 import { LAYER_IDS } from "../config";
-import { CORRIDOR_WAYPOINTS, H3_CORRIDOR_RESOLUTION } from "../data/sampleData";
+import type { H3CellDensity } from "../../contracts/p4";
+import { getDensityColor } from "../../adapters/p4Adapter";
+import type { MapTooltipInfo } from "../types";
 
-/** Placeholder H3 corridor: hexes surrounding the corridor waypoints. */
-export function createH3CorridorLayer(visible: boolean) {
-  const cells = new Set<string>();
-  for (const [lng, lat] of CORRIDOR_WAYPOINTS) {
-    const center = latLngToCell(lat, lng, H3_CORRIDOR_RESOLUTION);
-    for (const cell of gridDisk(center, 1)) cells.add(cell);
-  }
-
-  return new H3HexagonLayer({
+export function createH3CorridorLayer(
+  cells: H3CellDensity[],
+  visible: boolean,
+  relativeHour: number,
+  onHover?: (info: MapTooltipInfo | null) => void
+) {
+  return new H3HexagonLayer<H3CellDensity>({
     id: LAYER_IDS.h3Corridor,
     visible,
-    data: [...cells].map((hex) => ({ hex })),
-    getHexagon: (d: { hex: string }) => d.hex,
+    data: cells,
+    getHexagon: (d) => d.h3Index,
     filled: true,
     stroked: true,
-    getFillColor: [34, 211, 238, 60],
-    getLineColor: [34, 211, 238, 200],
-    getLineWidth: 1,
+    getFillColor: (d) => getDensityColor(d.density, 0.75),
+    getLineColor: (d) => {
+      const [r, g, b] = getDensityColor(d.density);
+      return [r, g, b, 240];
+    },
+    getLineWidth: 1.5,
     lineWidthUnits: "pixels",
     pickable: true,
+    updateTriggers: {
+      getFillColor: [cells, relativeHour],
+      getLineColor: [cells, relativeHour],
+    },
+    onHover: (info) => {
+      if (!onHover) return;
+      if (!info.object) {
+        onHover(null);
+        return;
+      }
+      const c = info.object as H3CellDensity;
+      onHover({
+        x: info.x,
+        y: info.y,
+        type: "h3cell",
+        title: `H3 Hex Cell (${c.h3Index.substring(0, 10)}...)`,
+        items: [
+          { label: "Corridor Time", value: `${relativeHour}h from detection` },
+          { label: "Particle Density", value: `${(c.density * 100).toFixed(0)}%` },
+          { label: "Particle Count", value: c.particleCount },
+          { label: "Risk Category", value: c.riskLevel.toUpperCase() },
+        ],
+      });
+    },
   });
 }
