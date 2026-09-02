@@ -29,7 +29,7 @@ export interface LayerMeta {
   id: LayerId;
   label: string;
   description: string;
-  /** Tailwind-free swatch color (hex) used in the legend/panel. */
+  /** Swatch color (hex) used in legend and panel. */
   color: string;
 }
 
@@ -37,25 +37,32 @@ export const LAYER_META: LayerMeta[] = [
   {
     id: LAYER_IDS.sarRaster,
     label: "SAR Raster",
-    description: "Synthetic aperture radar backscatter tile (placeholder)",
+    description: "Synthetic aperture radar backscatter scene (P1 integration)",
     color: "#9ca3af",
   },
   {
     id: LAYER_IDS.slickPolygon,
     label: "Slick Polygon",
-    description: "Detected oil slick extent (placeholder)",
+    description: "Detected oil slick extent polygon (P1 integration)",
     color: "#f59e0b",
   },
   {
     id: LAYER_IDS.h3Corridor,
     label: "H3 Corridor",
-    description: "H3 hexagon corridor cells (placeholder)",
-    color: "#22d3ee",
+    description: "H3 hexagon corridor cells with particle density styling (P4 integration)",
+    color: "#ec4899",
   },
   {
     id: LAYER_IDS.aisTracks,
     label: "AIS Tracks",
-    description: "Vessel AIS tracks and position pings (placeholder)",
+    description: "Vessel tracks and interpolated positions (P5 integration)",
     color: "#4ade80",
   },
 ];
+
+export const DEFAULT_VISIBILITY: Record<LayerId, boolean> = {
+  [LAYER_IDS.sarRaster]: true,
+  [LAYER_IDS.slickPolygon]: true,
+  [LAYER_IDS.h3Corridor]: true,
+  [LAYER_IDS.aisTracks]: true,
+};

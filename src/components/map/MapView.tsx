@@ -6,25 +6,63 @@ import {
   type IControl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { INITIAL_VIEW_STATE, LAYER_IDS, type LayerId } from "@/lib/map/config";
+import { INITIAL_VIEW_STATE, type LayerId } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
+import type { P1Output } from "@/lib/contracts/p1";
+import type { P4Output } from "@/lib/contracts/p4";
+import type { P5Output, VesselTrack } from "@/lib/contracts/p5";
+import { DEFAULT_P1_DATA } from "@/lib/adapters/p1Adapter";
+import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
+import { DEFAULT_P5_DATA } from "@/lib/adapters/p5Adapter";
+import type { MapTooltipInfo } from "@/lib/map/types";
 
 export interface MapViewProps {
   visibility: Record<LayerId, boolean>;
+  p1Data?: P1Output;
+  p4Data?: P4Output;
+  p5Data?: P5Output;
+  relativeHour?: number;
+  sarOpacity?: number;
+  selectedVesselId?: string | null;
+  onSelectVessel?: (vessel: VesselTrack) => void;
 }
 
 /**
  * MapLibre basemap + deck.gl overlay (interleaved mode).
- * This module is browser-only — it is lazy-loaded behind <ClientOnly>.
+ * Browser-only — lazy-loaded behind <ClientOnly>.
  */
-export default function MapView({ visibility }: MapViewProps) {
+export default function MapView({
+  visibility,
+  p1Data = DEFAULT_P1_DATA,
+  p4Data = DEFAULT_P4_DATA,
+  p5Data = DEFAULT_P5_DATA,
+  relativeHour = 0,
+  sarOpacity = 0.55,
+  selectedVesselId,
+  onSelectVessel,
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
+  const [tooltip, setTooltip] = useState<MapTooltipInfo | null>(null);
 
-  const layers = useMemo(() => buildLayers(visibility), [visibility]);
+  const layers = useMemo(
+    () =>
+      buildLayers({
+        visibility,
+        p1Data,
+        p4Data,
+        p5Data,
+        relativeHour,
+        sarOpacity,
+        selectedVesselId,
+        onHover: (info) => setTooltip(info),
+        onSelectVessel,
+      }),
+    [visibility, p1Data, p4Data, p5Data, relativeHour, sarOpacity, selectedVesselId, onSelectVessel]
+  );
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -41,8 +79,6 @@ export default function MapView({ visibility }: MapViewProps) {
     map.addControl(new NavigationControl(), "top-right");
     map.addControl(new ScaleControl(), "bottom-right");
 
-    // Attach the deck.gl overlay only after the map has fully loaded —
-    // map.transform is not ready before that, and early sync crashes.
     map.on("load", () => {
       if (overlayRef.current) return;
       const overlay = new MapboxOverlay({ interleaved: false, layers });
@@ -67,16 +103,30 @@ export default function MapView({ visibility }: MapViewProps) {
     <div
       ref={containerRef}
       className="absolute inset-0"
-      // Inline style wins over maplibre-gl.css (.maplibregl-map sets
-      // position:relative), which loads after Tailwind in the lazy chunk.
       style={{ position: "absolute", inset: 0 }}
-    />
+    >
+      {tooltip && (
+        <div
+          className="pointer-events-none absolute z-30 rounded-lg border border-border/80 bg-card/95 px-3 py-2 text-xs shadow-2xl backdrop-blur-md"
+          style={{
+            left: tooltip.x + 14,
+            top: tooltip.y + 14,
+            maxWidth: "240px",
+          }}
+        >
+          <div className="font-bold text-foreground truncate border-b border-border/60 pb-1 mb-1">
+            {tooltip.title}
+          </div>
+          <div className="space-y-0.5 font-mono text-[11px]">
+            {tooltip.items.map((item, idx) => (
+              <div key={idx} className="flex justify-between gap-2">
+                <span className="text-muted-foreground">{item.label}:</span>
+                <span className="font-semibold text-foreground truncate">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-
-export const DEFAULT_VISIBILITY: Record<LayerId, boolean> = {
-  [LAYER_IDS.sarRaster]: true,
-  [LAYER_IDS.slickPolygon]: true,
-  [LAYER_IDS.h3Corridor]: true,
-  [LAYER_IDS.aisTracks]: true,
-};
