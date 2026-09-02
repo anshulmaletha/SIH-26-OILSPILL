@@ -105,23 +105,27 @@ export default function MapView({
       className="absolute inset-0"
       style={{ position: "absolute", inset: 0 }}
     >
+      {/* Polished Glass Tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-30 rounded-lg border border-border/80 bg-card/95 px-3 py-2 text-xs shadow-2xl backdrop-blur-md"
+          className="pointer-events-none absolute z-30 rounded-xl border border-slate-700/80 bg-slate-950/95 px-3.5 py-2.5 text-xs shadow-2xl shadow-black/80 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
           style={{
             left: tooltip.x + 14,
             top: tooltip.y + 14,
-            maxWidth: "240px",
+            maxWidth: "260px",
           }}
         >
-          <div className="font-bold text-foreground truncate border-b border-border/60 pb-1 mb-1">
-            {tooltip.title}
+          <div className="font-bold text-slate-100 truncate border-b border-slate-800/80 pb-1 mb-1.5 flex items-center justify-between">
+            <span className="truncate">{tooltip.title}</span>
+            <span className="ml-1 text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
+              {tooltip.type}
+            </span>
           </div>
-          <div className="space-y-0.5 font-mono text-[11px]">
+          <div className="space-y-1 font-mono text-[11px]">
             {tooltip.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between gap-2">
-                <span className="text-muted-foreground">{item.label}:</span>
-                <span className="font-semibold text-foreground truncate">{item.value}</span>
+              <div key={idx} className="flex justify-between gap-3">
+                <span className="text-slate-400 font-medium">{item.label}:</span>
+                <span className="font-semibold text-slate-200 truncate">{item.value}</span>
               </div>
             ))}
           </div>
