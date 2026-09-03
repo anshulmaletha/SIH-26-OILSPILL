@@ -1,0 +1,22 @@
+{
+  "ranked_suspects": [
+    {
+      "vessel_id": "IMO_9876543",
+      "total_score": 98.33,
+      "feature_breakdown": {
+        "corridor_overlap_score": 1.0,
+        "heading_alignment_score": 0.9444,
+        "speed_anomaly_score": 1.0,
+        "ais_gap_history_score": 1.0
+      },
+      "weights_used": {
+        "corridor_overlap": 0.4,
+        "heading_alignment": 0.3,
+        "speed_anomaly": 0.2,
+        "ais_gap_history": 0.1
+      }
+    }
+  ],
+  "dark_vessels": [],
+  "null_result": false
+}

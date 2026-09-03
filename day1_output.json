@@ -1,0 +1,140 @@
+{
+  "scene_id": "S1A_IW_GRDH_1SDV_20260901T101500_20260901T101530_055012_06B2F3_A1C4",
+  "acquisition_time": "2026-09-01T10:15:00Z",
+  "polygons": [
+    {
+      "polygon_id": "slick_poly_001",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.465,
+              18.48
+            ],
+            [
+              72.48,
+              18.492
+            ],
+            [
+              72.5,
+              18.51
+            ],
+            [
+              72.52,
+              18.525
+            ],
+            [
+              72.54,
+              18.54
+            ],
+            [
+              72.542,
+              18.537
+            ],
+            [
+              72.522,
+              18.522
+            ],
+            [
+              72.502,
+              18.507
+            ],
+            [
+              72.482,
+              18.487
+            ],
+            [
+              72.467,
+              18.477
+            ],
+            [
+              72.465,
+              18.48
+            ]
+          ]
+        ]
+      },
+      "confidence": 0.87,
+      "geometry_features": {
+        "area_km2": 14.2,
+        "perimeter_km": 22.8,
+        "major_axis_km": 8.1,
+        "minor_axis_km": 1.8,
+        "eccentricity": 0.97,
+        "orientation_deg": 42.5
+      },
+      "lookalike_filter": {
+        "wind_speed_ms": 5.8,
+        "wind_gate_passed": true,
+        "damping_ratio": 0.82,
+        "shape_gate_passed": true,
+        "final_decision": "confirmed",
+        "rejection_reason": null
+      }
+    },
+    {
+      "polygon_id": "lookalike_poly_002",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              72.6,
+              18.6
+            ],
+            [
+              72.61,
+              18.615
+            ],
+            [
+              72.625,
+              18.62
+            ],
+            [
+              72.64,
+              18.615
+            ],
+            [
+              72.645,
+              18.6
+            ],
+            [
+              72.635,
+              18.585
+            ],
+            [
+              72.62,
+              18.582
+            ],
+            [
+              72.605,
+              18.588
+            ],
+            [
+              72.6,
+              18.6
+            ]
+          ]
+        ]
+      },
+      "confidence": 0.62,
+      "geometry_features": {
+        "area_km2": 8.5,
+        "perimeter_km": 11.2,
+        "major_axis_km": 3.2,
+        "minor_axis_km": 2.6,
+        "eccentricity": 0.58,
+        "orientation_deg": 10.0
+      },
+      "lookalike_filter": {
+        "wind_speed_ms": 1.4,
+        "wind_gate_passed": false,
+        "damping_ratio": 0.35,
+        "shape_gate_passed": false,
+        "final_decision": "rejected",
+        "rejection_reason": "Wind speed 1.4 m/s out of operational range (2.0 - 12.0 m/s); Insufficient radar damping ratio (0.35 < 0.50); Non-linear geometry typical of natural look-alike (eccentricity 0.58 < 0.70)"
+      }
+    }
+  ]
+}

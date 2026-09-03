@@ -1,0 +1,88 @@
+{
+  "corridor": {
+    "origin_hex": "872a1076dffffff",
+    "resolution": 7,
+    "timesteps_hours": [6, 12, 18, 24],
+    "corridor_hexes": [
+      "872a1076dffffff",
+      "872a1076effffff",
+      "872a10760ffffff",
+      "872a10761ffffff",
+      "872a10762ffffff"
+    ],
+    "drift_config": {
+      "currents_source": "HYCOM",
+      "wind_source": "ERA5",
+      "wind_drift_factor": 0.03,
+      "duration_hours": 24,
+      "timestep_minutes": 60,
+      "num_particles": 1000
+    }
+  },
+  "ais_query_bounds": {
+    "time_window_start": "2026-08-31T10:15:00Z",
+    "time_window_end": "2026-09-01T10:15:00Z",
+    "hex_ids_queried": [
+      "872a1076dffffff",
+      "872a1076effffff",
+      "872a10760ffffff",
+      "872a10761ffffff",
+      "872a10762ffffff"
+    ],
+    "total_ais_positions_scanned": 14283,
+    "vessels_intersecting_corridor": 3
+  },
+  "cfar_radar_detections": [
+    {
+      "cfar_detection_id": "CFAR_DET_001",
+      "position": {
+        "type": "Point",
+        "coordinates": [72.51, 18.52]
+      },
+      "timestamp": "2026-09-01T09:45:00Z",
+      "radar_cross_section_dbsm": 42.3,
+      "estimated_length_m": 185.0,
+      "nearest_corridor_hex": "872a1076dffffff"
+    },
+    {
+      "cfar_detection_id": "CFAR_DET_002",
+      "position": {
+        "type": "Point",
+        "coordinates": [72.48, 18.49]
+      },
+      "timestamp": "2026-09-01T09:50:00Z",
+      "radar_cross_section_dbsm": 38.7,
+      "estimated_length_m": 120.0,
+      "nearest_corridor_hex": "872a1076effffff"
+    },
+    {
+      "cfar_detection_id": "CFAR_DET_003",
+      "position": {
+        "type": "Point",
+        "coordinates": [72.62, 18.61]
+      },
+      "timestamp": "2026-09-01T10:00:00Z",
+      "radar_cross_section_dbsm": 35.1,
+      "estimated_length_m": 95.0,
+      "nearest_corridor_hex": "872a10762ffffff"
+    }
+  ],
+  "ais_tracks_at_scene_time": [
+    {
+      "vessel_id": "IMO_9876543",
+      "position": {
+        "type": "Point",
+        "coordinates": [72.52, 18.53]
+      },
+      "timestamp": "2026-09-01T09:44:00Z"
+    },
+    {
+      "vessel_id": "IMO_1234567",
+      "position": {
+        "type": "Point",
+        "coordinates": [72.60, 18.58]
+      },
+      "timestamp": "2026-09-01T09:48:00Z"
+    }
+  ]
+}
