@@ -13,10 +13,7 @@ import {
   type ThemeMode,
   TRACK_COLOR_OPTIONS,
 } from "@/lib/map/config";
-import { DEFAULT_P1_DATA } from "@/lib/adapters/p1Adapter";
-import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
-import { DEFAULT_P5_DATA, EMPTY_P5_DATA } from "@/lib/adapters/p5Adapter";
-import { DEFAULT_P3_DATA, NO_CANDIDATES_P3_DATA } from "@/lib/adapters/p3Adapter";
+import { getOfflineScenario } from "@/lib/data/offlineDemoData";
 import { Button } from "@/components/ui/button";
 
 // MapLibre/Deck.gl are browser-only: lazy-load the map so SSR never touches it.
@@ -95,8 +92,11 @@ function DashboardPage() {
   const selectedTrackColor =
     TRACK_COLOR_OPTIONS.find((c) => c.id === selectedTrackColorId)?.rgb ?? [34, 197, 94];
 
-  const currentP5Data = scenario === "active" ? DEFAULT_P5_DATA : EMPTY_P5_DATA;
-  const currentP3Data = scenario === "active" ? DEFAULT_P3_DATA : NO_CANDIDATES_P3_DATA;
+  const currentScenario = getOfflineScenario(scenario);
+  const currentP1Data = currentScenario.p1Data;
+  const currentP3Data = currentScenario.p3Data;
+  const currentP4Data = currentScenario.p4Data;
+  const currentP5Data = currentScenario.p5Data;
 
   return (
     <div
@@ -120,7 +120,7 @@ function DashboardPage() {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground truncate">
-              Maritime Oil Spill Intelligence Platform • Singapore Strait Sector (103.85°E, 1.18°N)
+              {currentScenario.sector}
             </p>
           </div>
         </div>
@@ -168,9 +168,9 @@ function DashboardPage() {
 
           {/* Case-File Export Button */}
           <CaseFileExportButton
-            p1Data={DEFAULT_P1_DATA}
+            p1Data={currentP1Data}
             p3Data={currentP3Data}
-            p4Data={DEFAULT_P4_DATA}
+            p4Data={currentP4Data}
             p5Data={currentP5Data}
           />
 
@@ -213,8 +213,8 @@ function DashboardPage() {
         >
           <MapView
             visibility={visibility}
-            p1Data={DEFAULT_P1_DATA}
-            p4Data={DEFAULT_P4_DATA}
+            p1Data={currentP1Data}
+            p4Data={currentP4Data}
             p5Data={currentP5Data}
             relativeHour={selectedHour}
             sarOpacity={sarOpacity}
