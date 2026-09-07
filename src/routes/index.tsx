@@ -4,6 +4,7 @@ import { ShieldAlert, Radio, Flame, Ship, Sun, Moon } from "lucide-react";
 
 import { LayerPanel } from "@/components/map/LayerPanel";
 import { TimeSlider } from "@/components/map/TimeSlider";
+import { SuspectRankingTable } from "@/components/dashboard/SuspectRankingTable";
 import {
   DEFAULT_VISIBILITY,
   type LayerId,
@@ -201,6 +202,15 @@ function DashboardPage() {
             onSelectTrackColorId={setSelectedTrackColorId}
             followTrack={followTrack}
             onToggleFollowTrack={setFollowTrack}
+          />
+        </div>
+
+        {/* Floating Suspect Ranking Table (Top Right) */}
+        <div className="absolute top-16 right-4 z-10">
+          <SuspectRankingTable
+            p3Data={DEFAULT_P3_DATA}
+            selectedVesselId={selectedTrackId}
+            onSelectVessel={setSelectedTrackId}
           />
         </div>
 
