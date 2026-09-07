@@ -14,7 +14,8 @@ import {
 } from "@/lib/map/config";
 import { DEFAULT_P1_DATA } from "@/lib/adapters/p1Adapter";
 import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
-import { DEFAULT_P5_DATA } from "@/lib/adapters/p5Adapter";
+import { DEFAULT_P5_DATA, EMPTY_P5_DATA } from "@/lib/adapters/p5Adapter";
+import { DEFAULT_P3_DATA, NO_CANDIDATES_P3_DATA } from "@/lib/adapters/p3Adapter";
 import { Button } from "@/components/ui/button";
 
 // MapLibre/Deck.gl are browser-only: lazy-load the map so SSR never touches it.
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
   const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [scenario, setScenario] = useState<"active" | "no_candidates">("active");
   const [visibility, setVisibility] = useState(DEFAULT_VISIBILITY);
   const [selectedHour, setSelectedHour] = useState<number>(0);
   const [sarOpacity, setSarOpacity] = useState<number>(0.55);
@@ -92,6 +94,9 @@ function DashboardPage() {
   const selectedTrackColor =
     TRACK_COLOR_OPTIONS.find((c) => c.id === selectedTrackColorId)?.rgb ?? [34, 197, 94];
 
+  const currentP5Data = scenario === "active" ? DEFAULT_P5_DATA : EMPTY_P5_DATA;
+  const currentP3Data = scenario === "active" ? DEFAULT_P3_DATA : NO_CANDIDATES_P3_DATA;
+
   return (
     <div
       className={`relative h-screen w-screen overflow-hidden font-sans select-none transition-colors duration-300 ${
@@ -119,8 +124,8 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Live Telemetry KPI Badges & Theme Switcher */}
-        <div className="flex items-center gap-3">
+        {/* Live Telemetry KPI Badges, Scenario Switcher & Theme Switcher */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden lg:flex items-center gap-2 font-mono text-xs">
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-foreground">
               <Radio className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
@@ -134,8 +139,30 @@ function DashboardPage() {
 
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-emerald-500 font-semibold">
               <Ship className="h-3.5 w-3.5 text-emerald-500" />
-              <span>AIS: 3 Tracks</span>
+              <span>
+                AIS: {currentP5Data.vessels.length} {scenario === "active" ? "Tracks" : "(Null Result)"}
+              </span>
             </div>
+          </div>
+
+          {/* Demo Scenario Switcher */}
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground hidden sm:inline">Scenario:</span>
+            <select
+              value={scenario}
+              onChange={(e) => {
+                const nextScenario = e.target.value as "active" | "no_candidates";
+                setScenario(nextScenario);
+                if (nextScenario === "no_candidates") {
+                  setSelectedTrackId("all");
+                  setFollowTrack(false);
+                }
+              }}
+              className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+            >
+              <option value="active">Incident #1 (Active Suspects)</option>
+              <option value="no_candidates">Incident #2 (No Candidates)</option>
+            </select>
           </div>
 
           {/* Theme Mode Toggle */}
@@ -179,7 +206,7 @@ function DashboardPage() {
             visibility={visibility}
             p1Data={DEFAULT_P1_DATA}
             p4Data={DEFAULT_P4_DATA}
-            p5Data={DEFAULT_P5_DATA}
+            p5Data={currentP5Data}
             relativeHour={selectedHour}
             sarOpacity={sarOpacity}
             selectedTrackId={selectedTrackId}
@@ -196,7 +223,7 @@ function DashboardPage() {
             onToggle={toggleLayer}
             sarOpacity={sarOpacity}
             onChangeSarOpacity={setSarOpacity}
-            vessels={DEFAULT_P5_DATA.vessels}
+            vessels={currentP5Data.vessels}
             selectedTrackId={selectedTrackId}
             onSelectTrackId={setSelectedTrackId}
             selectedTrackColorId={selectedTrackColorId}
@@ -209,7 +236,7 @@ function DashboardPage() {
         {/* Prominent Dark Vessel Alert Banner (Top Center) */}
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-auto">
           <DarkVesselAlert
-            vessels={DEFAULT_P5_DATA.vessels}
+            vessels={currentP5Data.vessels}
             selectedVesselId={selectedTrackId}
             onFocusVessel={(vesselId) => {
               setSelectedTrackId(vesselId);
@@ -221,7 +248,7 @@ function DashboardPage() {
         {/* Floating Suspect Ranking Table (Top Right) */}
         <div className="absolute top-16 right-4 z-10">
           <SuspectRankingTable
-            p3Data={DEFAULT_P3_DATA}
+            p3Data={currentP3Data}
             selectedVesselId={selectedTrackId}
             onSelectVessel={setSelectedTrackId}
           />

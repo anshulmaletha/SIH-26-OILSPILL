@@ -112,6 +112,16 @@ export const DEFAULT_P5_DATA: P5Output = {
   ],
 };
 
+export const EMPTY_P5_DATA: P5Output = {
+  timeWindowStart: "2026-09-01T06:00:00Z",
+  timeWindowEnd: "2026-09-02T06:00:00Z",
+  totalVesselsMonitored: 0,
+  candidatesIdentified: 0,
+  darkVesselsDetected: 0,
+  generatedAt: "2026-09-02T06:30:00Z",
+  vessels: [],
+};
+
 export function getVesselPositionsAtHour(p5: P5Output, relativeHour: number): ActiveVesselPosition[] {
   const vessels = p5?.vessels || DEFAULT_P5_DATA.vessels;
   if (!vessels || vessels.length === 0) return [];
