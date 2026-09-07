@@ -5,6 +5,7 @@ import { ShieldAlert, Radio, Flame, Ship, Sun, Moon } from "lucide-react";
 import { LayerPanel } from "@/components/map/LayerPanel";
 import { TimeSlider } from "@/components/map/TimeSlider";
 import { SuspectRankingTable } from "@/components/dashboard/SuspectRankingTable";
+import { DarkVesselAlert } from "@/components/dashboard/DarkVesselAlert";
 import {
   DEFAULT_VISIBILITY,
   type LayerId,
@@ -202,6 +203,18 @@ function DashboardPage() {
             onSelectTrackColorId={setSelectedTrackColorId}
             followTrack={followTrack}
             onToggleFollowTrack={setFollowTrack}
+          />
+        </div>
+
+        {/* Prominent Dark Vessel Alert Banner (Top Center) */}
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-auto">
+          <DarkVesselAlert
+            vessels={DEFAULT_P5_DATA.vessels}
+            selectedVesselId={selectedTrackId}
+            onFocusVessel={(vesselId) => {
+              setSelectedTrackId(vesselId);
+              setFollowTrack(true);
+            }}
           />
         </div>
 

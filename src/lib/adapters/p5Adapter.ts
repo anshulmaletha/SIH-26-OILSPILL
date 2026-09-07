@@ -15,7 +15,7 @@ export const DEFAULT_P5_DATA: P5Output = {
   timeWindowEnd: "2026-09-02T06:00:00Z",
   totalVesselsMonitored: 3,
   candidatesIdentified: 2,
-  darkVesselsDetected: 0,
+  darkVesselsDetected: 1,
   generatedAt: "2026-09-02T06:30:00Z",
   vessels: [
     {
@@ -56,7 +56,18 @@ export const DEFAULT_P5_DATA: P5Output = {
       draughtMeters: 9.2,
       destination: "PASIR GUDANG",
       isCandidate: true,
-      isDarkVessel: false,
+      isDarkVessel: true,
+      darkAnomaly: {
+        gapStartTimestamp: "2026-09-01T10:00:00Z",
+        gapEndTimestamp: "2026-09-01T17:12:00Z",
+        gapDurationHours: 7.2,
+        lastKnownPosition: [103.90, 1.11],
+        reappearancePosition: [103.84, 1.16],
+        estimatedTransitSpeedKnots: 13.0,
+        spillCorridorIntersection: true,
+        radarContactCorrelated: true,
+        notes: "Deliberate AIS transponder shutdown during corridor traversal coinciding with estimated discharge window",
+      },
       path: AIS_TRACKS[1]?.path || [
         [103.97, 1.08],
         [103.9, 1.11],
