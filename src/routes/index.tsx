@@ -6,6 +6,7 @@ import { LayerPanel } from "@/components/map/LayerPanel";
 import { TimeSlider } from "@/components/map/TimeSlider";
 import { SuspectRankingTable } from "@/components/dashboard/SuspectRankingTable";
 import { DarkVesselAlert } from "@/components/dashboard/DarkVesselAlert";
+import { CaseFileExportButton } from "@/components/dashboard/CaseFileExportButton";
 import {
   DEFAULT_VISIBILITY,
   type LayerId,
@@ -164,6 +165,14 @@ function DashboardPage() {
               <option value="no_candidates">Incident #2 (No Candidates)</option>
             </select>
           </div>
+
+          {/* Case-File Export Button */}
+          <CaseFileExportButton
+            p1Data={DEFAULT_P1_DATA}
+            p3Data={currentP3Data}
+            p4Data={DEFAULT_P4_DATA}
+            p5Data={currentP5Data}
+          />
 
           {/* Theme Mode Toggle */}
           <Button
