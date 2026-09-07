@@ -1,0 +1,52 @@
+=====================================================================================
+ SIH 2026 SENTINEL-1 SAR OIL SPILL DETECTOR - FINAL EVALUATION REPORT
+=====================================================================================
+
+1. EVALUATION PROTOCOL SPECIFICATION
+-------------------------------------------------------------------------------------
+ Model Checkpoint    : models/best_unet_baseline.pt
+ Architecture        : 1-Channel U-Net Baseline (features=16, 10,157,767 bytes)
+ Input Channel       : 1-Channel VV
+ Preprocessing       : Clip VV [-35.0, 0.0] dB + Z-score Normalization
+ Decision Threshold  : 0.50 (Raw sigmoid output)
+ Primary Mode        : Raw U-Net (Post-Processing OFF)
+ Diagnostic Note     : 20200319b.tif was inspected diagnostically; not used for tuning.
+ Untouched Benchmark: 6 test scenes (excluding 20200319b.tif)
+ Total Test Benchmark: All 7 test scenes
+
+2. PRIMARY BENCHMARK: UNTOUCHED TEST SET (6 SCENES)
+-------------------------------------------------------------------------------------
+   Global Dice       : 0.4198
+   Global IoU        : 0.2657
+   Global Precision  : 0.2962
+   Global Recall     : 0.7205
+   Global F1-Score   : 0.4198
+   Total GT Oil Px   : 1,620,002 px (162.00 km²)
+   Total Pred Oil Px : 3,940,684 px (394.07 km²)
+   True Positives TP : 1,167,169 px
+   False Positives FP: 2,773,515 px
+   False Negatives FN: 452,833 px
+
+3. OVERALL BENCHMARK: ALL 7 TEST SCENES
+-------------------------------------------------------------------------------------
+   Global Dice       : 0.4170
+   Global IoU        : 0.2635
+   Global Precision  : 0.2960
+   Global Recall     : 0.7056
+   Global F1-Score   : 0.4170
+
+4. PER-SCENE BREAKDOWN (PRIMARY RAW U-NET)
+-------------------------------------------------------------------------------------
+ Scene Name         | Status     | Dimensions | GT Oil (px) | Pred Oil (px) | Global Dice | Precision | Recall
+ -------------------+------------+------------+-------------+---------------+-------------+-----------+---------
+ 2018_09_26.tif     | Untouched  | 2555x5083  |     425,005 |       677,547 |      0.6994 |    0.5691 | 0.9072
+ 2018_12_19_d.tif   | Untouched  | 1116x2340  |      59,487 |       452,795 |      0.1907 |    0.1076 | 0.8358
+ 2018_12_19_e.tif   | Untouched  | 2380x3772  |      41,400 |        40,348 |      0.5110 |    0.5176 | 0.5045
+ 2018_12_19_f_.tif  | Untouched  | 2554x3250  |     596,199 |     2,063,495 |      0.3227 |    0.2081 | 0.7182
+ 20191015.tif       | Untouched  | 1683x5050  |     441,360 |       598,588 |      0.5017 |    0.4313 | 0.5997
+ 20200224_b.tif     | Untouched  | 1709x2590  |      44,911 |         8,868 |      0.3212 |    0.9741 | 0.1923
+ 20200319b.tif      | Diagnostic | 1528x2641  |      38,732 |        13,684 |      0.1253 |    0.2400 | 0.0848
+
+=====================================================================================
+ END OF EVALUATION REPORT
+=====================================================================================

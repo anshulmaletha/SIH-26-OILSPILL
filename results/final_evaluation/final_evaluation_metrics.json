@@ -1,0 +1,145 @@
+{
+  "evaluation_protocol": {
+    "model_checkpoint": "models/best_unet_baseline.pt",
+    "architecture": "1-Channel U-Net Baseline (features=16)",
+    "input_channel": "VV",
+    "preprocessing": "VV clip [-35.0, 0.0] dB + z-score normalization (mean -15.4214, std 5.1238)",
+    "decision_threshold": 0.5,
+    "primary_mode": "Raw U-Net (Threshold 0.5, Post-Processing OFF)",
+    "optional_experiment": "Conservative Mask Enhancer (Hysteresis low=0.35, high=0.50, min_area=15, morph=3x3)",
+    "total_test_scenes": 7,
+    "untouched_test_scenes_count": 6,
+    "diagnostic_scene_excluded_from_untouched_set": "20200319b.tif"
+  },
+  "untouched_test_set_6_scenes": {
+    "global_pixel_metrics_primary_raw": {
+      "tp": 1167169,
+      "fp": 2773515,
+      "fn": 452833,
+      "tn": 44561875,
+      "gt_pos": 1620002,
+      "pred_pos": 3940684,
+      "dice": 0.41979316940391137,
+      "iou": 0.2656571034094038,
+      "precision": 0.2961843679929602,
+      "recall": 0.7204738018841508,
+      "f1": 0.41979312811243125,
+      "accuracy": 0.9340961665673109
+    },
+    "global_pixel_nonempty_gt_patches": {
+      "tp": 1167169,
+      "fp": 166006,
+      "fn": 452833,
+      "tn": 4505448,
+      "gt_pos": 1620002,
+      "pred_pos": 1333175,
+      "dice": 0.7904497427685239,
+      "iou": 0.6535071511437434,
+      "precision": 0.875480713334643,
+      "recall": 0.7204738018841508,
+      "f1": 0.7904496932401626,
+      "accuracy": 0.9016381899515787
+    },
+    "global_pixel_empty_gt_patches": {
+      "tp": 0,
+      "fp": 2607509,
+      "fn": 0,
+      "tn": 40056427,
+      "gt_pos": 0,
+      "pred_pos": 2607509,
+      "dice": 0.0,
+      "iou": 0.0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "f1": 0.0,
+      "accuracy": 0.9388825962986631
+    }
+  },
+  "all_7_test_scenes_overall": {
+    "global_pixel_metrics_primary_raw": {
+      "tp": 1170453,
+      "fp": 2783915,
+      "fn": 488281,
+      "tn": 48838119,
+      "gt_pos": 1658734,
+      "pred_pos": 3954368,
+      "dice": 0.4170431964357602,
+      "iou": 0.2634583555891932,
+      "precision": 0.29598990281126347,
+      "recall": 0.7056303180618047,
+      "f1": 0.4170431547988981,
+      "accuracy": 0.9385857951597094
+    },
+    "global_pixel_nonempty_gt_patches": {
+      "tp": 1170453,
+      "fp": 166006,
+      "fn": 488281,
+      "tn": 4859932,
+      "gt_pos": 1658734,
+      "pred_pos": 1336459,
+      "dice": 0.7815543105235361,
+      "iou": 0.6414354921796727,
+      "precision": 0.8757866870587968,
+      "recall": 0.7056303180618047,
+      "f1": 0.7815542611023734,
+      "accuracy": 0.9021213007908241
+    },
+    "global_pixel_empty_gt_patches": {
+      "tp": 0,
+      "fp": 2617909,
+      "fn": 0,
+      "tn": 43978187,
+      "gt_pos": 0,
+      "pred_pos": 2617909,
+      "dice": 0.0,
+      "iou": 0.0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "f1": 0.0,
+      "accuracy": 0.9438169884446972
+    },
+    "macro_patch_metrics_primary_raw": {
+      "all_patches_mean_dice": 0.7899587238613575,
+      "all_patches_mean_iou": 0.7801871946178341,
+      "all_patches_mean_precision": 0.8108734730465554,
+      "all_patches_mean_recall": 0.9323241071481625,
+      "all_patches_mean_f1": 0.7899587200448249,
+      "nonempty_patches_mean_dice": 0.48271022058121266,
+      "nonempty_patches_mean_precision": 0.6494130743808773,
+      "nonempty_patches_mean_recall": 0.4605833246221184,
+      "empty_patches_mean_precision": 0.8340365682137834
+    },
+    "optional_postprocessing_comparison": {
+      "global_pixel_metrics_post": {
+        "tp": 1245928,
+        "fp": 3190759,
+        "fn": 412806,
+        "tn": 48431275,
+        "gt_pos": 1658734,
+        "pred_pos": 4436687,
+        "dice": 0.4088078575704548,
+        "iou": 0.2569192284636712,
+        "precision": 0.2808239571554117,
+        "recall": 0.7511318873308951,
+        "f1": 0.40880781795559246,
+        "accuracy": 0.9323664966691171
+      },
+      "global_pixel_nonempty_gt_patches_post": {
+        "tp": 1245928,
+        "fp": 229376,
+        "fn": 412806,
+        "tn": 4796562,
+        "gt_pos": 1658734,
+        "pred_pos": 1475304,
+        "dice": 0.7950943798383812,
+        "iou": 0.6598810450661954,
+        "precision": 0.8445228915531413,
+        "recall": 0.7511318873308951,
+        "f1": 0.795094330009637,
+        "accuracy": 0.903932160022212
+      },
+      "all_patches_mean_dice_post": 0.7855794023549391,
+      "nonempty_patches_mean_dice_post": 0.5262358246526021
+    }
+  }
+}

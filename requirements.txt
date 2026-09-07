@@ -1,0 +1,8 @@
+torch
+numpy
+pandas
+rasterio
+matplotlib
+scikit-learn
+opencv-python
+tifffile

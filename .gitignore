@@ -1,0 +1,72 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE & Editors
+.vscode/
+.idea/
+.gemini/
+*.swp
+*.swo
+
+# Large Datasets (strictly ignored)
+Radar_data/
+*/Radar_data/
+data/raw/*
+!data/raw/.gitkeep
+data/sample/*
+!data/sample/.gitkeep
+data/train/*
+!data/train/.gitkeep
+data/val/*
+!data/val/.gitkeep
+data/test/*
+!data/test/.gitkeep
+
+# Model Checkpoints (track only production checkpoint best_unet_baseline.pt, ignore others)
+models/*
+!models/.gitkeep
+!models/best_unet_baseline.pt
+
+# Experimental & Scratch Results (keep .gitkeep and lightweight result summaries)
+results/*
+!results/.gitkeep
+!results/final_evaluation/
+results/baseline_v2/
+results/exp_per_scene_tversky/
+results/hard_negative_experiment/
+results/smoke/
+results/unet_plus_plus/
+results/unet_plus_plus_smoke/
+results/mismatch_check/
+results/val_predictions/
+
+# Logs & Temporary files
+*.log
+.DS_Store
+scratch/
