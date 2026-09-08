@@ -1,0 +1,110 @@
+{
+  "case_id": "99a15fd0-1e20-414c-8395-5dee591e064e",
+  "generated_at": "2026-09-03T10:22:16Z",
+  "scene_id": "S1A_IW_GRDH_1SDV_20260901T101500_20260901T101530_055012_06B2F3_A1C4",
+  "h3_resolution": 7,
+  "processing_parameters": {
+    "segmentation_model_version": "UNet-v1.2-Krestenitis",
+    "lookalike_thresholds": {
+      "wind_min_ms": 2.0,
+      "wind_max_ms": 12.0
+    },
+    "drift_config": {
+      "currents_source": "HYCOM",
+      "wind_source": "ERA5",
+      "wind_drift_factor": 0.03
+    },
+    "scoring_weights": {
+      "corridor_overlap": 0.4,
+      "heading_alignment": 0.3,
+      "speed_anomaly": 0.2,
+      "ais_gap_history": 0.1
+    }
+  },
+  "corridor": {
+    "origin_hex": "872a1076dffffff",
+    "resolution": 7,
+    "timesteps_hours": [
+      6,
+      12,
+      18,
+      24
+    ],
+    "corridor_hexes": [
+      "872a1076dffffff",
+      "872a1076effffff",
+      "872a10760ffffff",
+      "872a10761ffffff",
+      "872a10762ffffff"
+    ],
+    "drift_config": {
+      "currents_source": "HYCOM",
+      "wind_source": "ERA5",
+      "wind_drift_factor": 0.03,
+      "duration_hours": 24,
+      "timestep_minutes": 60,
+      "num_particles": 1000
+    }
+  },
+  "ais_query_bounds": {
+    "time_window_start": "2026-08-31T10:15:00Z",
+    "time_window_end": "2026-09-01T10:15:00Z",
+    "hex_ids_queried": [
+      "872a1076dffffff",
+      "872a1076effffff",
+      "872a10760ffffff",
+      "872a10761ffffff",
+      "872a10762ffffff"
+    ],
+    "total_ais_positions_scanned": 14283,
+    "vessels_intersecting_corridor": 3
+  },
+  "ranked_suspects": [
+    {
+      "vessel_id": "IMO_9876543",
+      "total_score": 98.33,
+      "feature_breakdown": {
+        "corridor_overlap_score": 1.0,
+        "heading_alignment_score": 0.9444,
+        "speed_anomaly_score": 1.0,
+        "ais_gap_history_score": 1.0
+      },
+      "weights_used": {
+        "corridor_overlap": 0.4,
+        "heading_alignment": 0.3,
+        "speed_anomaly": 0.2,
+        "ais_gap_history": 0.1
+      }
+    }
+  ],
+  "dark_vessels": [
+    {
+      "cfar_detection_id": "CFAR_DET_002",
+      "position": {
+        "type": "Point",
+        "coordinates": [
+          72.48,
+          18.49
+        ]
+      },
+      "timestamp": "2026-09-01T09:50:00Z",
+      "ais_match_found": false,
+      "proximity_to_corridor": "872a1076effffff"
+    },
+    {
+      "cfar_detection_id": "CFAR_DET_003",
+      "position": {
+        "type": "Point",
+        "coordinates": [
+          72.62,
+          18.61
+        ]
+      },
+      "timestamp": "2026-09-01T10:00:00Z",
+      "ais_match_found": false,
+      "proximity_to_corridor": "872a10762ffffff"
+    }
+  ],
+  "null_result": false,
+  "input_data_hash": "13f4393716ca1c614ddd17ed7e68c7a1c31492aca540da69c803d35f8f16d49b"
+}
