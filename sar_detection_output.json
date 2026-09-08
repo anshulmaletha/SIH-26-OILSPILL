@@ -1,0 +1,37 @@
+{
+  "scene_id": "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+  "acquisition_time": "2026-05-15T06:00:00Z",
+  "polygons": [
+    {
+      "polygon_id": "slick_mumbai_01",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [71.835, 19.360],
+            [71.860, 19.370],
+            [71.870, 19.340],
+            [71.845, 19.330],
+            [71.835, 19.360]
+          ]
+        ]
+      },
+      "geometry_features": {
+        "area_km2": 4.82,
+        "perimeter_km": 9.40,
+        "major_axis_km": 3.80,
+        "minor_axis_km": 1.25,
+        "eccentricity": 0.94,
+        "orientation_deg": 135.0
+      },
+      "lookalike_filter": {
+        "wind_speed_ms": 6.4,
+        "wind_gate_passed": true,
+        "damping_ratio": 3.82,
+        "shape_gate_passed": true,
+        "final_decision": "confirmed",
+        "rejection_reason": null
+      }
+    }
+  ]
+}
