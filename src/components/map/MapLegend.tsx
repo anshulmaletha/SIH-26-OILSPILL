@@ -1,10 +1,48 @@
 import { useState } from "react";
 import { LAYER_META, type LayerId } from "@/lib/map/config";
-import { Info, ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface MapLegendProps {
   visibility: Record<LayerId, boolean>;
+}
+
+// 5 discrete hex swatches: dim edge → bright cyan core (14% → 90%)
+const DENSITY_SWATCHES = [
+  { opacity: 0.14, label: "Low" },
+  { opacity: 0.31, label: "" },
+  { opacity: 0.53, label: "" },
+  { opacity: 0.72, label: "" },
+  { opacity: 0.90, label: "Peak" },
+];
+
+/** Small inline SVG hexagon swatch (flat-top) */
+function HexSwatch({ opacity, label }: { opacity: number; label: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+      <svg width="18" height="16" viewBox="-10 -9 20 18">
+        <polygon
+          points="9,0 4.5,-7.79 -4.5,-7.79 -9,0 -4.5,7.79 4.5,7.79"
+          fill="#22D3EE"
+          fillOpacity={opacity}
+          stroke="#B4F0FF"
+          strokeOpacity={0.85}
+          strokeWidth="1"
+        />
+      </svg>
+      {label && (
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "7px",
+            color: "#3A5268",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {label}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function MapLegend({ visibility }: MapLegendProps) {
@@ -13,75 +51,199 @@ export function MapLegend({ visibility }: MapLegendProps) {
   if (visible.length === 0) return null;
 
   return (
-    <div className="w-72 sm:w-80 rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-xl transition-all duration-300 overflow-hidden flex flex-col text-foreground">
+    <div
+      style={{
+        width: 200,
+        background: "#0D1117",
+        border: "1px solid #1C2A38",
+        borderRadius: "2px",
+        color: "#C8D8E8",
+        overflow: "hidden",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-2.5 bg-muted/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary border border-primary/30">
-            <Info className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Map Legend
-              </span>
-              <span className="text-[10px] font-mono text-primary font-bold">
-                ({visible.length} Active)
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Symbology & Density Color Ramp
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-          title={isCollapsed ? "Expand Map Legend" : "Collapse Map Legend"}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: isCollapsed ? "none" : "1px solid #1C2A38",
+          padding: "6px 10px",
+          background: "#0A0E14",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "8px",
+            color: "#3A5268",
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            fontWeight: 700,
+          }}
         >
-          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-        </Button>
+          Legend — {visible.length} Active
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#3A5268",
+            padding: "0 2px",
+            fontSize: "10px",
+            lineHeight: 1,
+          }}
+          title={isCollapsed ? "Expand legend" : "Collapse legend"}
+        >
+          {isCollapsed ? "▼" : "▲"}
+        </button>
       </div>
 
       {/* Body */}
       {!isCollapsed && (
-        <div className="p-3 space-y-2.5 animate-in fade-in duration-200">
-          {/* Layer Swatches */}
-          <ul className="space-y-1.5 text-xs">
+        <div style={{ padding: "8px 10px" }}>
+          {/* Layer swatches */}
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, marginBottom: 8 }}>
             {visible.map((meta) => (
-              <li key={meta.id} className="flex items-center gap-2.5">
+              <li
+                key={meta.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  marginBottom: 4,
+                }}
+              >
                 <span
-                  className="h-3 w-3 shrink-0 rounded-sm shadow-xs"
-                  style={{ backgroundColor: meta.color }}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    background: meta.color,
+                    flexShrink: 0,
+                    borderRadius: 0,
+                    opacity: 0.85,
+                  }}
                 />
-                <span className="text-foreground text-[11px] font-medium truncate">
+                <span
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: "10px",
+                    color: "#C8D8E8",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {meta.label}
                 </span>
-                <span className="text-[10px] text-muted-foreground ml-auto">
-                  {meta.id === "sar-raster" ? "Radar Scene" : meta.id === "slick-polygon" ? "Polygon" : meta.id === "h3-corridor" ? "H3 Hex" : "Vessels"}
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "8px",
+                    color: "#3A5268",
+                    marginLeft: "auto",
+                    flexShrink: 0,
+                  }}
+                >
+                  {meta.id === "sar-raster"   ? "SAR"  :
+                   meta.id === "slick-polygon" ? "POLY" :
+                   meta.id === "h3-corridor"   ? "H3"   : "AIS"}
                 </span>
               </li>
             ))}
           </ul>
 
-          {/* H3 Density Ramp if H3 corridor is visible */}
+          {/* H3 density swatch row — only when H3 corridor is visible */}
           {visibility["h3-corridor"] && (
-            <div className="mt-2.5 border-t border-border/60 pt-2">
-              <div className="flex justify-between text-[9px] font-mono text-muted-foreground mb-1 font-medium">
-                <span>Low Density</span>
-                <span className="text-rose-500 font-bold">Critical Plume</span>
+            <div
+              style={{
+                borderTop: "1px solid #1C2A38",
+                paddingTop: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "7.5px",
+                  color: "#3A5268",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 6,
+                }}
+              >
+                Match Density
               </div>
               <div
-                className="h-2.5 w-full rounded-md shadow-inner"
                 style={{
-                  background: "linear-gradient(to right, #22d3ee, #f59e0b, #f97316, #f43f5e)",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  justifyContent: "space-between",
+                  gap: 4,
                 }}
-              />
+              >
+                {DENSITY_SWATCHES.map((s, i) => (
+                  <HexSwatch key={i} opacity={s.opacity} label={s.label} />
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "7px",
+                  color: "#3A5268",
+                  marginTop: 4,
+                }}
+              >
+                <span>Low</span>
+                <span style={{ color: "#22D3EE" }}>High</span>
+              </div>
             </div>
           )}
+
+          {/* Dark vessel indicator */}
+          <div
+            style={{
+              borderTop: "1px solid #1C2A38",
+              paddingTop: 7,
+              marginTop: 7,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                background: "#EF4444",
+                flexShrink: 0,
+                borderRadius: "50%",
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: "10px",
+                color: "#C8D8E8",
+              }}
+            >
+              Dark Vessel
+            </span>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "8px",
+                color: "#EF4444",
+                marginLeft: "auto",
+              }}
+            >
+              CFAR
+            </span>
+          </div>
         </div>
       )}
     </div>

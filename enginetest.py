@@ -77,4 +77,4 @@ drift_output = {
 with open("drift_particles.json", "w") as f:
     json.dump(drift_output, f, indent=2)
 
-print(f"[✓] Successfully generated drift_particles.json with {lons.shape[0]} particles per checkpoint.")
+print(f"[OK] Successfully generated drift_particles.json with {lons.shape[0]} particles per checkpoint.")

@@ -1,6 +1,10 @@
 /**
  * Browser-safe map configuration.
  * No maplibre/deck.gl imports here — this module is imported by SSR routes.
+ *
+ * Palette: single cyan accent (#22D3EE) for all data/UI.
+ * Amber ONLY for caution states. Red ONLY for dark vessel alert.
+ * No pink / magenta / orange anywhere.
  */
 
 export const BASEMAP_STYLES = {
@@ -14,11 +18,11 @@ export const MAP_STYLE_URL =
   (import.meta.env["VITE_MAP_STYLE_URL"] as string | undefined) ??
   BASEMAP_STYLES.dark;
 
-/** Initial camera: Singapore Strait — a busy AIS / maritime monitoring region. */
+/** Initial camera: Mumbai Offshore Corridor AOI — slick centroid 71.85°E, 19.35°N. */
 export const INITIAL_VIEW_STATE = {
-  longitude: 103.85,
-  latitude: 1.18,
-  zoom: 10.5,
+  longitude: 71.85,
+  latitude: 19.35,
+  zoom: 7.5,
   pitch: 45,
   bearing: -15,
 } as const;
@@ -44,26 +48,26 @@ export const LAYER_META: LayerMeta[] = [
   {
     id: LAYER_IDS.sarRaster,
     label: "SAR Raster",
-    description: "Synthetic aperture radar backscatter scene (P1 integration)",
-    color: "#9ca3af",
+    description: "Sentinel-1A backscatter scene (P1)",
+    color: "#6B7F94",   // slate-ish, neutral — informational
   },
   {
     id: LAYER_IDS.slickPolygon,
     label: "Slick Polygon",
-    description: "Detected oil slick extent polygon (P1 integration)",
-    color: "#f59e0b",
+    description: "Detected oil slick extent (P1)",
+    color: "#F59E0B",   // amber — caution: oil spill hazard boundary
   },
   {
     id: LAYER_IDS.h3Corridor,
     label: "H3 Corridor",
-    description: "H3 hexagon corridor cells with particle density styling (P4 integration)",
-    color: "#ec4899",
+    description: "Particle-density hex corridor (P4)",
+    color: "#22D3EE",   // cyan — primary data layer
   },
   {
     id: LAYER_IDS.aisTracks,
     label: "AIS Tracks",
-    description: "Vessel tracks and interpolated positions (P5 integration)",
-    color: "#4ade80",
+    description: "Vessel tracks & interpolated positions (P5)",
+    color: "#22D3EE",   // cyan — same accent family, distinguishable by context
   },
 ];
 
@@ -81,11 +85,13 @@ export interface TrackColorOption {
   rgb: [number, number, number];
 }
 
+/**
+ * Restricted to 4 cyan-family shades only.
+ * Pink / orange / purple are banned from the live map per design spec.
+ */
 export const TRACK_COLOR_OPTIONS: TrackColorOption[] = [
-  { id: "green", name: "Green", hex: "#22c55e", rgb: [34, 197, 94] },
-  { id: "blue", name: "Blue", hex: "#38bdf8", rgb: [56, 189, 248] },
-  { id: "pink", name: "Pink", hex: "#ec4899", rgb: [236, 72, 153] },
-  { id: "orange", name: "Orange", hex: "#f97316", rgb: [249, 115, 22] },
-  { id: "purple", name: "Purple", hex: "#a855f7", rgb: [168, 85, 247] },
-  { id: "amber", name: "Amber", hex: "#fbbf24", rgb: [251, 191, 36] },
+  { id: "cyan",      name: "Cyan",       hex: "#22D3EE", rgb: [34, 211, 238] },
+  { id: "cyan-dim",  name: "Cyan (dim)", hex: "#0E7490", rgb: [14, 116, 144] },
+  { id: "teal",      name: "Teal",       hex: "#14B8A6", rgb: [20, 184, 166] },
+  { id: "white",     name: "White",      hex: "#E2E8F0", rgb: [226, 232, 240] },
 ];

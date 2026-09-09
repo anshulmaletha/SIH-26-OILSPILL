@@ -1,71 +1,77 @@
 import type { AisTrack, SarRasterPatch, SlickPolygon } from "../types";
 
 /**
- * Synthetic placeholder data for Day 1.
- * Everything here is static so it is safe to import anywhere; real data
- * sources replace this module later without touching the layer or UI code.
+ * Mumbai Offshore Corridor AOI demo data — SIH 26143 fixed scenario.
+ * Slick from sar_detection_output.json (scene: S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI).
+ * AIS tracks from generate_and_index_ais.py (IND_TANKER_412 / CONTAINER_EXPRESS).
  */
 
 export const SAR_RASTER_PATCH: SarRasterPatch = {
-  bounds: [103.72, 1.1, 103.9, 1.26],
+  // Bounding box enclosing the Mumbai AOI: West 70.50°E, East 73.00°E, South 18.20°N, North 20.00°N
+  bounds: [70.5, 18.2, 73.0, 20.0],
 };
 
 export const SLICK_POLYGONS: SlickPolygon[] = [
   {
-    id: "slick-001",
-    confidence: 0.82,
+    id: "slick_mumbai_01",
+    // confidence field absent in sar_detection_output.json — defaulted to 0.88 (model output)
+    confidence: 0.88,
     ring: [
-      [103.8, 1.16],
-      [103.85, 1.19],
-      [103.88, 1.17],
-      [103.86, 1.12],
-      [103.81, 1.12],
-      [103.8, 1.16],
+      // Exact coordinates from sar_detection_output.json → polygons[0].geometry.coordinates
+      [71.835, 19.36],
+      [71.86, 19.37],
+      [71.87, 19.34],
+      [71.845, 19.33],
+      [71.835, 19.36],
     ],
   },
 ];
 
-/** Waypoints of the shipping corridor the H3 cells are generated along. */
+/** Waypoints of the OpenDrift backtrack corridor along IND_TANKER_412's COG 135° track. */
 export const CORRIDOR_WAYPOINTS: [number, number][] = [
-  [103.7, 1.08],
-  [103.78, 1.12],
-  [103.86, 1.15],
-  [103.95, 1.2],
+  [71.2, 19.65],
+  [71.45, 19.55],
+  [71.65, 19.45],
+  [71.85, 19.35],
 ];
 
 export const H3_CORRIDOR_RESOLUTION = 8;
 
 export const AIS_TRACKS: AisTrack[] = [
   {
-    vesselId: "mmsi-5630001",
-    vesselName: "MV Meridian Star",
+    // IND_TANKER_412 — MMSI 419000101 — primary suspect (total_score 0.912 from case_file_output.json)
+    // Trajectory from generate_and_index_ais.py: (70.80, 20.10) → (71.90, 19.10), COG 135°
+    // Speed drop to 3.8–4.3 kts at T-12h near (71.20, 19.65)
+    vesselId: "mmsi-419000101",
+    vesselName: "IND_TANKER_412",
     path: [
-      [103.68, 1.05],
-      [103.74, 1.09],
-      [103.82, 1.13],
-      [103.9, 1.17],
-      [103.98, 1.22],
+      [70.8, 20.1],
+      [71.2, 19.65],
+      [71.55, 19.4],
+      [71.75, 19.25],
+      [71.9, 19.1],
     ],
   },
   {
-    vesselId: "mmsi-5630002",
-    vesselName: "ST Aurora",
+    // CONTAINER_EXPRESS — MMSI 419000202 — low score (0.184, ~18.4% from case_file_output.json)
+    // Transits (70.60, 18.30) → (72.80, 18.40) at 18–19 kts, COG 85°
+    vesselId: "mmsi-419000202",
+    vesselName: "CONTAINER_EXPRESS",
     path: [
-      [103.97, 1.08],
-      [103.9, 1.11],
-      [103.84, 1.16],
-      [103.76, 1.2],
-      [103.7, 1.25],
+      [70.6, 18.3],
+      [71.3, 18.33],
+      [71.9, 18.36],
+      [72.4, 18.38],
+      [72.8, 18.4],
     ],
   },
   {
-    vesselId: "mmsi-5630003",
-    vesselName: "Pacific Kestrel",
+    // SAR-only dark vessel — no MMSI — position from dark_vessel_output.json
+    vesselId: "dark-vessel-cfar-002",
+    vesselName: "DARK VESSEL (SAR-only)",
     path: [
-      [103.8, 1.28],
-      [103.82, 1.22],
-      [103.83, 1.16],
-      [103.85, 1.1],
+      [71.9, 19.28],
     ],
   },
 ];
+

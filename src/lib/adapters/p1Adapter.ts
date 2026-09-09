@@ -26,7 +26,7 @@ export function formatSlickAsGeoJson(slick: SlickPolygonData): GeoJsonPolygonFea
       confidence: slick.confidence,
       areaKm2: slick.areaKm2,
       thicknessCategory: slick.thicknessCategory,
-      estimatedVolumeM3: slick.estimatedVolumeM3,
+      ...(slick.estimatedVolumeM3 !== undefined ? { estimatedVolumeM3: slick.estimatedVolumeM3 } : {}),
     },
     geometry: {
       type: "Polygon",
@@ -38,9 +38,11 @@ export function formatSlickAsGeoJson(slick: SlickPolygonData): GeoJsonPolygonFea
 /** Fallback sample data when P1 output is not yet pushed */
 export const DEFAULT_P1_DATA: P1Output = {
   sarScene: {
-    sceneId: "S1A_IW_GRDH_1SDV_20260902T055812_SINGAPORE",
+    // scene_id from sar_detection_output.json
+    sceneId: "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
     satellite: "Sentinel-1A",
-    acquisitionTime: "2026-09-02T05:58:12Z",
+    // acquisition_time from sar_detection_output.json
+    acquisitionTime: "2026-05-15T06:00:00Z",
     polarization: "VV",
     resolutionMeters: 10,
     bounds: SAR_RASTER_PATCH.bounds,
@@ -48,17 +50,22 @@ export const DEFAULT_P1_DATA: P1Output = {
   },
   slicks: SLICK_POLYGONS.map((s) => ({
     id: s.id,
-    sceneId: "S1A_IW_GRDH_1SDV_20260902T055812_SINGAPORE",
-    detectionTime: "2026-09-02T06:00:00Z",
+    sceneId: "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+    detectionTime: "2026-05-15T06:00:00Z",
+    // NOTE: confidence is ABSENT in sar_detection_output.json at polygon level (confirmed defect).
+    // sampleData.ts supplies 0.88 as default to avoid silent 0/undefined in UI display.
     confidence: s.confidence,
-    areaKm2: 4.38,
+    // area_km2 from sar_detection_output.json → geometry_features.area_km2
+    areaKm2: 4.82,
     estimatedVolumeM3: 650,
     thicknessCategory: "heavy_crude",
-    centroid: [103.84, 1.15],
+    // centroid computed from polygon average: (71.835+71.86+71.87+71.845)/4 ≈ 71.8525, (19.36+19.37+19.34+19.33)/4 ≈ 19.35
+    centroid: [71.8525, 19.35],
     coordinates: s.ring,
-    boundingExtent: [103.8, 1.12, 103.88, 1.19],
+    // boundingExtent derived from polygon coordinates in sar_detection_output.json
+    boundingExtent: [71.835, 19.33, 71.87, 19.37],
   })),
-  processedAt: "2026-09-02T06:15:00Z",
+  processedAt: "2026-05-15T06:15:00Z",
   modelConfidence: 0.94,
 };
 
@@ -71,7 +78,8 @@ export function parseP1Payload(raw: unknown): P1Output {
 
 export function getPrimarySlick(p1: P1Output): SlickPolygonData | null {
   if (!p1.slicks || p1.slicks.length === 0) return null;
-  return p1.slicks.reduce((max, curr) => (curr.areaKm2 > max.areaKm2 ? curr : max), p1.slicks[0]);
+  const first = p1.slicks[0]!;
+  return p1.slicks.reduce((max, curr) => (curr.areaKm2 > max.areaKm2 ? curr : max), first) ?? null;
 }
 
 export function getSarBoundingBox(sar: SarRasterData): [minLng: number, minLat: number, maxLng: number, maxLat: number] {

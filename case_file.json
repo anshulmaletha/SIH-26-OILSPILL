@@ -1,6 +1,6 @@
 {
-  "case_id": "99a15fd0-1e20-414c-8395-5dee591e064e",
-  "generated_at": "2026-09-03T10:22:16Z",
+  "case_id": "83a10352-76ee-4757-b64e-60b24d382816",
+  "generated_at": "2026-09-08T18:08:15Z",
   "scene_id": "S1A_IW_GRDH_1SDV_20260901T101500_20260901T101530_055012_06B2F3_A1C4",
   "h3_resolution": 7,
   "processing_parameters": {
@@ -106,5 +106,5 @@
     }
   ],
   "null_result": false,
-  "input_data_hash": "13f4393716ca1c614ddd17ed7e68c7a1c31492aca540da69c803d35f8f16d49b"
+  "input_data_hash": "e4eb6ec9bd1e7bb998a453ae1a8e3f38394f6b237131364201c55a1713d60e01"
 }

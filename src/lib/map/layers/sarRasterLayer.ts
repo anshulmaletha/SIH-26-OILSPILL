@@ -19,22 +19,23 @@ function makeSarTexture(meanDb: number = -18): HTMLCanvasElement {
     return seed / 2147483647;
   };
 
-  const baseVal = Math.max(30, Math.min(180, Math.round(140 + meanDb * 3)));
+  // Darker, desaturated slate radar texture for high-contrast backdrop
+  const baseVal = Math.max(15, Math.min(100, Math.round(75 + meanDb * 2)));
 
   for (let i = 0; i < size * size; i++) {
     const x = i % size;
     const y = Math.floor(i / size);
 
     // Synthetic sea clutter texture
-    const wave = Math.sin(x / 14) * Math.cos(y / 18) * 25 + Math.sin((x + y) / 10) * 15;
-    const speckle = (rand() - 0.5) * 55;
+    const wave = Math.sin(x / 14) * Math.cos(y / 18) * 20 + Math.sin((x + y) / 10) * 12;
+    const speckle = (rand() - 0.5) * 45;
     const v = Math.max(0, Math.min(255, baseVal + wave + speckle));
 
     const idx = i * 4;
-    image.data[idx + 0] = Math.round(v * 0.85); // R
-    image.data[idx + 1] = Math.round(v * 0.95); // G (slight greenish radar tint)
-    image.data[idx + 2] = Math.round(v * 1.05); // B
-    image.data[idx + 3] = 200;                  // Alpha
+    image.data[idx + 0] = Math.round(v * 0.45); // R: deep slate
+    image.data[idx + 1] = Math.round(v * 0.52); // G: desaturated radar slate
+    image.data[idx + 2] = Math.round(v * 0.62); // B: moody navy-slate
+    image.data[idx + 3] = 170;                  // Subtle alpha
   }
 
   ctx.putImageData(image, 0, 0);

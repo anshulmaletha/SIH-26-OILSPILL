@@ -1,6 +1,5 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
-import { Suspense, lazy, useState, useEffect } from "react";
-import { ShieldAlert, Radio, Flame, Ship, Sun, Moon } from "lucide-react";
+import { Suspense, lazy, useState } from "react";
 
 import { LayerPanel } from "@/components/map/LayerPanel";
 import { TimeSlider } from "@/components/map/TimeSlider";
@@ -10,87 +9,71 @@ import { CaseFileExportButton } from "@/components/dashboard/CaseFileExportButto
 import {
   DEFAULT_VISIBILITY,
   type LayerId,
-  type ThemeMode,
   TRACK_COLOR_OPTIONS,
 } from "@/lib/map/config";
 import { getOfflineScenario } from "@/lib/data/offlineDemoData";
-import { Button } from "@/components/ui/button";
+import type { VesselTrack } from "@/lib/contracts/p5";
 
 // MapLibre/Deck.gl are browser-only: lazy-load the map so SSR never touches it.
 const MapView = lazy(() => import("@/components/map/MapView"));
 
-const THEME_STORAGE_KEY = "sih_theme";
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SIH 26143" },
+      { title: "SIH 26143 — Maritime Intelligence" },
       {
         name: "description",
         content:
-          "SIH 26143 - Geospatial maritime oil spill intelligence platform: SAR radar overlay, slick polygon segmentation, time-animated H3 density corridor, and AIS vessel tracks.",
+          "SIH 26143 — Geospatial maritime oil spill intelligence: SAR overlay, H3 density corridor, AIS vessel attribution.",
       },
       { property: "og:title", content: "SIH 26143" },
-      {
-        property: "og:description",
-        content:
-          "SIH 26143 - Geospatial maritime oil spill intelligence platform: SAR radar overlay, slick polygon segmentation, time-animated H3 density corridor, and AIS vessel tracks.",
-      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const [theme, setTheme] = useState<ThemeMode>("dark");
   const [scenario, setScenario] = useState<"active" | "no_candidates">("active");
   const [visibility, setVisibility] = useState(DEFAULT_VISIBILITY);
   const [selectedHour, setSelectedHour] = useState<number>(0);
-  const [sarOpacity, setSarOpacity] = useState<number>(0.55);
+  const [sarOpacity, setSarOpacity] = useState<number>(0.30);
 
-  // AIS Track Selection & Follow State
+  // AIS track selection + follow
   const [selectedTrackId, setSelectedTrackId] = useState<string>("all");
-  const [selectedTrackColorId, setSelectedTrackColorId] = useState<string>("green");
+  const [selectedTrackColorId, setSelectedTrackColorId] = useState<string>("cyan");
   const [followTrack, setFollowTrack] = useState<boolean>(false);
 
-  // Initialize theme from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
-      if (saved === "light" || saved === "dark") {
-        setTheme(saved);
-        if (saved === "dark") {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-      } else {
-        document.documentElement.classList.add("dark");
-      }
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const next: ThemeMode = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-      if (next === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    }
-  };
+  /**
+   * Two-way binding: selectedVesselId drives both the map highlight AND
+   * the expanded row in the ranking panel.
+   * - Clicking a vessel on the map → sets selectedTrackId AND expandedVesselId
+   * - Clicking a ranking card → sets selectedTrackId AND expandedVesselId
+   */
+  const [expandedVesselId, setExpandedVesselId] = useState<string | null>(null);
 
   const toggleLayer = (id: LayerId) =>
     setVisibility((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Get RGB tuple for the chosen track color
+  // Handle vessel selection from map or ranking panel
+  const handleSelectVessel = (vessel: VesselTrack | string) => {
+    const vesselId = typeof vessel === "string" ? vessel : vessel.vesselId;
+    setSelectedTrackId(vesselId);
+    setExpandedVesselId(vesselId);
+  };
+
+  // Handle ranking panel row click (vesselId string)
+  const handleRankingSelect = (vesselId: string) => {
+    setSelectedTrackId(vesselId);
+    setExpandedVesselId(vesselId);
+    // Pulse highlight on map: follow mode briefly
+    setFollowTrack(true);
+    setTimeout(() => setFollowTrack(false), 1500);
+  };
+
   const selectedTrackColor =
-    TRACK_COLOR_OPTIONS.find((c) => c.id === selectedTrackColorId)?.rgb ?? [34, 197, 94];
+    TRACK_COLOR_OPTIONS.find((c) => c.id === selectedTrackColorId)?.rgb ??
+    [34, 211, 238];
 
   const currentScenario = getOfflineScenario(scenario);
   const currentP1Data = currentScenario.p1Data;
@@ -98,115 +81,233 @@ function DashboardPage() {
   const currentP4Data = currentScenario.p4Data;
   const currentP5Data = currentScenario.p5Data;
 
+  // Primary suspect = rank #1 from P3 (gets halo ring on map)
+  const primarySuspectVesselId = currentP3Data?.suspects?.[0]?.vesselId;
+
   return (
     <div
-      className={`relative h-screen w-screen overflow-hidden font-sans select-none transition-colors duration-300 ${
-        theme === "dark" ? "dark bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
-      }`}
+      className="dark"
+      style={{
+        position: "relative",
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
+        userSelect: "none",
+        background: "#0A0E14",
+        color: "#C8D8E8",
+      }}
     >
-      <h1 className="sr-only">SIH 26143 - Maritime Situation Dashboard</h1>
+      <h1 className="sr-only">SIH 26143 — Maritime Situation Dashboard</h1>
 
-      {/* Top Command Status Bar */}
-      <header className="absolute top-0 left-0 right-0 z-20 flex h-14 items-center justify-between border-b border-border/80 bg-card/90 px-4 backdrop-blur-xl shadow-lg">
-        {/* Project Branding & Sector Info */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/30 shadow-xs">
-            <ShieldAlert className="h-5 w-5" />
+      {/* ── TOP COMMAND BAR ─────────────────────────────────────────────────── */}
+      <header
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          display: "flex",
+          height: 52,
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #1C2A38",
+          background: "#0D1117",
+          padding: "0 16px",
+        }}
+      >
+        {/* Branding */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              border: "1px solid #1C2A38",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#111822",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <polygon points="8,2 14,12 2,12" stroke="#22D3EE" strokeWidth="1.2" />
+            </svg>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold tracking-tight text-foreground">
-                SIH 26143
-              </span>
+            <div
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: "13px",
+                fontWeight: 800,
+                letterSpacing: "-0.01em",
+                color: "#E2E8F0",
+              }}
+            >
+              SIH 26143
             </div>
-            <p className="text-[11px] text-muted-foreground truncate">
+            <div
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "8px",
+                color: "#3A5268",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}
+            >
               {currentScenario.sector}
-            </p>
+            </div>
           </div>
         </div>
 
-        {/* Live Telemetry KPI Badges, Scenario Switcher & Theme Switcher */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden lg:flex items-center gap-2 font-mono text-xs">
-            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-foreground">
-              <Radio className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-              <span>SAR: Sentinel-1A (VV)</span>
+        {/* Right section: KPI tags + controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* KPI badges — visible on wider screens */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'JetBrains Mono', monospace", fontSize: "10px" }}>
+            {/* SAR sensor */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 8px",
+                border: "1px solid #1C2A38",
+                background: "#111822",
+                color: "#5A7A94",
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  background: "#22D3EE",
+                  borderRadius: "50%",
+                  animation: "pulse-ring-inner 1.8s ease-in-out infinite",
+                  flexShrink: 0,
+                }}
+              />
+              <span>SAR: Sentinel-1A</span>
             </div>
 
-            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-amber-500 font-semibold">
-              <Flame className="h-3.5 w-3.5 text-amber-500" />
+            {/* Slick extent — amber is appropriate: oil slick = caution hazard */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 8px",
+                border: "1px solid #1C2A38",
+                background: "#111822",
+                color: "#F59E0B",
+              }}
+            >
               <span>Slick: 4.38 km² (94%)</span>
             </div>
 
-            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-emerald-500 font-semibold">
-              <Ship className="h-3.5 w-3.5 text-emerald-500" />
+            {/* AIS tracks */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 8px",
+                border: "1px solid #1C2A38",
+                background: "#111822",
+                color: "#22D3EE",
+              }}
+            >
               <span>
-                AIS: {currentP5Data.vessels.length} {scenario === "active" ? "Tracks" : "(Null Result)"}
+                AIS: {currentP5Data.vessels.filter(v => !v.isDarkVessel).length} Tracks
               </span>
             </div>
           </div>
 
-          {/* Demo Scenario Switcher */}
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs shadow-xs">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground hidden sm:inline">Scenario:</span>
+          {/* Scenario switcher */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "3px 8px",
+              border: "1px solid #1C2A38",
+              background: "#0A0E14",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "9px",
+            }}
+          >
+            <span style={{ color: "#3A5268", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Scenario
+            </span>
             <select
               value={scenario}
               onChange={(e) => {
-                const nextScenario = e.target.value as "active" | "no_candidates";
-                setScenario(nextScenario);
-                if (nextScenario === "no_candidates") {
+                const next = e.target.value as "active" | "no_candidates";
+                setScenario(next);
+                if (next === "no_candidates") {
                   setSelectedTrackId("all");
                   setFollowTrack(false);
+                  setExpandedVesselId(null);
                 }
               }}
-              className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#C8D8E8",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "9px",
+                outline: "none",
+                cursor: "pointer",
+              }}
             >
-              <option value="active">Incident #1 (Active Suspects)</option>
-              <option value="no_candidates">Incident #2 (No Candidates)</option>
+              <option value="active">Incident #1 — Active Suspects</option>
+              <option value="no_candidates">Incident #2 — No Candidates</option>
             </select>
           </div>
 
-          {/* Case-File Export Button */}
+          {/* Case file export */}
           <CaseFileExportButton
             p1Data={currentP1Data}
             p3Data={currentP3Data}
             p4Data={currentP4Data}
             p5Data={currentP5Data}
           />
-
-          {/* Theme Mode Toggle */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleTheme}
-            className="h-8 gap-1.5 rounded-lg border-border bg-background px-2.5 text-xs font-semibold hover:bg-accent cursor-pointer shadow-xs"
-            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="h-3.5 w-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Light Mode</span>
-              </>
-            ) : (
-              <>
-                <Moon className="h-3.5 w-3.5 text-slate-700" />
-                <span className="hidden sm:inline">Dark Mode</span>
-              </>
-            )}
-          </Button>
         </div>
       </header>
 
+      {/* ── MAP + OVERLAYS ─────────────────────────────────────────────────── */}
       <ClientOnly
         fallback={
-          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground bg-background">
+          <div
+            style={{
+              display: "flex",
+              height: "100%",
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "11px",
+              color: "#3A5268",
+              background: "#0A0E14",
+            }}
+          >
             Initializing geospatial renderer…
           </div>
         }
       >
         <Suspense
           fallback={
-            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground bg-background">
+            <div
+              style={{
+                display: "flex",
+                height: "100%",
+                width: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "11px",
+                color: "#3A5268",
+                background: "#0A0E14",
+              }}
+            >
               Initializing geospatial renderer…
             </div>
           }
@@ -219,14 +320,16 @@ function DashboardPage() {
             relativeHour={selectedHour}
             sarOpacity={sarOpacity}
             selectedTrackId={selectedTrackId}
-            selectedTrackColor={selectedTrackColor}
+            selectedTrackColor={selectedTrackColor as [number, number, number]}
             followTrack={followTrack}
-            theme={theme}
+            theme="dark"
+            primarySuspectVesselId={primarySuspectVesselId}
+            onSelectVessel={(vessel) => handleSelectVessel(vessel)}
           />
         </Suspense>
 
-        {/* Floating Left Control Dock (Top Left) */}
-        <div className="absolute left-4 top-16 z-10">
+        {/* ── Left control dock ── */}
+        <div style={{ position: "absolute", left: 12, top: 64, zIndex: 10 }}>
           <LayerPanel
             visibility={visibility}
             onToggle={toggleLayer}
@@ -242,29 +345,44 @@ function DashboardPage() {
           />
         </div>
 
-        {/* Prominent Dark Vessel Alert Banner (Top Center) */}
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-auto">
+        {/* ── Dark vessel alert — top center ── */}
+        <div
+          style={{
+            position: "absolute",
+            top: 64,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 20,
+            width: "100%",
+            maxWidth: 480,
+            padding: "0 16px",
+            pointerEvents: "auto",
+          }}
+        >
           <DarkVesselAlert
             vessels={currentP5Data.vessels}
             selectedVesselId={selectedTrackId}
             onFocusVessel={(vesselId) => {
               setSelectedTrackId(vesselId);
+              setExpandedVesselId(vesselId);
               setFollowTrack(true);
             }}
           />
         </div>
 
-        {/* Floating Suspect Ranking Table (Top Right) */}
-        <div className="absolute top-16 right-4 z-10">
+        {/* ── Suspect ranking — top right ── */}
+        <div style={{ position: "absolute", top: 64, right: 12, zIndex: 10 }}>
           <SuspectRankingTable
             p3Data={currentP3Data}
             selectedVesselId={selectedTrackId}
-            onSelectVessel={setSelectedTrackId}
+            expandedVesselId={expandedVesselId ?? undefined}
+            onSelectVessel={handleRankingSelect}
+            onSetExpandedVessel={setExpandedVesselId}
           />
         </div>
 
-        {/* Observation Time Slider (Bottom Right) */}
-        <div className="absolute bottom-6 right-4 z-10">
+        {/* ── Time slider — bottom right ── */}
+        <div style={{ position: "absolute", bottom: 20, right: 12, zIndex: 10 }}>
           <TimeSlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}

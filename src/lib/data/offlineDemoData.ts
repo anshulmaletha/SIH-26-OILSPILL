@@ -40,34 +40,33 @@ export interface IncidentScenario {
 
 export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
   active: {
-    id: "INC-2026-SIN-001",
-    name: "Singapore Strait TSS Incident (Active Suspects)",
-    sector: "Singapore Strait Traffic Separation Scheme (103.85°E, 1.18°N)",
+    id: "INC-2026-MUM-001",
+    name: "Mumbai Offshore Corridor Incident (Active Suspects)",
+    sector: "Arabian Sea — Mumbai Offshore Corridor (71.85°E, 19.35°N)",
     description:
-      "Active heavy crude oil slick identified via Sentinel-1A SAR radar. OpenDrift backtracking reconstructed 24h dispersion corridor. 3 candidate AIS tracks correlated, identifying 1 primary polluter and 1 dark vessel transponder anomaly.",
+      "Active heavy crude oil slick identified via Sentinel-1A SAR radar (scene S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI). OpenDrift backtracking reconstructed 12h dispersion corridor. 2 candidate AIS tracks correlated plus 1 SAR-only dark vessel, identifying 1 primary polluter (IND_TANKER_412, score 91.2%) and 1 unregistered dark vessel (CFAR_DARK_002).",
     p1Data: DEFAULT_P1_DATA,
     p3Data: DEFAULT_P3_DATA,
     p4Data: DEFAULT_P4_DATA,
     p5Data: DEFAULT_P5_DATA,
     metocean: {
-      windSpeedKnots: 14.2,
+      windSpeedKnots: 12.4,
       windDirectionDegrees: 245,
       currentSpeedKnots: 1.8,
-      currentDirectionDegrees: 68,
-      seaSurfaceTemperatureC: 29.4,
-      waveHeightMeters: 0.9,
+      currentDirectionDegrees: 135,
+      seaSurfaceTemperatureC: 28.6,
+      waveHeightMeters: 1.1,
     },
     isNoCandidateScenario: false,
   },
   no_candidates: {
-    id: "INC-2026-MALACCA-002",
-    name: "Malacca South Corridor (Null-Result / No Candidate Identified)",
-    sector: "Malacca Strait South Sector (103.45°E, 1.25°N)",
+    id: "INC-2026-MUM-002",
+    name: "Arabian Sea Sector (Null-Result / No Candidate Identified)",
+    sector: "Arabian Sea South Sector (71.00°E, 18.50°N)",
     description:
       "Confirmed slick segmentation and OpenDrift backtracking completed. Sector AIS queries show all active shipping remained >14.8 nm clear of the dispersion corridor. Successfully demonstrating the null-result investigation pipeline.",
     p1Data: {
       ...DEFAULT_P1_DATA,
-      incidentId: "INC-2026-MALACCA-002",
     },
     p3Data: NO_CANDIDATES_P3_DATA,
     p4Data: DEFAULT_P4_DATA,
@@ -76,9 +75,9 @@ export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
       windSpeedKnots: 11.5,
       windDirectionDegrees: 230,
       currentSpeedKnots: 1.4,
-      currentDirectionDegrees: 75,
-      seaSurfaceTemperatureC: 29.1,
-      waveHeightMeters: 0.7,
+      currentDirectionDegrees: 120,
+      seaSurfaceTemperatureC: 28.1,
+      waveHeightMeters: 0.9,
     },
     isNoCandidateScenario: true,
   },
@@ -89,5 +88,5 @@ export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
  * Guarantees zero runtime external network calls.
  */
 export function getOfflineScenario(scenarioId: "active" | "no_candidates" = "active"): IncidentScenario {
-  return OFFLINE_SCENARIOS[scenarioId] || OFFLINE_SCENARIOS.active;
+  return OFFLINE_SCENARIOS[scenarioId] ?? OFFLINE_SCENARIOS["active"]!;
 }

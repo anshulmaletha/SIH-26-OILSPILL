@@ -125,7 +125,7 @@ def execute_demo_simulation(use_real_netcdf=True):
     with open("drift_particles.json", "w") as f:
         json.dump(output_payload, f, indent=2)
 
-    print("\n[✓] drift_particles.json successfully exported for Mumbai Demo Event.")
+    print("\n[OK] drift_particles.json successfully exported for Mumbai Demo Event.")
 
 if __name__ == "__main__":
     execute_demo_simulation(use_real_netcdf=True)

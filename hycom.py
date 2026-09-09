@@ -17,7 +17,7 @@ def download_demo_hycom():
         time=slice(-8, None)  # Pulls the most recent slices up to T0
     )
     subset.to_netcdf('mumbai_hycom_currents.nc')
-    print("[✓] Saved HYCOM surface currents: mumbai_hycom_currents.nc")
+    print("[OK] Saved HYCOM surface currents: mumbai_hycom_currents.nc")
 
 if __name__ == "__main__":
     download_demo_hycom()

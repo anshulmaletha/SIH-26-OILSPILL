@@ -1,47 +1,69 @@
 import { useState } from "react";
-import {
-  Layers,
-  ChevronUp,
-  ChevronDown,
-  Radar,
-  Flame,
-  Hexagon,
-  Ship,
-  Sliders,
-  Compass,
-  Palette,
-  Crosshair,
-} from "lucide-react";
 import { LAYER_META, type LayerId, TRACK_COLOR_OPTIONS } from "@/lib/map/config";
 import type { VesselTrack } from "@/lib/contracts/p5";
-import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
 import { MapLegend } from "./MapLegend";
 
-const LAYER_ICONS: Record<LayerId, typeof Layers> = {
-  "sar-raster": Radar,
-  "slick-polygon": Flame,
-  "h3-corridor": Hexagon,
-  "ais-tracks": Ship,
+const LAYER_TYPE_LABELS: Record<LayerId, string> = {
+  "sar-raster":    "SAR",
+  "slick-polygon": "SLICK",
+  "h3-corridor":   "H3",
+  "ais-tracks":    "AIS",
 };
 
 export interface LayerPanelProps {
   visibility: Record<LayerId, boolean>;
   onToggle: (id: LayerId) => void;
-  sarOpacity?: number;
-  onChangeSarOpacity?: (opacity: number) => void;
-  vessels?: VesselTrack[];
-  selectedTrackId?: string;
-  onSelectTrackId?: (id: string) => void;
-  selectedTrackColorId?: string;
-  onSelectTrackColorId?: (colorId: string) => void;
-  followTrack?: boolean;
-  onToggleFollowTrack?: (enabled: boolean) => void;
+  sarOpacity?: number | undefined;
+  onChangeSarOpacity?: ((opacity: number) => void) | undefined;
+  vessels?: VesselTrack[] | undefined;
+  selectedTrackId?: string | undefined;
+  onSelectTrackId?: ((id: string) => void) | undefined;
+  selectedTrackColorId?: string | undefined;
+  onSelectTrackColorId?: ((colorId: string) => void) | undefined;
+  followTrack?: boolean | undefined;
+  onToggleFollowTrack?: ((enabled: boolean) => void) | undefined;
 }
 
-/**
- * 1. Independent Collapsible Layer Controls Card
- */
+// ── Shared flat panel styles ───────────────────────────────────────────────────
+const panelStyle: React.CSSProperties = {
+  width: 220,
+  background: "#0D1117",
+  border: "1px solid #1C2A38",
+  borderRadius: "2px",
+  color: "#C8D8E8",
+  overflow: "hidden",
+  fontFamily: "'Inter', 'Space Grotesk', sans-serif",
+};
+
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "6px 10px",
+  background: "#0A0E14",
+  borderBottom: "1px solid #1C2A38",
+};
+
+const sectionLabelStyle: React.CSSProperties = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: "8px",
+  color: "#3A5268",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.12em",
+  fontWeight: 700,
+};
+
+const collapseButtonStyle: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  color: "#3A5268",
+  padding: "0 2px",
+  fontSize: "10px",
+  lineHeight: 1,
+};
+
+// ── 1. Layer Controls Card ─────────────────────────────────────────────────────
 export function LayerControlsCard({
   visibility,
   onToggle,
@@ -50,93 +72,120 @@ export function LayerControlsCard({
 }: {
   visibility: Record<LayerId, boolean>;
   onToggle: (id: LayerId) => void;
-  sarOpacity?: number;
-  onChangeSarOpacity?: (opacity: number) => void;
+  sarOpacity?: number | undefined;
+  onChangeSarOpacity?: ((opacity: number) => void) | undefined;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="w-72 sm:w-80 rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-xl transition-all duration-300 overflow-hidden flex flex-col text-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-2.5 bg-muted/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary border border-primary/30">
-            <Layers className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Layer Controls
-            </h2>
-            <p className="text-[10px] text-muted-foreground">
-              Geospatial Overlays (P1 • P4 • P5)
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
+    <div style={panelStyle}>
+      <div style={headerStyle}>
+        <span style={sectionLabelStyle}>Layer Controls</span>
+        <button
+          type="button"
+          style={collapseButtonStyle}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-          title={isCollapsed ? "Expand Layer Controls" : "Collapse Layer Controls"}
+          title={isCollapsed ? "Expand" : "Collapse"}
         >
-          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-        </Button>
+          {isCollapsed ? "▼" : "▲"}
+        </button>
       </div>
 
-      {/* Body */}
-      {!isCollapsed && (
-        <div className="p-3 space-y-2.5 animate-in fade-in duration-200">
-          <ul className="space-y-1.5">
+      {/* Body — smooth fade/slide transition */}
+      <div
+        style={{
+          maxHeight: isCollapsed ? 0 : 400,
+          overflow: "hidden",
+          opacity: isCollapsed ? 0 : 1,
+          transition: "max-height 220ms ease, opacity 180ms ease",
+        }}
+      >
+        <div style={{ padding: "8px 10px" }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {LAYER_META.map((meta) => {
               const active = visibility[meta.id];
-              const Icon = LAYER_ICONS[meta.id] ?? Layers;
-
               return (
-                <li key={meta.id}>
+                <li key={meta.id} style={{ marginBottom: 4 }}>
                   <button
                     type="button"
                     onClick={() => onToggle(meta.id)}
                     aria-pressed={active}
-                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all duration-200 cursor-pointer ${
-                      active
-                        ? "border-border bg-accent/60 hover:bg-accent"
-                        : "border-transparent bg-transparent opacity-60 hover:opacity-90 hover:bg-muted/40"
-                    }`}
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "5px 6px",
+                      background: active ? "#111822" : "transparent",
+                      border: `1px solid ${active ? "#1C2A38" : "transparent"}`,
+                      borderRadius: "2px",
+                      cursor: "pointer",
+                      opacity: active ? 1 : 0.45,
+                      transition: "opacity 200ms ease, background 200ms ease",
+                      textAlign: "left",
+                    }}
                   >
-                    {/* Layer Icon Swatch */}
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all"
+                    {/* Color dot */}
+                    <span
                       style={{
-                        backgroundColor: active ? `${meta.color}20` : "rgba(100, 116, 139, 0.1)",
-                        color: active ? meta.color : "#94a3b8",
-                        border: `1px solid ${active ? `${meta.color}50` : "rgba(100, 116, 139, 0.2)"}`,
+                        width: 6,
+                        height: 6,
+                        background: meta.color,
+                        flexShrink: 0,
+                        borderRadius: 0,
+                      }}
+                    />
+                    {/* Label */}
+                    <span
+                      style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: "11px",
+                        color: "#C8D8E8",
+                        flex: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-
-                    {/* Meta Label & Description */}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-foreground">
-                        {meta.label}
-                      </span>
-                      <span className="block truncate text-[10px] text-muted-foreground">
-                        {meta.description}
-                      </span>
+                      {meta.label}
                     </span>
-
-                    {/* Toggle Switch */}
+                    {/* Type tag */}
                     <span
-                      className={`relative h-4 w-7 shrink-0 rounded-full transition-colors duration-200 ${
-                        active ? "bg-primary" : "bg-muted"
-                      }`}
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "7.5px",
+                        color: active ? "#22D3EE" : "#3A5268",
+                        letterSpacing: "0.06em",
+                        flexShrink: 0,
+                      }}
                     >
-                      <span
-                        className={`absolute top-0.5 h-3 w-3 rounded-full bg-primary-foreground transition-transform duration-200 ${
-                          active ? "translate-x-3.5 left-0" : "left-0.5"
-                        }`}
-                      />
+                      {LAYER_TYPE_LABELS[meta.id]}
+                    </span>
+                    {/* Square checkbox-style toggle */}
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        border: `1px solid ${active ? "#22D3EE" : "#1C2A38"}`,
+                        background: active ? "#22D3EE22" : "transparent",
+                        flexShrink: 0,
+                        borderRadius: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background 200ms ease, border-color 200ms ease",
+                      }}
+                    >
+                      {active && (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            background: "#22D3EE",
+                            borderRadius: 0,
+                          }}
+                        />
+                      )}
                     </span>
                   </button>
                 </li>
@@ -144,121 +193,136 @@ export function LayerControlsCard({
             })}
           </ul>
 
-          {/* SAR Opacity Control Slider */}
+          {/* SAR opacity slider */}
           {visibility["sar-raster"] && onChangeSarOpacity && (
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-2.5">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <div className="flex items-center gap-1.5 text-foreground font-semibold text-[11px]">
-                  <Sliders className="h-3 w-3 text-primary" />
-                  <span>SAR Raster Opacity</span>
-                </div>
-                <span className="font-mono text-xs font-bold text-primary">
+            <div
+              style={{
+                marginTop: 8,
+                padding: "7px 6px",
+                border: "1px solid #1C2A38",
+                borderRadius: "2px",
+                background: "#0A0E14",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 5,
+                }}
+              >
+                <span style={{ ...sectionLabelStyle, color: "#5A7A94" }}>SAR Opacity</span>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "9px",
+                    color: "#22D3EE",
+                  }}
+                >
                   {Math.round(sarOpacity * 100)}%
                 </span>
               </div>
-              <Slider
-                value={[sarOpacity * 100]}
+              <input
+                type="range"
+                className="scrubber"
                 min={10}
                 max={100}
                 step={5}
-                onValueChange={(val) => {
-                  if (val[0] !== undefined) onChangeSarOpacity(val[0] / 100);
-                }}
+                value={Math.round(sarOpacity * 100)}
+                style={{
+                  "--range-fill": `${Math.round(sarOpacity * 100)}%`,
+                } as React.CSSProperties}
+                onChange={(e) => onChangeSarOpacity(Number(e.target.value) / 100)}
               />
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-/**
- * 2. Independent Collapsible Track Selection Card
- */
+// ── 2. Track Selection Card ────────────────────────────────────────────────────
 export function TrackSelectionCard({
   vessels = [],
   selectedTrackId = "all",
   onSelectTrackId,
-  selectedTrackColorId = "green",
+  selectedTrackColorId = "cyan",
   onSelectTrackColorId,
   followTrack = false,
   onToggleFollowTrack,
 }: {
-  vessels?: VesselTrack[];
-  selectedTrackId?: string;
-  onSelectTrackId?: (id: string) => void;
-  selectedTrackColorId?: string;
-  onSelectTrackColorId?: (colorId: string) => void;
-  followTrack?: boolean;
-  onToggleFollowTrack?: (enabled: boolean) => void;
+  vessels?: VesselTrack[] | undefined;
+  selectedTrackId?: string | undefined;
+  onSelectTrackId?: ((id: string) => void) | undefined;
+  selectedTrackColorId?: string | undefined;
+  onSelectTrackColorId?: ((colorId: string) => void) | undefined;
+  followTrack?: boolean | undefined;
+  onToggleFollowTrack?: ((enabled: boolean) => void) | undefined;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const aisVessels = vessels.filter((v) => !v.isDarkVessel);
 
   return (
-    <div className="w-72 sm:w-80 rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-xl transition-all duration-300 overflow-hidden flex flex-col text-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-2.5 bg-muted/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-            <Compass className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Track Selection
-            </h2>
-            <p className="text-[10px] text-muted-foreground">
-              AIS Trajectory & Follow Controls
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
+    <div style={panelStyle}>
+      <div style={headerStyle}>
+        <span style={sectionLabelStyle}>Track Selection</span>
+        <button
+          type="button"
+          style={collapseButtonStyle}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-          title={isCollapsed ? "Expand Track Selection" : "Collapse Track Selection"}
+          title={isCollapsed ? "Expand" : "Collapse"}
         >
-          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-        </Button>
+          {isCollapsed ? "▼" : "▲"}
+        </button>
       </div>
 
-      {/* Body */}
-      {!isCollapsed && (
-        <div className="p-3 space-y-3 animate-in fade-in duration-200">
-          {/* Path / Vessel Dropdown Selector */}
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-              Active Path / Vessel
-            </label>
+      <div
+        style={{
+          maxHeight: isCollapsed ? 0 : 400,
+          overflow: "hidden",
+          opacity: isCollapsed ? 0 : 1,
+          transition: "max-height 220ms ease, opacity 180ms ease",
+        }}
+      >
+        <div style={{ padding: "8px 10px" }}>
+          {/* Vessel selector */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ ...sectionLabelStyle, color: "#5A7A94", marginBottom: 4 }}>
+              Active Path
+            </div>
             <select
               value={selectedTrackId}
               onChange={(e) => onSelectTrackId?.(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              style={{
+                width: "100%",
+                background: "#0A0E14",
+                border: "1px solid #1C2A38",
+                borderRadius: "2px",
+                padding: "4px 6px",
+                fontSize: "11px",
+                fontFamily: "'Inter', sans-serif",
+                color: "#C8D8E8",
+                outline: "none",
+                cursor: "pointer",
+              }}
             >
-              <option value="all">○ All Monitored Tracks ({vessels.length})</option>
-              {vessels.map((v) => (
+              <option value="all">All Tracks ({aisVessels.length})</option>
+              {aisVessels.map((v) => (
                 <option key={v.vesselId} value={v.vesselId}>
-                  {v.vesselName} ({v.vesselType})
+                  {v.vesselName}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Color Customizer */}
+          {/* Path color picker — 4 cyan-family swatches */}
           {onSelectTrackColorId && (
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Palette className="h-3 w-3 text-primary" />
-                  <span>Path Color</span>
-                </label>
-                <span className="text-[10px] font-mono text-foreground font-semibold uppercase">
-                  {TRACK_COLOR_OPTIONS.find((c) => c.id === selectedTrackColorId)?.name ?? "Green"}
-                </span>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...sectionLabelStyle, color: "#5A7A94", marginBottom: 5 }}>
+                Path Color
               </div>
-              <div className="grid grid-cols-6 gap-1.5">
+              <div style={{ display: "flex", gap: 5 }}>
                 {TRACK_COLOR_OPTIONS.map((c) => {
                   const isSelected = selectedTrackColorId === c.id;
                   return (
@@ -266,89 +330,128 @@ export function TrackSelectionCard({
                       key={c.id}
                       type="button"
                       onClick={() => onSelectTrackColorId(c.id)}
-                      className={`h-6 rounded-md transition-all flex items-center justify-center cursor-pointer ${
-                        isSelected
-                          ? "ring-2 ring-primary ring-offset-1 scale-110 shadow-sm"
-                          : "opacity-75 hover:opacity-100"
-                      }`}
-                      style={{ backgroundColor: c.hex }}
                       title={c.name}
-                    >
-                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white shadow-xs" />}
-                    </button>
+                      style={{
+                        width: 20,
+                        height: 20,
+                        background: c.hex,
+                        border: isSelected ? "1.5px solid #E2E8F0" : "1px solid #1C2A38",
+                        borderRadius: 0,
+                        cursor: "pointer",
+                        padding: 0,
+                        outline: "none",
+                        opacity: isSelected ? 1 : 0.6,
+                        transition: "opacity 150ms, border-color 150ms",
+                      }}
+                    />
                   );
                 })}
               </div>
             </div>
           )}
 
-          {/* Follow Path Toggle */}
+          {/* Follow track toggle */}
           {onToggleFollowTrack && (
-            <div className="flex items-center justify-between pt-1 border-t border-border/50">
-              <div className="flex items-center gap-1.5">
-                <Crosshair className={`h-3.5 w-3.5 ${followTrack ? "text-primary animate-spin" : "text-muted-foreground"}`} />
-                <div>
-                  <span className="text-xs font-semibold text-foreground block leading-tight">
-                    Follow Selected Track
-                  </span>
-                  <span className="text-[9px] text-muted-foreground block">
-                    Auto-center camera on vessel position
-                  </span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingTop: 7,
+                borderTop: "1px solid #1C2A38",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: "11px",
+                    color: "#C8D8E8",
+                  }}
+                >
+                  Follow Track
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "8px",
+                    color: "#3A5268",
+                  }}
+                >
+                  Auto-center camera
                 </div>
               </div>
-
+              {/* Square toggle */}
               <button
                 type="button"
                 onClick={() => onToggleFollowTrack(!followTrack)}
-                className={`relative h-4 w-8 shrink-0 rounded-full transition-colors duration-200 cursor-pointer ${
-                  followTrack ? "bg-primary" : "bg-muted"
-                }`}
+                style={{
+                  width: 28,
+                  height: 14,
+                  background: followTrack ? "#22D3EE22" : "transparent",
+                  border: `1px solid ${followTrack ? "#22D3EE" : "#1C2A38"}`,
+                  borderRadius: 0,
+                  cursor: "pointer",
+                  position: "relative",
+                  transition: "background 200ms, border-color 200ms",
+                  padding: 0,
+                }}
               >
                 <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-primary-foreground transition-transform duration-200 ${
-                    followTrack ? "translate-x-4 left-0.5" : "left-0.5"
-                  }`}
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: followTrack ? 14 : 2,
+                    width: 8,
+                    height: 8,
+                    background: followTrack ? "#22D3EE" : "#3A5268",
+                    borderRadius: 0,
+                    transition: "left 200ms, background 200ms",
+                  }}
                 />
               </button>
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-/**
- * Combined Left Control Stack:
- * 1. Layer Controls Card
- * 2. Track Selection Card (when AIS tracks is active)
- * 3. Map Legend Card (flows dynamically with gap-2.5, ZERO OVERLAP guaranteed)
- */
+// ── Combined Panel Stack ───────────────────────────────────────────────────────
 export function LayerPanel(props: LayerPanelProps) {
   return (
-    <div className="flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pr-1 pb-4">
-      {/* 1. Layer Controls Card */}
+    <div
+      className="custom-scrollbar"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        maxHeight: "calc(100vh - 72px)",
+        overflowY: "auto",
+        paddingBottom: 16,
+        paddingRight: 2,
+      }}
+    >
       <LayerControlsCard
         visibility={props.visibility}
         onToggle={props.onToggle}
-        sarOpacity={props.sarOpacity}
+        sarOpacity={props.sarOpacity ?? 0.55}
         onChangeSarOpacity={props.onChangeSarOpacity}
       />
 
-      {/* 2. Track Selection Card */}
       {props.visibility["ais-tracks"] && (
         <TrackSelectionCard
-          vessels={props.vessels}
-          selectedTrackId={props.selectedTrackId}
+          vessels={props.vessels ?? []}
+          selectedTrackId={props.selectedTrackId ?? "all"}
           onSelectTrackId={props.onSelectTrackId}
-          selectedTrackColorId={props.selectedTrackColorId}
+          selectedTrackColorId={props.selectedTrackColorId ?? "cyan"}
           onSelectTrackColorId={props.onSelectTrackColorId}
-          followTrack={props.followTrack}
+          followTrack={props.followTrack ?? false}
           onToggleFollowTrack={props.onToggleFollowTrack}
         />
       )}
 
-      {/* 3. Map Legend Card — dynamically sits below Track Selection */}
       <MapLegend visibility={props.visibility} />
     </div>
   );

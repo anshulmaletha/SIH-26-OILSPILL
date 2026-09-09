@@ -2,66 +2,72 @@ import type { P3Output, RankedSuspect } from "../contracts/p3";
 
 /** Default fallback dataset for P3 suspect rankings */
 export const DEFAULT_P3_DATA: P3Output = {
-  incidentId: "INC-2026-SIN-001",
-  generatedAt: "2026-09-02T06:30:00Z",
-  totalSuspectsEvaluated: 3,
+  incidentId: "INC-2026-MUM-001",
+  generatedAt: "2026-05-15T06:30:00Z",
+  totalSuspectsEvaluated: 2,
   algorithmVersion: "XGBoost-Ensemble-v2.4",
   suspects: [
     {
       rank: 1,
-      vesselId: "mmsi-5630001",
-      vesselName: "MV Meridian Star",
-      mmsi: "5630001",
+      vesselId: "mmsi-419000101",
+      vesselName: "IND_TANKER_412",
+      mmsi: "419000101",
       vesselType: "Crude Oil Tanker",
-      flag: "Panama",
-      overallScore: 0.94,
-      confidence: 0.92,
+      flag: "India",
+      // total_score: 98.33 from ranked_suspects.json → overallScore: 0.9833 (÷100)
+      // case_file_output.json → ranked_suspects[0].total_score: 0.912 (normalized 0–1)
+      // Using case_file_output.json value as authoritative (already normalized by scorer)
+      overallScore: 0.912,
+      confidence: 0.95,
       isDarkVessel: false,
       isPrimarySuspect: true,
-      recommendation: "CRITICAL PROBABILITY — Recommend port authority inspection at Singapore Anchorage",
+      recommendation: "CRITICAL PROBABILITY — Recommend Indian Coast Guard inspection at Nhava Sheva anchorage. Speed anomaly of 3.8–4.3 kts at T-12h within backtracked corridor.",
       featureScores: {
-        trajectoryIntersection: 0.96,
-        temporalProximity: 0.92,
-        speedAnomaly: 0.88,
-        aisGapScore: 0.15,
+        // From ranked_suspects.json → feature_breakdown (mapped: corridor_overlap→trajectoryIntersection, heading_alignment→temporalProximity, speed_anomaly→speedAnomaly, ais_gap_history→aisGapScore)
+        trajectoryIntersection: 1.0,    // corridor_overlap_score: 1.0
+        temporalProximity: 0.9444,      // heading_alignment_score: 0.9444
+        speedAnomaly: 1.0,              // speed_anomaly_score: 1.0
+        aisGapScore: 1.0,               // ais_gap_history_score: 1.0
       },
     },
     {
       rank: 2,
-      vesselId: "mmsi-5630002",
-      vesselName: "ST Aurora",
-      mmsi: "5630002",
-      vesselType: "Chemical Tanker",
-      flag: "Singapore",
-      overallScore: 0.68,
-      confidence: 0.74,
+      vesselId: "dark-vessel-cfar-002",
+      vesselName: "DARK VESSEL (SAR-only)",
+      mmsi: "",
+      vesselType: "Unknown (SAR-only CFAR detection)",
+      flag: "Unknown",
+      // No AIS → no scoring from ranked_suspects.json. Candidate by virtue of positional proximity.
+      overallScore: 0.0,
+      confidence: 0.0,
       isDarkVessel: true,
       isPrimarySuspect: false,
-      recommendation: "SECONDARY SUSPECT — Unexplained 7.2h AIS transponder gap coinciding with backtracked origin",
+      recommendation: "UNIDENTIFIED VESSEL — SAR CFAR detection CFAR_DARK_002 at [71.9°E, 19.28°N]. No AIS transponder throughout 12h window. H3 cell 8742da462ffffff within dispersion corridor.",
       featureScores: {
-        trajectoryIntersection: 0.72,
-        temporalProximity: 0.65,
-        speedAnomaly: 0.45,
-        aisGapScore: 0.89,
+        trajectoryIntersection: 0.0,
+        temporalProximity: 0.0,
+        speedAnomaly: 0.0,
+        aisGapScore: 0.0,
       },
     },
     {
       rank: 3,
-      vesselId: "mmsi-5630003",
-      vesselName: "Pacific Kestrel",
-      mmsi: "5630003",
-      vesselType: "Bulk Carrier",
-      flag: "Liberia",
-      overallScore: 0.18,
-      confidence: 0.85,
+      vesselId: "mmsi-419000202",
+      vesselName: "CONTAINER_EXPRESS",
+      mmsi: "419000202",
+      vesselType: "Container Ship",
+      flag: "Panama",
+      // case_file_output.json → ranked_suspects[1].total_score: 0.184 (already 0–1 normalized)
+      overallScore: 0.184,
+      confidence: 0.91,
       isDarkVessel: false,
       isPrimarySuspect: false,
-      recommendation: "UNLIKELY — Peripheral transit outside high-density corridor core",
+      recommendation: "CLEARED — Transit speed 18–19 kts, COG 85° (perpendicular to spill corridor). No corridor intersection. Score 18.4%.",
       featureScores: {
-        trajectoryIntersection: 0.22,
-        temporalProximity: 0.15,
-        speedAnomaly: 0.12,
-        aisGapScore: 0.05,
+        trajectoryIntersection: 0.12,
+        temporalProximity: 0.08,
+        speedAnomaly: 0.05,
+        aisGapScore: 0.0,
       },
     },
   ],
@@ -69,8 +75,8 @@ export const DEFAULT_P3_DATA: P3Output = {
 
 /** Empty scenario representation for "No Candidate Identified" */
 export const NO_CANDIDATES_P3_DATA: P3Output = {
-  incidentId: "INC-2026-MALACCA-002",
-  generatedAt: "2026-09-02T06:30:00Z",
+  incidentId: "INC-2026-MUM-002",
+  generatedAt: "2026-05-15T06:30:00Z",
   totalSuspectsEvaluated: 0,
   algorithmVersion: "XGBoost-Ensemble-v2.4",
   suspects: [],

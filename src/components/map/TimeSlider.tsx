@@ -1,7 +1,4 @@
-import { useEffect, useState } from "react";
-import { Clock, Play, Pause, ChevronLeft, ChevronRight, RotateCcw, Activity } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 
 interface TimeSliderProps {
   selectedHour: number;
@@ -13,9 +10,15 @@ const OBSERVATION_STEPS: { value: number; label: string; tag: string }[] = [
   { value: -24, label: "-24h", tag: "Release Origin" },
   { value: -18, label: "-18h", tag: "Early Plume" },
   { value: -12, label: "-12h", tag: "Mid Drift" },
-  { value: -6, label: "-6h", tag: "Pre-Detection" },
-  { value: 0, label: "0h", tag: "SAR Scene" },
+  { value:  -6, label: "-6h",  tag: "Pre-Detection" },
+  { value:   0, label: "0h",   tag: "SAR Scene" },
 ];
+
+// Shared inline style helpers
+const monoSm = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: "10px",
+} as const;
 
 export function TimeSlider({
   selectedHour,
@@ -23,145 +26,239 @@ export function TimeSlider({
   detectionTimeIso = "2026-09-02T06:00:00Z",
 }: TimeSliderProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  // Track current hour internally for the play interval (avoids stale closure)
+  const currentHourRef = useRef(selectedHour);
+  currentHourRef.current = selectedHour;
 
-  // Auto-play animation timer for demo presentations
+  // Auto-play: advances one step every 2500 ms (readable demo pace per spec)
   useEffect(() => {
     if (!isPlaying) return;
 
+    const steps = [-24, -18, -12, -6, 0];
     const timer = setInterval(() => {
-      onSelectHour((prev: number) => {
-        if (prev >= 0) return -24;
-        const next = prev + 6;
-        return next > 0 ? 0 : next;
-      });
-    }, 1300);
+      const cur = currentHourRef.current;
+      const currentIdx = steps.indexOf(cur);
+      const nextIdx = currentIdx + 1 < steps.length ? currentIdx + 1 : 0;
+      onSelectHour(steps[nextIdx]!);
+    }, 2500);
 
     return () => clearInterval(timer);
   }, [isPlaying, onSelectHour]);
 
-  // Compute calculated UTC timestamp
+  // UTC timestamp for selected step
   const baseTime = new Date(detectionTimeIso).getTime();
   const currentStepTime = new Date(baseTime + selectedHour * 3600 * 1000);
   const formattedUtc = currentStepTime.toUTCString().replace("GMT", "UTC");
 
   const handleStepBack = () => {
+    setIsPlaying(false);
     const steps = [-24, -18, -12, -6, 0];
     const prev = [...steps].reverse().find((s) => s < selectedHour);
     onSelectHour(prev !== undefined ? prev : -24);
   };
 
   const handleStepForward = () => {
+    setIsPlaying(false);
     const steps = [-24, -18, -12, -6, 0];
     const next = steps.find((s) => s > selectedHour);
     onSelectHour(next !== undefined ? next : 0);
   };
 
+  // Compute % fill for CSS range track gradient
+  // Map selectedHour (-24 to 0) → 0–100%
+  const fillPercent = ((selectedHour + 24) / 24) * 100;
+
   return (
-    <div className="w-full max-w-xl rounded-2xl border border-cyan-500/25 bg-slate-950/85 p-4 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl transition-all duration-300">
-      {/* Top Bar: Title, UTC Timestamp & Controls */}
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5 mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-xs">
-            <Clock className="h-4 w-4" />
+    <div
+      style={{
+        width: 360,
+        background: "#0D1117",
+        border: "1px solid #1C2A38",
+        borderRadius: "2px",
+        padding: "10px 14px 12px",
+        color: "#C8D8E8",
+        fontFamily: "'Inter', sans-serif",
+      }}
+    >
+      {/* ── Header row ── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #1C2A38",
+          paddingBottom: 8,
+          marginBottom: 10,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              ...monoSm,
+              fontSize: "8px",
+              color: "#3A5268",
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontWeight: 700,
+              marginBottom: 2,
+            }}
+          >
+            Observation Timeline
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-100">
-                Observation Timeline
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.2 text-[10px] font-mono font-bold text-cyan-300 border border-cyan-500/30">
-                <Activity className="h-2.5 w-2.5 animate-pulse text-cyan-400" />
-                {selectedHour === 0 ? "T = 0h (Detection)" : `T = ${selectedHour}h`}
-              </span>
-            </div>
-            <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-              {formattedUtc}
-            </p>
+          <div style={{ ...monoSm, color: "#5A7A94", fontSize: "9px" }}>
+            {formattedUtc}
           </div>
         </div>
 
-        {/* Playback Button Group */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
+        {/* Step + play controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+          {/* Step back */}
+          <button
+            type="button"
             onClick={handleStepBack}
             disabled={selectedHour <= -24}
-            className="h-7 w-7 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
-            title="Step back 6 hours"
+            style={{
+              width: 22,
+              height: 22,
+              border: "1px solid #1C2A38",
+              background: "transparent",
+              color: selectedHour <= -24 ? "#3A5268" : "#5A7A94",
+              cursor: selectedHour <= -24 ? "default" : "pointer",
+              borderRadius: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "11px",
+              padding: 0,
+            }}
+            title="Step back 6h"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+            ‹
+          </button>
 
-          <Button
-            variant={isPlaying ? "default" : "outline"}
-            size="sm"
+          {/* Play / Pause */}
+          <button
+            type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className={`h-7 gap-1.5 px-2.5 text-xs font-semibold shadow-xs transition-all ${
-              isPlaying
-                ? "bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-bold"
-                : "border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800"
-            }`}
+            style={{
+              height: 22,
+              padding: "0 8px",
+              border: `1px solid ${isPlaying ? "#22D3EE" : "#1C2A38"}`,
+              background: isPlaying ? "#22D3EE18" : "transparent",
+              color: isPlaying ? "#22D3EE" : "#5A7A94",
+              cursor: "pointer",
+              borderRadius: 0,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "8px",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              transition: "border-color 150ms, color 150ms, background 150ms",
+            }}
           >
-            {isPlaying ? (
-              <>
-                <Pause className="h-3 w-3 fill-current" />
-                <span>Pause</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-3 w-3 fill-current" />
-                <span>Play Demo</span>
-              </>
-            )}
-          </Button>
+            {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+          </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
+          {/* Step forward */}
+          <button
+            type="button"
             onClick={handleStepForward}
             disabled={selectedHour >= 0}
-            className="h-7 w-7 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
-            title="Step forward 6 hours"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIsPlaying(false);
-              onSelectHour(0);
+            style={{
+              width: 22,
+              height: 22,
+              border: "1px solid #1C2A38",
+              background: "transparent",
+              color: selectedHour >= 0 ? "#3A5268" : "#5A7A94",
+              cursor: selectedHour >= 0 ? "default" : "pointer",
+              borderRadius: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "11px",
+              padding: 0,
             }}
-            className="h-7 w-7 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+            title="Step forward 6h"
+          >
+            ›
+          </button>
+
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={() => { setIsPlaying(false); onSelectHour(0); }}
+            style={{
+              width: 22,
+              height: 22,
+              border: "1px solid #1C2A38",
+              background: "transparent",
+              color: "#3A5268",
+              cursor: "pointer",
+              borderRadius: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "9px",
+              padding: 0,
+            }}
             title="Reset to 0h"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
+            ↺
+          </button>
         </div>
       </div>
 
-      {/* Quick Select Buttons Grid */}
-      <div className="grid grid-cols-5 gap-1.5 mb-3">
+      {/* ── Quick-select step buttons ── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gap: 3,
+          marginBottom: 10,
+        }}
+      >
         {OBSERVATION_STEPS.map((step) => {
-          const isSelected = selectedHour === step.value;
+          const isActive = selectedHour === step.value;
           return (
             <button
               key={step.value}
               type="button"
-              onClick={() => {
-                setIsPlaying(false);
-                onSelectHour(step.value);
+              onClick={() => { setIsPlaying(false); onSelectHour(step.value); }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "5px 2px",
+                border: `1px solid ${isActive ? "#22D3EE" : "#1C2A38"}`,
+                background: isActive ? "#22D3EE14" : "transparent",
+                color: isActive ? "#22D3EE" : "#5A7A94",
+                cursor: "pointer",
+                borderRadius: 0,
+                transition: "border-color 150ms, color 150ms, background 150ms",
               }}
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
-                isSelected
-                  ? "border-cyan-400 bg-cyan-500/20 text-cyan-200 font-bold shadow-md shadow-cyan-500/10 scale-[1.02]"
-                  : "border-slate-800/80 bg-slate-900/50 text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 hover:border-slate-700"
-              }`}
             >
-              <span className="font-mono text-xs font-bold">{step.label}</span>
-              <span className="text-[9px] opacity-75 truncate max-w-full font-medium">
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px",
+                  fontWeight: isActive ? 700 : 400,
+                  lineHeight: 1.2,
+                }}
+              >
+                {step.label}
+              </span>
+              <span
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: "7.5px",
+                  color: isActive ? "#22D3EE99" : "#3A5268",
+                  marginTop: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "100%",
+                }}
+              >
                 {step.tag}
               </span>
             </button>
@@ -169,18 +266,38 @@ export function TimeSlider({
         })}
       </div>
 
-      {/* Smooth Scrubber Slider */}
-      <div className="px-1.5">
-        <Slider
-          value={[selectedHour]}
+      {/* ── Draggable scrubber — native range input for live drag ── */}
+      <div style={{ position: "relative" }}>
+        {/* Active step display */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 5,
+          }}
+        >
+          <span style={{ ...monoSm, color: "#22D3EE", fontSize: "9px", fontWeight: 700 }}>
+            T = {selectedHour === 0 ? "0h (Detection)" : `${selectedHour}h`}
+          </span>
+          <span style={{ ...monoSm, color: "#3A5268", fontSize: "9px" }}>
+            Scrub ←→
+          </span>
+        </div>
+
+        <input
+          type="range"
+          className="scrubber"
           min={-24}
           max={0}
           step={1}
-          onValueChange={(val) => {
+          value={selectedHour}
+          style={{
+            "--range-fill": `${fillPercent}%`,
+          } as React.CSSProperties}
+          onChange={(e) => {
             setIsPlaying(false);
-            if (val[0] !== undefined) onSelectHour(val[0]);
+            onSelectHour(Number(e.target.value));
           }}
-          className="cursor-pointer"
         />
       </div>
     </div>

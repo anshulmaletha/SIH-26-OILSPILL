@@ -1,41 +1,45 @@
-import { gridDisk, latLngToCell } from "h3-js";
+import { gridDiskDistances, latLngToCell, cellToLatLng } from "h3-js";
 import type { P4Output, H3CorridorTimestep, H3CellDensity } from "../contracts/p4";
 import type { P5Output } from "../contracts/p5";
 import { H3_CORRIDOR_RESOLUTION } from "../map/data/sampleData";
 import { getVesselPositionsAtHour } from "./p5Adapter";
 
 /**
- * Creates synthetic H3 hexagonal cluster around a given center [lng, lat]
+ * Creates dense synthetic H3 hexagonal cluster around a given center [lng, lat]
+ * Generates 4 concentric rings (61 hexagons) with discrete density decay from core to edge.
  */
 export function createSyntheticH3Cells(
   centerLng: number,
   centerLat: number,
-  baseDensity: number = 0.8
+  baseDensity: number = 0.85
 ): H3CellDensity[] {
   const centerHex = latLngToCell(centerLat, centerLng, H3_CORRIDOR_RESOLUTION);
-  const disk = gridDisk(centerHex, 2);
+  const ringGroups = gridDiskDistances(centerHex, 4);
 
-  return disk.map((hex, idx) => {
-    const isCenter = idx === 0;
-    const isInner = idx > 0 && idx < 7;
-    // Hexagonal cell density gradient
-    const density = isCenter
-      ? Math.min(1.0, baseDensity * 1.1)
-      : isInner
-      ? baseDensity * 0.75
-      : baseDensity * 0.35;
+  // Discrete decay multipliers per ring k=0..4
+  const ringMultipliers = [1.05, 0.82, 0.58, 0.32, 0.14];
 
-    const riskLevel =
+  const cells: H3CellDensity[] = [];
+
+  ringGroups.forEach((hexesInRing, ringK) => {
+    const mult = ringMultipliers[ringK] ?? 0.1;
+    const density = Math.max(0.08, Math.min(1.0, baseDensity * mult));
+    const riskLevel: H3CellDensity["riskLevel"] =
       density > 0.75 ? "critical" : density > 0.5 ? "high" : density > 0.25 ? "medium" : "low";
 
-    return {
-      h3Index: hex,
-      particleCount: Math.round(density * 100),
-      density: Number(density.toFixed(2)),
-      riskLevel,
-      centerCoordinates: [centerLng, centerLat],
-    };
+    for (const hex of hexesInRing) {
+      const [cLat, cLng] = cellToLatLng(hex);
+      cells.push({
+        h3Index: hex,
+        particleCount: Math.round(density * 100),
+        density: Number(density.toFixed(2)),
+        riskLevel,
+        centerCoordinates: [cLng, cLat],
+      });
+    }
   });
+
+  return cells;
 }
 
 function createSyntheticH3Timestep(
@@ -58,21 +62,21 @@ function createSyntheticH3Timestep(
 
 /** Fallback dataset for P4 H3 corridor matching across observation times */
 export const DEFAULT_P4_DATA: P4Output = {
-  corridorId: "H3-CORR-SIN-0902",
+  corridorId: "H3-CORR-MUM-0515",
   h3Resolution: H3_CORRIDOR_RESOLUTION,
   totalCoverageAreaKm2: 38.6,
-  generatedAt: "2026-09-02T06:25:00Z",
+  generatedAt: "2026-05-15T06:25:00Z",
   timesteps: [
-    // -24h: release origin
-    createSyntheticH3Timestep(-24, "2026-09-01T06:00:00Z", 103.68, 1.05, 0.95),
-    // -18h: early plume
-    createSyntheticH3Timestep(-18, "2026-09-01T12:00:00Z", 103.74, 1.09, 0.85),
-    // -12h: mid-corridor
-    createSyntheticH3Timestep(-12, "2026-09-01T18:00:00Z", 103.82, 1.13, 0.75),
-    // -6h: approaching detection
-    createSyntheticH3Timestep(-6, "2026-09-02T00:00:00Z", 103.90, 1.17, 0.65),
-    // 0h: detection zone
-    createSyntheticH3Timestep(0, "2026-09-02T06:00:00Z", 103.98, 1.22, 0.55),
+    // -12h: release origin — IND_TANKER_412 speed-drop zone near (71.20, 19.65)
+    createSyntheticH3Timestep(-12, "2026-05-14T18:00:00Z", 71.2, 19.65, 0.95),
+    // -9h: early plume — mid-trajectory near (71.45, 19.55)
+    createSyntheticH3Timestep(-9, "2026-05-14T21:00:00Z", 71.45, 19.55, 0.85),
+    // -6h: mid-corridor — (71.65, 19.45)
+    createSyntheticH3Timestep(-6, "2026-05-15T00:00:00Z", 71.65, 19.45, 0.75),
+    // -3h: approaching detection — (71.75, 19.4)
+    createSyntheticH3Timestep(-3, "2026-05-15T03:00:00Z", 71.75, 19.4, 0.65),
+    // 0h: detection zone — slick centroid (71.85, 19.35) from sar_detection_output.json
+    createSyntheticH3Timestep(0, "2026-05-15T06:00:00Z", 71.85, 19.35, 0.55),
   ],
 };
 
@@ -128,7 +132,7 @@ export function getH3TimestepForHour(p4: P4Output, relativeHour: number): H3Corr
   const exact = timesteps.find((ts) => ts.relativeHour === relativeHour);
   if (exact) return exact;
 
-  let closest = timesteps[0];
+  let closest = timesteps[0]!;
   let minDiff = Math.abs(closest.relativeHour - relativeHour);
 
   for (const ts of timesteps) {
@@ -139,15 +143,19 @@ export function getH3TimestepForHour(p4: P4Output, relativeHour: number): H3Corr
     }
   }
 
-  return closest;
+  return closest ?? null;
 }
 
 /**
- * Maps particle density (0.0 to 1.0) to color and opacity.
- * - High density (>0.75): Hot Magenta / Crimson [244, 63, 94]
- * - Medium-High (>0.50): Vibrant Orange [249, 115, 22]
- * - Medium (>0.25): Amber / Yellow [245, 158, 11]
- * - Low (<=0.25): Cyan [34, 211, 238]
+ * Maps particle density (0.0 to 1.0) to a cyan RGBA color with discrete opacity steps.
+ *
+ * Design spec: single accent hue (#22D3EE / [34, 211, 238]) only.
+ * Density maps to fill opacity in 5 discrete choropleth bands:
+ *   ≥ 0.85  →  Core Peak   (alpha 230 / ~90%)
+ *   ≥ 0.65  →  High Ring   (alpha 185 / ~72%)
+ *   ≥ 0.45  →  Medium Ring (alpha 135 / ~53%)
+ *   ≥ 0.20  →  Low Ring    (alpha 80  / ~31%)
+ *   < 0.20  →  Edge Fringe (alpha 35  / ~14%)
  */
 export function getDensityColor(
   density: number,
@@ -155,30 +163,25 @@ export function getDensityColor(
 ): [number, number, number, number] {
   const d = Math.max(0, Math.min(1, density));
 
-  let r = 34;
-  let g = 211;
-  let b = 238;
+  // Consistent Cyan RGB: #22D3EE = [34, 211, 238]
+  const r = 34;
+  const g = 211;
+  const b = 238;
 
-  if (d > 0.75) {
-    r = 244;
-    g = 63;
-    b = 94;
-  } else if (d > 0.5) {
-    r = 249;
-    g = 115;
-    b = 22;
-  } else if (d > 0.25) {
-    r = 245;
-    g = 158;
-    b = 11;
+  let alpha: number;
+  if (d >= 0.85) {
+    alpha = 230; // ~90%
+  } else if (d >= 0.65) {
+    alpha = 185; // ~72%
+  } else if (d >= 0.45) {
+    alpha = 135; // ~53%
+  } else if (d >= 0.20) {
+    alpha = 80;  // ~31%
   } else {
-    r = 34;
-    g = 211;
-    b = 238;
+    alpha = 35;  // ~14%
   }
 
-  const alpha = Math.round((60 + d * 175) * alphaMultiplier);
-  return [r, g, b, alpha];
+  return [r, g, b, Math.round(alpha * alphaMultiplier)];
 }
 
 export function parseP4Payload(raw: unknown): P4Output {

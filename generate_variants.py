@@ -92,7 +92,7 @@ def run_custom_physics_variant(
     with open(output_filename, "w") as f:
         json.dump(output_payload, f, indent=2)
 
-    print(f"[✓] Saved {variant_name} -> {output_filename}\n")
+    print(f"[OK] Saved {variant_name} -> {output_filename}\n")
 
 
 def generate_all_variants():

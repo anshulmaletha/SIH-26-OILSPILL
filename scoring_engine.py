@@ -35,6 +35,15 @@ from datetime import datetime, timezone
 #  These weights are recorded in every output record for auditability.
 # ═══════════════════════════════════════════════════════════════════════
 
+# NOTE: total_score is intentionally expressed on a 0-100 scale in this
+# module and its test suite. case_file_exporter.py and the frontend
+# (p3Adapter.ts, SuspectRankingTable.tsx) separately normalize to a
+# 0.0-1.0 scale for the exported case file and UI display. This is a
+# known, accepted scale difference between internal scoring and external
+# case-file/UI representation -- do not "fix" this by changing one side
+# without updating the other three dependent locations in lockstep
+# (see repo audit notes for the full list of dependent files).
+
 WEIGHTS = {
     "corridor_overlap": 0.40,
     "heading_alignment": 0.30,

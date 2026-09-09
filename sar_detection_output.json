@@ -8,18 +8,33 @@
         "type": "Polygon",
         "coordinates": [
           [
-            [71.835, 19.360],
-            [71.860, 19.370],
-            [71.870, 19.340],
-            [71.845, 19.330],
-            [71.835, 19.360]
+            [
+              71.835,
+              19.36
+            ],
+            [
+              71.86,
+              19.37
+            ],
+            [
+              71.87,
+              19.34
+            ],
+            [
+              71.845,
+              19.33
+            ],
+            [
+              71.835,
+              19.36
+            ]
           ]
         ]
       },
       "geometry_features": {
         "area_km2": 4.82,
-        "perimeter_km": 9.40,
-        "major_axis_km": 3.80,
+        "perimeter_km": 9.4,
+        "major_axis_km": 3.8,
         "minor_axis_km": 1.25,
         "eccentricity": 0.94,
         "orientation_deg": 135.0
@@ -31,7 +46,8 @@
         "shape_gate_passed": true,
         "final_decision": "confirmed",
         "rejection_reason": null
-      }
+      },
+      "confidence": 0.88
     }
   ]
 }

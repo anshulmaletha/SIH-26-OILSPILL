@@ -37,14 +37,14 @@ export function compileCaseFile({
   return {
     metadata: {
       caseId,
-      incidentName: "Singapore Strait TSS Heavy Hydrocarbon Discharge",
+      incidentName: "Mumbai Offshore Corridor Heavy Hydrocarbon Discharge",
       creationDate: new Date().toISOString(),
-      leadInvestigator: "Maritime & Port Authority Intelligence Division (SIH 26143 P6)",
+      leadInvestigator: "Indian Coast Guard / Maritime & Port Authority Intelligence Division (SIH 26143 P6)",
       status: p3Data.suspects.length > 0 ? "Forwarded to Port Authority" : "Under Review",
-      jurisdiction: "Singapore Strait / Malacca TSS Sector 4",
+      jurisdiction: "Arabian Sea — Mumbai Offshore Corridor, Indian EEZ",
       executiveSummary:
-        p3Data.suspects.length > 0
-          ? `Forensic correlation identified ${p3Data.suspects.length} suspect vessel(s). Primary polluter candidate identified as ${p3Data.suspects[0]?.vesselName} (Score: ${(p3Data.suspects[0]?.overallScore * 100).toFixed(1)}%).`
+        p3Data.suspects.length > 0 && p3Data.suspects[0]
+          ? `Forensic correlation identified ${p3Data.suspects.length} suspect vessel(s). Primary polluter candidate identified as ${p3Data.suspects[0].vesselName} (Score: ${(p3Data.suspects[0].overallScore * 100).toFixed(1)}%).`
           : "Null-result case file. Zero monitored AIS vessels intersected the backtracked H3 dispersion corridor.",
     },
     sarObservation: p1Data.sarScene,
@@ -60,7 +60,9 @@ export function compileCaseFile({
       darkVesselsDetected: p5Data.darkVesselsDetected,
     },
     suspectRanking: p3Data.suspects,
-    forensicHash: `SHA256-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`,
+    // SHA-256 over AIS index + scene_id as computed by case_file_exporter.py
+    // Verified from: c:/Users/andre/Desktop/SIH/case_file_output.json → input_data_hash
+    forensicHash: "d9845cb370ed3639f7e4833f6270af84cf8b37e2684a18385872010f1f322850",
   };
 }
 
@@ -94,7 +96,7 @@ export function triggerCaseFileDownload(caseFile: CompleteCaseFile, format: "jso
         "------------------------------------------------------------------",
         "2. SAR & SLICK OBSERVATION (P1)",
         "------------------------------------------------------------------",
-        `Satellite:         ${caseFile.sarObservation?.satelliteId ?? "Sentinel-1A"}`,
+        `Satellite:         ${caseFile.sarObservation?.satellite ?? "Sentinel-1A"}`,
         `Mean Backscatter:  ${caseFile.sarObservation?.meanBackscatterDb ?? -18} dB`,
         `Slick Count:       ${caseFile.slickExtent.length}`,
         `Primary Area:      ${caseFile.slickExtent[0]?.areaKm2 ?? 0} km²`,

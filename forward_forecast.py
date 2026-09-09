@@ -69,7 +69,7 @@ def run_forward_spill_forecast():
     with open("forward_drift_particles.json", "w") as f:
         json.dump(forward_payload, f, indent=2)
 
-    print("[✓] Saved forward_drift_particles.json for Spill Response UI.")
+    print("[OK] Saved forward_drift_particles.json for Spill Response UI.")
 
 if __name__ == "__main__":
     run_forward_spill_forecast()

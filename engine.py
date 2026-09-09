@@ -104,4 +104,79 @@ def run_backtracking(
     with open(output_path, "w") as f:
         json.dump(output_payload, f, indent=2)
 
-    print(f"[✓] Backtracking complete -> exported to {output_path}")
+    print(f"[OK] Backtracking complete -> exported to {output_path}")
+
+
+def bin_particles_to_h3_corridor(
+    drift_data: dict,
+    h3_resolution: int = 7
+) -> dict:
+    """
+    P2 -> P4 Data Adapter:
+    Converts raw Lagrangian drift particle clouds (drift_particles.json)
+    into the PRD §7.2 Stage 2 hex-binned origin corridor schema.
+    
+    Args:
+        drift_data: Parsed dictionary from drift_particles.json.
+        h3_resolution: H3 resolution level (default 7).
+        
+    Returns:
+        dict strictly conforming to PRD §7.2 schema.
+    """
+    import h3
+    checkpoints = drift_data.get("checkpoints", {})
+    corridor = {}
+
+    for cp_key, cp_val in checkpoints.items():
+        particles = cp_val.get("particles", [])
+        density_map = {}
+
+        for p in particles:
+            lat = p.get("lat")
+            lon = p.get("lon")
+            if lat is None or lon is None:
+                continue
+
+            if hasattr(h3, 'latlng_to_cell'):
+                cell = h3.latlng_to_cell(lat, lon, h3_resolution)
+            else:
+                cell = h3.geo_to_h3(lat, lon, h3_resolution)
+
+            density_map[cell] = density_map.get(cell, 0) + 1
+
+        corridor[cp_key] = {
+            "hex_ids": sorted(list(density_map.keys())),
+            "particle_density": density_map
+        }
+
+    drift_cfg = drift_data.get("drift_config", {})
+    return {
+        "h3_resolution": h3_resolution,
+        "scene_id": drift_data.get("scene_id", "UNKNOWN_SCENE"),
+        "corridor": corridor,
+        "drift_config": {
+            "currents_source": drift_cfg.get("currents_source", "HYCOM"),
+            "wind_source": drift_cfg.get("wind_source", "ERA5"),
+            "wind_drift_factor": drift_cfg.get("wind_drift_factor", 0.03),
+            "diffusion_coefficient": drift_cfg.get("horizontal_diffusivity_m2s", 8.0),
+            "particle_count": drift_cfg.get("particle_count", 500)
+        }
+    }
+
+
+def convert_drift_particles_file(
+    input_path: str = "drift_particles.json",
+    output_path: str = "h3_corridor_output.json",
+    h3_resolution: int = 7
+) -> dict:
+    """Convenience utility to convert drift_particles.json file to PRD §7.2 JSON file."""
+    with open(input_path, "r", encoding="utf-8") as f:
+        raw_drift = json.load(f)
+
+    binned = bin_particles_to_h3_corridor(raw_drift, h3_resolution=h3_resolution)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(binned, f, indent=2)
+
+    print(f"[OK] Converted {input_path} -> {output_path} ({len(binned['corridor'])} timesteps binned into H3 res {h3_resolution})")
+    return binned

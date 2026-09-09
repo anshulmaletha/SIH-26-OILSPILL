@@ -1,233 +1,522 @@
-import { useState } from "react";
-import {
-  ListOrdered,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle,
-  Ship,
-  Info,
-  CheckCircle2,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import type { P3Output, RankedSuspect } from "@/lib/contracts/p3";
-import { getRankBadge } from "@/lib/adapters/p3Adapter";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 
 export interface SuspectRankingTableProps {
-  p3Data?: P3Output;
-  selectedVesselId?: string;
-  onSelectVessel?: (vesselId: string) => void;
-  isLoading?: boolean;
+  p3Data?: P3Output | undefined;
+  selectedVesselId?: string | undefined;
+  expandedVesselId?: string | undefined;
+  onSelectVessel?: ((vesselId: string) => void) | undefined;
+  onSetExpandedVessel?: ((vesselId: string | null) => void) | undefined;
+  isLoading?: boolean | undefined;
+}
+
+// Rank badge — #1 gets cyan (primary), others amber (caution) or neutral
+function RankBadge({ rank }: { rank: number }) {
+  const color =
+    rank === 1 ? "#22D3EE" :
+    rank === 2 ? "#F59E0B" :   // amber = caution rank
+    "#5A7A94";
+  const bg =
+    rank === 1 ? "#22D3EE18" :
+    rank === 2 ? "#F59E0B14" :
+    "#5A7A9414";
+
+  return (
+    <span
+      style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "9px",
+        color,
+        background: bg,
+        border: `1px solid ${color}55`,
+        padding: "1px 5px",
+        borderRadius: 0,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}
+    >
+      #{rank}
+    </span>
+  );
+}
+
+// Animated score bar that fills from 0 → value on mount/expand
+function ScoreBar({
+  value,
+  label,
+  animate,
+}: {
+  value: number;
+  label: string;
+  animate: boolean;
+}) {
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (animate) {
+      // Tiny delay so transition is visible
+      const t = setTimeout(() => setWidth(value * 100), 30);
+      return () => clearTimeout(t);
+    } else {
+      setWidth(0);
+      return undefined;
+    }
+  }, [animate, value]);
+
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 2,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: "9px",
+            color: "#5A7A94",
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "9px",
+            color: "#C8D8E8",
+            fontWeight: 600,
+          }}
+        >
+          {Math.round(value * 100)}%
+        </span>
+      </div>
+      <div
+        style={{
+          height: 2,
+          background: "#1C2A38",
+          borderRadius: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${width}%`,
+            background: "#22D3EE",
+            borderRadius: 0,
+            transition: "width 500ms cubic-bezier(0.4,0,0.2,1)",
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function SuspectRankingTable({
   p3Data,
   selectedVesselId,
+  expandedVesselId,
   onSelectVessel,
+  onSetExpandedVessel,
   isLoading = false,
 }: SuspectRankingTableProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
   const suspects = p3Data?.suspects || [];
 
-  return (
-    <div className="w-80 sm:w-96 rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-xl transition-all duration-300 overflow-hidden flex flex-col text-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-2.5 bg-muted/40 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30">
-            <ListOrdered className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Suspect Ranking
-              </h2>
-              <span className="text-[10px] font-mono text-muted-foreground font-semibold">
-                ({suspects.length} Evaluated)
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              P3 Multi-Feature ML Correlation Output
-            </p>
-          </div>
-        </div>
+  // Auto-scroll to selected vessel
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (!selectedVesselId || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-vessel-id="${selectedVesselId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedVesselId]);
 
-        <Button
-          variant="ghost"
-          size="icon"
+  return (
+    <div
+      style={{
+        width: 280,
+        background: "#0D1117",
+        border: "1px solid #1C2A38",
+        borderRadius: "2px",
+        color: "#C8D8E8",
+        fontFamily: "'Inter', sans-serif",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "6px 10px",
+          background: "#0A0E14",
+          borderBottom: "1px solid #1C2A38",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "8px",
+              color: "#3A5268",
+              textTransform: "uppercase" as const,
+              letterSpacing: "0.12em",
+              fontWeight: 700,
+            }}
+          >
+            Suspect Ranking
+          </span>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "8px",
+              color: "#22D3EE",
+              marginLeft: 6,
+            }}
+          >
+            {suspects.length} evaluated
+          </span>
+        </div>
+        <button
+          type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-          title={isCollapsed ? "Expand Ranking Table" : "Collapse Ranking Table"}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#3A5268",
+            padding: "0 2px",
+            fontSize: "10px",
+          }}
+          title={isCollapsed ? "Expand" : "Collapse"}
         >
-          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-        </Button>
+          {isCollapsed ? "▼" : "▲"}
+        </button>
       </div>
 
       {/* Body */}
-      {!isCollapsed && (
-        <div className="p-3 space-y-2.5 max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
+      <div
+        style={{
+          maxHeight: isCollapsed ? 0 : 420,
+          overflow: "hidden",
+          transition: "max-height 220ms ease",
+        }}
+      >
+        <div
+          className="custom-scrollbar"
+          style={{
+            padding: "8px",
+            maxHeight: 420,
+            overflowY: "auto",
+          }}
+        >
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-6 text-xs text-muted-foreground">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mb-2" />
-              <span>Evaluating corridor trajectory overlap…</span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px 0",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  border: "1.5px solid #22D3EE",
+                  borderTop: "1.5px solid transparent",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px",
+                  color: "#3A5268",
+                }}
+              >
+                Evaluating corridor overlap…
+              </span>
             </div>
           ) : suspects.length === 0 ? (
-            /* Explicit Real No Candidate State */
-            <div className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/10 p-3.5 text-center animate-in fade-in duration-300">
-              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 mb-2">
-                <Info className="h-5 w-5" />
+            /* No-candidate state */
+            <div
+              style={{
+                border: "1px solid #F59E0B44",
+                background: "#F59E0B0A",
+                padding: "12px",
+                borderRadius: "2px",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "8px",
+                  color: "#F59E0B",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: 6,
+                }}
+              >
+                Null Result · 0 Corridor Overlaps
               </div>
-              <div className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-mono font-bold text-amber-300 border border-amber-500/30 mb-1.5">
-                NULL RESULT • 0 CORRIDOR OVERLAPS
+              <div
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: "11px",
+                  color: "#C8D8E8",
+                  fontWeight: 600,
+                  marginBottom: 4,
+                }}
+              >
+                No Suspect Identified
               </div>
-              <h3 className="text-xs font-bold text-foreground">No Suspect Vessel Identified</h3>
-              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                All monitored AIS trajectories in the sector maintain clearance &gt; 14.8 nm from the backtracked discharge origin.
+              <p
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: "10px",
+                  color: "#5A7A94",
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                All monitored AIS trajectories cleared — separation &gt;14.8 nm from backtracked origin.
               </p>
-
-              <div className="mt-3 rounded-lg bg-card/80 border border-border/70 p-2 text-left space-y-1 text-[10px] font-mono">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>H3 Corridor Intersections:</span>
-                  <span className="font-bold text-emerald-400">0 Ships</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Minimum Sector Separation:</span>
-                  <span className="font-bold text-foreground">14.8 nm</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Temporal Drift Confidence:</span>
-                  <span className="font-bold text-foreground">91.4% (Validated)</span>
-                </div>
-              </div>
-
-              <div className="mt-2.5 text-[10px] text-muted-foreground italic">
-                Investigation status: Classified as Unattributed / Natural Seep or Foreign Sector Transit.
-              </div>
             </div>
           ) : (
-            <ul className="space-y-2">
+            <ul ref={listRef} style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {suspects.map((suspect) => {
                 const isSelected = selectedVesselId === suspect.vesselId;
-                const isRowExpanded = expandedRowId === suspect.vesselId;
-                const badge = getRankBadge(suspect.rank);
+                const isExpanded = expandedVesselId === suspect.vesselId;
                 const scorePercent = Math.round(suspect.overallScore * 100);
 
                 return (
                   <li
                     key={suspect.vesselId}
-                    className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-                      isSelected
-                        ? "border-primary bg-accent/70 shadow-md ring-1 ring-primary/40"
-                        : "border-border/80 bg-muted/30 hover:bg-muted/60"
-                    }`}
+                    data-vessel-id={suspect.vesselId}
+                    style={{
+                      marginBottom: 5,
+                      border: `1px solid ${isSelected ? "#22D3EE" : "#1C2A38"}`,
+                      background: isSelected ? "#22D3EE0A" : "#0A0E14",
+                      borderRadius: "2px",
+                      overflow: "hidden",
+                      transition: "border-color 200ms, background 200ms",
+                    }}
                   >
-                    {/* Main Row */}
+                    {/* Main row — click to select vessel */}
                     <div
                       onClick={() => onSelectVessel?.(suspect.vesselId)}
-                      className="p-2.5 cursor-pointer"
+                      style={{
+                        padding: "8px 8px 6px",
+                        cursor: "pointer",
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${badge.bg} ${badge.color}`}
-                          >
-                            #{suspect.rank}
-                          </span>
-                          <span className="font-bold text-xs text-foreground truncate">
-                            {suspect.vesselName}
-                          </span>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="font-mono text-xs font-extrabold text-foreground">
-                            {scorePercent}%
-                          </span>
-                          <span className="text-[9px] text-muted-foreground block">
-                            Score
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Vessel Metadata & Score Bar */}
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
-                        <span>
-                          {suspect.vesselType} • {suspect.flag}
+                      {/* Name + rank + score */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 6,
+                          marginBottom: 4,
+                        }}
+                      >
+                        <RankBadge rank={suspect.rank} />
+                        <span
+                          style={{
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: "11px",
+                            color: "#E2E8F0",
+                            fontWeight: 600,
+                            flex: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {suspect.vesselName}
                         </span>
-                        <span className="font-mono">MMSI: {suspect.mmsi}</span>
+                        <span
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: "11px",
+                            color: "#22D3EE",
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {scorePercent}%
+                        </span>
                       </div>
 
-                      <Progress value={scorePercent} className="h-1.5 bg-muted" />
+                      {/* MMSI only (no flag/type per spec — those go in the export) */}
+                      <div
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: "9px",
+                          color: "#3A5268",
+                          marginBottom: 5,
+                        }}
+                      >
+                        {suspect.mmsi ? `MMSI ${suspect.mmsi}` : "SAR-only · No MMSI"}
+                      </div>
 
-                      {/* Dark Vessel Alert Tag */}
+                      {/* Score bar */}
+                      <div
+                        style={{
+                          height: 2,
+                          background: "#1C2A38",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${scorePercent}%`,
+                            background: "#22D3EE",
+                            transition: "width 400ms ease",
+                          }}
+                        />
+                      </div>
+
+                      {/* Dark vessel anomaly tag — amber (caution) */}
                       {suspect.isDarkVessel && (
-                        <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-rose-500/15 border border-rose-500/30 px-2 py-1 text-[10px] text-rose-400 font-semibold">
-                          <AlertTriangle className="h-3 w-3 text-rose-400 shrink-0" />
-                          <span className="truncate">AIS Transponder Gap Anomaly</span>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            marginTop: 5,
+                            padding: "3px 6px",
+                            background: "#F59E0B10",
+                            border: "1px solid #F59E0B44",
+                            borderRadius: "2px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontSize: "8px",
+                              color: "#F59E0B",
+                              textTransform: "uppercase" as const,
+                              letterSpacing: "0.08em",
+                            }}
+                          >
+                            ⚠ AIS Transponder Gap Anomaly
+                          </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Breakdown Toggle Button */}
-                    <div className="border-t border-border/50 bg-muted/20 px-2.5 py-1 flex items-center justify-between">
+                    {/* Expand/collapse toggle */}
+                    <div
+                      style={{
+                        borderTop: "1px solid #1C2A38",
+                        padding: "4px 8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: "#0D1117",
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setExpandedRowId(isRowExpanded ? null : suspect.vesselId);
+                          onSetExpandedVessel?.(isExpanded ? null : suspect.vesselId);
                         }}
-                        className="text-[10px] font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: "8.5px",
+                          color: "#22D3EE",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          textTransform: "uppercase" as const,
+                          letterSpacing: "0.06em",
+                        }}
                       >
-                        {isRowExpanded ? "Hide Feature Breakdown" : "View Feature Scores"}
-                        {isRowExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        {isExpanded ? "▲ Hide Scores" : "▼ Feature Scores"}
                       </button>
-
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        Conf: {(suspect.confidence * 100).toFixed(0)}%
+                      <span
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: "8px",
+                          color: "#3A5268",
+                        }}
+                      >
+                        Conf {(suspect.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
 
-                    {/* Expanded Feature Breakdown */}
-                    {isRowExpanded && (
-                      <div className="p-2.5 pt-2 bg-muted/40 border-t border-border/60 space-y-1.5 text-[10px] animate-in fade-in duration-150">
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Trajectory Corridor Overlap:</span>
-                          <span className="font-mono font-bold text-foreground">
-                            {(suspect.featureScores.trajectoryIntersection * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Temporal Match at Origin:</span>
-                          <span className="font-mono font-bold text-foreground">
-                            {(suspect.featureScores.temporalProximity * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Speed/Maneuver Anomaly:</span>
-                          <span className="font-mono font-bold text-foreground">
-                            {(suspect.featureScores.speedAnomaly * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>AIS Gap Significance:</span>
-                          <span className="font-mono font-bold text-foreground">
-                            {(suspect.featureScores.aisGapScore * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="mt-1.5 pt-1.5 border-t border-border/60 text-[10px] text-muted-foreground leading-snug">
-                          <strong className="text-foreground">Recommendation: </strong>
+                    {/* Accordion — feature score breakdown, animated bars */}
+                    <div
+                      style={{
+                        maxHeight: isExpanded ? 200 : 0,
+                        overflow: "hidden",
+                        transition: "max-height 300ms cubic-bezier(0.4,0,0.2,1)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: "8px 8px 6px",
+                          borderTop: "1px solid #1C2A38",
+                          background: "#080C12",
+                        }}
+                      >
+                        <ScoreBar
+                          label="Corridor Overlap"
+                          value={suspect.featureScores.trajectoryIntersection}
+                          animate={isExpanded}
+                        />
+                        <ScoreBar
+                          label="Temporal Match"
+                          value={suspect.featureScores.temporalProximity}
+                          animate={isExpanded}
+                        />
+                        <ScoreBar
+                          label="Speed Anomaly"
+                          value={suspect.featureScores.speedAnomaly}
+                          animate={isExpanded}
+                        />
+                        <ScoreBar
+                          label="AIS Gap Score"
+                          value={suspect.featureScores.aisGapScore}
+                          animate={isExpanded}
+                        />
+                        <div
+                          style={{
+                            borderTop: "1px solid #1C2A38",
+                            paddingTop: 5,
+                            marginTop: 5,
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: "9px",
+                            color: "#5A7A94",
+                            lineHeight: 1.5,
+                          }}
+                        >
                           {suspect.recommendation}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </li>
                 );
               })}
             </ul>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

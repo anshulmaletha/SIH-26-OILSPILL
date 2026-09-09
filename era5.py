@@ -16,7 +16,7 @@ def download_demo_era5():
         },
         'mumbai_era5_winds.nc'
     )
-    print("[✓] Downloaded ERA5 slice: mumbai_era5_winds.nc")
+    print("[OK] Downloaded ERA5 slice: mumbai_era5_winds.nc")
 
 if __name__ == "__main__":
     download_demo_era5()
