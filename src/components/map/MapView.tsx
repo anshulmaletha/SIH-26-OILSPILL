@@ -7,6 +7,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ScatterplotLayer } from "@deck.gl/layers";
 
 import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
@@ -18,6 +19,9 @@ import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
 import { DEFAULT_P5_DATA, getVesselPositionsAtHour } from "@/lib/adapters/p5Adapter";
 import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
+import type { MissionStage } from "@/lib/mission/missionState";
+import type { SwarmVessel } from "@/lib/mission/swarmData";
+import { swarmVesselColor } from "@/lib/mission/swarmData";
 
 export interface MapViewProps {
   visibility: Record<LayerId, boolean>;
@@ -32,6 +36,14 @@ export interface MapViewProps {
   theme?: ThemeMode | undefined;
   primarySuspectVesselId?: string | undefined;
   onSelectVessel?: ((vessel: VesselTrack) => void) | undefined;
+  /** Current mission stage — controls swarm layer visibility */
+  missionStage?: MissionStage | undefined;
+  /** Synthetic swarm vessels for phases 3 & 4 */
+  swarmVessels?: SwarmVessel[] | undefined;
+  /** Which color scheme to use for swarm vessels */
+  swarmPhase?: "swarm" | "backtrack" | undefined;
+  /** Callback fired when the map instance is ready (for external flyTo calls) */
+  onMapReady?: ((map: MapLibreMap) => void) | undefined;
 }
 
 /**
@@ -51,6 +63,10 @@ export default function MapView({
   theme = "dark",
   primarySuspectVesselId,
   onSelectVessel,
+  missionStage,
+  swarmVessels = [],
+  swarmPhase = "swarm",
+  onMapReady,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -90,39 +106,8 @@ export default function MapView({
     };
   }, [selectedHexCell]);
 
-  const layers = useMemo(
-    () =>
-      buildLayers({
-        visibility,
-        p1Data,
-        p4Data,
-        p5Data,
-        relativeHour,
-        sarOpacity,
-        selectedTrackId,
-        selectedTrackColor,
-        followTrack,
-        primarySuspectVesselId,
-        onHover: (info) => setTooltip(info),
-        onSelectVessel,
-        onClickHex: (cell, coord) => {
-          // Compute ring distance from center hex (or primary match hex)
-          let k = 0;
-          try {
-            // Using H3 match hex or first cell as reference
-            const refHex = "8742da54effffff";
-            k = Math.max(0, Math.min(4, Math.round(Math.sqrt(Math.max(0, 1 - cell.density) * 16))));
-          } catch {
-            k = 0;
-          }
-          setSelectedHexCell({
-            cell,
-            coordinate: coord,
-            ringK: k,
-          });
-        },
-      }),
-    [
+  const layers = useMemo(() => {
+    const baseLayers = buildLayers({
       visibility,
       p1Data,
       p4Data,
@@ -133,9 +118,51 @@ export default function MapView({
       selectedTrackColor,
       followTrack,
       primarySuspectVesselId,
+      onHover: (info) => setTooltip(info),
       onSelectVessel,
-    ]
-  );
+      onClickHex: (cell, coord) => {
+        let k = 0;
+        try {
+          k = Math.max(0, Math.min(4, Math.round(Math.sqrt(Math.max(0, 1 - cell.density) * 16))));
+        } catch {
+          k = 0;
+        }
+        setSelectedHexCell({ cell, coordinate: coord, ringK: k });
+      },
+    });
+
+    // Add synthetic swarm scatter layer for AIS_SWARM and BACKTRACK_CORRIDOR phases
+    if (swarmVessels.length > 0) {
+      const swarmLayer = new ScatterplotLayer({
+        id: "mission-swarm",
+        data: swarmVessels,
+        getPosition: (d) => d.position,
+        getRadius: (d) => (d.isCandidate ? 900 : 600),
+        getFillColor: (d) => swarmVesselColor(d, swarmPhase),
+        radiusUnits: "meters",
+        radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2,
+        pickable: false,
+        parameters: { depthTest: false },
+      });
+      return [...baseLayers, swarmLayer];
+    }
+
+    return baseLayers;
+  }, [
+    visibility,
+    p1Data,
+    p4Data,
+    p5Data,
+    relativeHour,
+    sarOpacity,
+    selectedTrackId,
+    selectedTrackColor,
+    followTrack,
+    primarySuspectVesselId,
+    onSelectVessel,
+    swarmVessels,
+    swarmPhase,
+  ]);
 
   // Initialize Map
   useEffect(() => {
@@ -158,6 +185,8 @@ export default function MapView({
       overlayRef.current = overlay;
       map.addControl(overlay as unknown as IControl);
       setMapReady(true);
+      // Fire onMapReady so the mission controller can issue flyTo
+      onMapReady?.(map);
     });
 
     mapRef.current = map;
@@ -168,7 +197,8 @@ export default function MapView({
       overlayRef.current = null;
       setMapReady(false);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Update style when theme changes
   useEffect(() => {
