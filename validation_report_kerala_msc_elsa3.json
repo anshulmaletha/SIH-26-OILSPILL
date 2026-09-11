@@ -1,0 +1,180 @@
+{
+  "validation_type": "single_case_physics_corridor",
+  "disclaimer": "This is a PHYSICS/CORRIDOR validation ONLY. Per PRD section 6/8, this does NOT validate vessel-attribution accuracy. The vessel in this ground truth sank and did not flee.",
+  "case_metadata": {
+    "incident_name": "MSC Elsa 3 Oil Spill",
+    "glide_id": "AC-2025-000070-IND",
+    "vessel_name": "MSC Elsa 3",
+    "vessel_type": "Container feeder vessel",
+    "flag_state": "Liberia",
+    "operator": "Mediterranean Shipping Company (MSC)",
+    "sinking_time_utc": "2025-05-25T02:20:00Z",
+    "origin_lat": 9.3125,
+    "origin_lon": 76.136,
+    "observation_satellite": "EOS-4 (ISRO)",
+    "observation_sensor": "C-band SAR (MRS Mode)",
+    "observation_date_utc": "2025-05-27T06:00:00Z"
+  },
+  "synthetic_input": {
+    "observed_centroid_lat": 8.024272,
+    "observed_centroid_lon": 76.67467,
+    "total_drift_km": 155.0,
+    "drift_duration_hours": 51.67,
+    "drift_speed_kmh": 3.0,
+    "drift_bearing_deg": 157.5,
+    "estimated_wind_speed_ms": 8.5,
+    "estimated_damping_ratio": 0.78,
+    "estimated_eccentricity": 0.88
+  },
+  "gate_evaluation": {
+    "wind_speed_ms": 8.5,
+    "wind_gate_passed": true,
+    "damping_ratio": 0.78,
+    "shape_gate_passed": true,
+    "final_decision": "confirmed",
+    "rejection_reason": null
+  },
+  "gate_passed": true,
+  "corridor": {
+    "timestep_count": 9,
+    "h3_resolution": 7,
+    "timesteps": [
+      {
+        "timestamp": "2025-05-27T06:00:00Z",
+        "t_minus_hours": 0.0,
+        "centroid_lat": 8.024272,
+        "centroid_lon": 76.67467,
+        "h3_hex": "87offline_80242_766746",
+        "k_ring_hexes": [
+          "87offline_80242_766746"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-27T00:00:00Z",
+        "t_minus_hours": 6.0,
+        "centroid_lat": 8.173823,
+        "centroid_lon": 76.612087,
+        "h3_hex": "87offline_81738_766120",
+        "k_ring_hexes": [
+          "87offline_81738_766120"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-26T18:00:00Z",
+        "t_minus_hours": 12.0,
+        "centroid_lat": 8.323374,
+        "centroid_lon": 76.549479,
+        "h3_hex": "87offline_83233_765494",
+        "k_ring_hexes": [
+          "87offline_83233_765494"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-26T12:00:00Z",
+        "t_minus_hours": 18.0,
+        "centroid_lat": 8.472925,
+        "centroid_lon": 76.486848,
+        "h3_hex": "87offline_84729_764868",
+        "k_ring_hexes": [
+          "87offline_84729_764868"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-26T06:00:00Z",
+        "t_minus_hours": 24.0,
+        "centroid_lat": 8.622475,
+        "centroid_lon": 76.424192,
+        "h3_hex": "87offline_86224_764241",
+        "k_ring_hexes": [
+          "87offline_86224_764241"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-26T00:00:00Z",
+        "t_minus_hours": 30.0,
+        "centroid_lat": 8.772026,
+        "centroid_lon": 76.361511,
+        "h3_hex": "87offline_87720_763615",
+        "k_ring_hexes": [
+          "87offline_87720_763615"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-25T18:00:00Z",
+        "t_minus_hours": 36.0,
+        "centroid_lat": 8.921576,
+        "centroid_lon": 76.298804,
+        "h3_hex": "87offline_89215_762988",
+        "k_ring_hexes": [
+          "87offline_89215_762988"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-25T12:00:00Z",
+        "t_minus_hours": 42.0,
+        "centroid_lat": 9.071127,
+        "centroid_lon": 76.236072,
+        "h3_hex": "87offline_90711_762360",
+        "k_ring_hexes": [
+          "87offline_90711_762360"
+        ],
+        "decay_weight": 1.0
+      },
+      {
+        "timestamp": "2025-05-25T06:00:00Z",
+        "t_minus_hours": 48.0,
+        "centroid_lat": 9.220677,
+        "centroid_lon": 76.173313,
+        "h3_hex": "87offline_92206_761733",
+        "k_ring_hexes": [
+          "87offline_92206_761733"
+        ],
+        "decay_weight": 1.0
+      }
+    ]
+  },
+  "validation_metrics": {
+    "distance_error_km": 11.001,
+    "hex_hit": false,
+    "true_wreck_h3": "87offline_93125_761360",
+    "closest_timestep_utc": "2025-05-25T06:00:00Z"
+  },
+  "caveats": [
+    {
+      "parameter": "wind_speed_ms",
+      "note": "Estimated at 8.5 m/s for monsoon onset; no real ERA5 query performed."
+    },
+    {
+      "parameter": "damping_ratio",
+      "note": "Estimated at 0.78 for heavy VLSFO bunker fuel; not derived from actual SAR backscatter calibration."
+    },
+    {
+      "parameter": "eccentricity",
+      "note": "Estimated at 0.88 for drift-elongated slick; not derived from actual EOS-4 image segmentation."
+    },
+    {
+      "parameter": "observation_time",
+      "note": "EOS-4 exact acquisition timestamp is estimated as 2025-05-27T06:00:00Z; actual orbit time may differ by several hours."
+    },
+    {
+      "parameter": "drift_model",
+      "note": "Analytical constant-velocity drift used instead of OpenDrift Lagrangian particle simulation with real HYCOM/ERA5 forcing fields."
+    },
+    {
+      "parameter": "slick_geometry",
+      "note": "Synthetic polygon approximated as circular ring; actual EOS-4 segmentation polygon unavailable."
+    },
+    {
+      "parameter": "single_case",
+      "note": "This is a single-case physics validation. Statistical significance requires multiple independent incidents."
+    }
+  ],
+  "generated_at": "2026-09-11T16:39:09Z"
+}

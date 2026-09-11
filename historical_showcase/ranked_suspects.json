@@ -1,0 +1,26 @@
+{
+  "ranked_suspects": [
+    {
+      "vessel_id": "MMSI_419000101",
+      "total_score": 65.72,
+      "normalized_score": 0.6572,
+      "feature_breakdown": {
+        "corridor_overlap_score": 0.1429,
+        "heading_alignment_score": 1.0,
+        "speed_anomaly_score": 1.0,
+        "ais_gap_history_score": 1.0
+      },
+      "weights_used": {
+        "corridor_overlap": 0.4,
+        "heading_alignment": 0.25,
+        "speed_anomaly": 0.2,
+        "ais_gap_history": 0.15
+      },
+      "vessel_name": "IND_TANKER_412",
+      "vessel_type": "Crude Oil Tanker",
+      "flag": "India (IND)"
+    }
+  ],
+  "dark_vessels": [],
+  "null_result": false
+}

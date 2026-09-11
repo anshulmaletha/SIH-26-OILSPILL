@@ -1,0 +1,108 @@
+{
+  "incident_master_data": {
+    "vessel_name": "MSC Elsa 3",
+    "previous_name": "Jan Richter",
+    "vessel_type": "Container feeder vessel (converted from standard cargo)",
+    "length_m": 184,
+    "year_built": 1997,
+    "builder": "E R Schiffahrt (Germany)",
+    "flag_state": "Liberia (Flag of Convenience)",
+    "operator": "Mediterranean Shipping Company (MSC)",
+    "crew_size": 24,
+    "crew_nationalities": ["Russia", "Ukraine", "Georgia", "Philippines"],
+    "incident_classification": [
+      "State-specific disaster (Kerala)",
+      "Tier II Disaster (NOS-DCP)"
+    ]
+  },
+  "spatiotemporal_trajectory": {
+    "departure_port": "Vizhinjam, Thiruvananthapuram, India",
+    "departure_date": "2025-05-23",
+    "destination_port": "Port of Kochi, Ernakulam, India",
+    "initial_failure_time_ist": "2025-05-24T13:00:00",
+    "failure_cause": "Ballast tank architecture malfunction causing uncontained flooding",
+    "structural_state_at_failure": "26-degree starboard list",
+    "initial_distress_location": "30 to 38 nautical miles southwest of Cochin Port",
+    "sinking_time_ist": "2025-05-25T07:50:00",
+    "final_wreck_coordinates": {
+      "latitude_decimal": 9.3125,
+      "longitude_decimal": 76.136,
+      "latitude_dms": "09°18.75' N",
+      "longitude_dms": "076°08.16' E"
+    },
+    "proximity_to_shore": "13 to 14.6 nautical miles off the Kerala coast (southwest of Thottappally, Alappuzha district)",
+    "jurisdictional_zone": [
+      "Outside 12-NM Territorial Waters",
+      "Inside 200-NM Exclusive Economic Zone (EEZ)"
+    ]
+  },
+  "cargo_pollutant_inventory": {
+    "total_petrochemicals_mt": 506,
+    "furnace_oil_vlsfo_mt": 367.1,
+    "high_speed_diesel_mt": 84.44,
+    "lubricant_oil_mt": 55.0,
+    "total_shipping_containers": "640 to 643 units",
+    "imdg_class_4_3_containers": 13,
+    "calcium_carbide_containers": 12,
+    "microplastic_payload_mt": 1836.1,
+    "microplastic_composition": "Polyethylene and polypropylene (1–5 mm diameter)"
+  },
+  "oceanographic_metrics": {
+    "metocean_conditions": "Early onset southwest monsoon, highly volatile sea state, strong westerly winds",
+    "ocean_current_speed": "1.5 to 2 knots (approx. 3 km/h)",
+    "drift_trajectory": "South-southeastward drift (parallel to coastline)",
+    "initial_slick_surface_area": "1 NM x 2 NM",
+    "expanded_slick_surface_area": "2 NM x 2 NM"
+  },
+  "remote_sensing_log": {
+    "glide_id": "AC-2025-000070-IND",
+    "acquisitions": [
+      {
+        "satellite": "EOS-4 (ISRO)",
+        "date": "2025-05-27",
+        "sensor": "C-band SAR (MRS Mode)",
+        "detection_note": "Captured dark patches corresponding to scattered oil spill pixels southwest of Alappuzha"
+      },
+      {
+        "satellite": "ALOS-2 (JAXA)",
+        "date": "2025-05-28",
+        "sensor": "L-band SAR",
+        "detection_note": "Longer wavelength distinguished between thick emulsions and thinner sheens"
+      },
+      {
+        "satellite": "FORMOSAT-5 (TASA)",
+        "date": "2025-06-02 to 2025-06-08",
+        "sensor": "Optical / Multispectral",
+        "detection_note": "Identified massive clusters of drifting containers and debris fields"
+      }
+    ]
+  },
+  "ecotoxicological_impact": {
+    "plastic_pellets_index_kodimunai": 2575,
+    "plastic_pellets_index_panavilai": 2026,
+    "ppi_category": "Very high",
+    "toxicological_threshold_pah": "50 µg/L dissolved load (Induces catastrophic cardiac malformations in fish larvae)",
+    "chlorophyll_a_depletion": "30 percent collapse within 48 hours due to physical smothering",
+    "vulnerable_habitat_extent": "516 square kilometers of seagrass meadows in Kerala",
+    "vulnerable_population": ">1.68 lakh marine fishers in Alappuzha district alone"
+  },
+  "response_recovery_legal": {
+    "agencies_deployed": [
+      "Indian Coast Guard (ICG)",
+      "Indian Navy",
+      "MRSC Kochi",
+      "KSDMA",
+      "CSIR-NIO",
+      "INCOIS",
+      "CMFRI"
+    ],
+    "primary_mitigation_chemistry": "Oil Spill Dispersants (OSD) applied via Dornier aircraft sorties",
+    "microplastics_recovered_mt": 398.187,
+    "microplastics_unrecovered_mt": ">1400",
+    "fisheries_restriction": "20-nautical-mile radius fishing ban around the wreck",
+    "interim_state_relief": "₹1,000 and 6 kilograms of rice per affected fisherman family (GO (Rt) No. 371/2025/DMD)",
+    "total_compensation_claimed_inr_cr": 9531,
+    "interim_compensation_ordered_inr_cr": 1227,
+    "judicial_collateral": "MSC Akikta 2 (Sister vessel arrested and detained)"
+  }
+}
