@@ -34,7 +34,15 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
   if (!vessel) return null;
 
   const isDark = vessel.isDarkVessel || vessel.suspicionLevel === "high";
-  const [lng, lat] = vessel.position;
+  const pos = vessel.position || [71.9, 19.28];
+  const lng = typeof pos[0] === "number" ? pos[0] : 71.9;
+  const lat = typeof pos[1] === "number" ? pos[1] : 19.28;
+  const speed = typeof vessel.speedKnots === "number" ? vessel.speedKnots : 0;
+  const heading = vessel.heading ?? 135;
+  const course = vessel.course ?? heading;
+  const lengthMeters = vessel.lengthMeters ?? (isDark ? 175 : 200);
+  const beamMeters = vessel.beamMeters ?? (isDark ? 28 : 32);
+  const draughtMeters = vessel.draughtMeters ?? (isDark ? 9.8 : 10.5);
 
   return (
     <div
@@ -210,19 +218,19 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
             <div>
               <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>SPEED (SOG)</span>
               <span style={{ fontSize: "11px", fontWeight: 700, color: isDark ? "#EF4444" : "#22D3EE" }}>
-                {vessel.speedKnots.toFixed(1)} kn
+                {speed.toFixed(1)} kn
               </span>
             </div>
             <div>
               <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>COURSE (COG)</span>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#C8D8E8" }}>
-                {vessel.course}°
+                {course}°
               </span>
             </div>
             <div>
               <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>HEADING</span>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#C8D8E8" }}>
-                {vessel.heading}°
+                {heading}°
               </span>
             </div>
           </div>
@@ -247,32 +255,32 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
           >
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>MMSI:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.mmsi}</span>
+              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.mmsi || "N/A"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>CALL SIGN:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.callsign}</span>
+              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.callsign || "UNKNOWN"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>STATUS:</span>
               <span style={{ color: isDark ? "#EF4444" : "#22D3EE", fontWeight: 600 }}>
-                {vessel.navStatus}
+                {vessel.navStatus || (isDark ? "AIS Blackout" : "Underway")}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>DESTINATION:</span>
               <span style={{ color: "#FFFFFF", fontWeight: 600, maxWidth: "160px", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {vessel.destination}
+                {vessel.destination || "UNREPORTED"}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>LAST SIGNAL:</span>
-              <span style={{ color: "#C8D8E8" }}>{vessel.lastSeen}</span>
+              <span style={{ color: "#C8D8E8" }}>{vessel.lastSeen || "06:00:00 UTC"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#5A7A94" }}>DIMENSIONS:</span>
               <span style={{ color: "#C8D8E8" }}>
-                {vessel.lengthMeters}m × {vessel.beamMeters}m (d: {vessel.draughtMeters}m)
+                {lengthMeters}m × {beamMeters}m (d: {draughtMeters}m)
               </span>
             </div>
           </div>

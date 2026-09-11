@@ -110,6 +110,7 @@ export default function MapView({
 
   const handleSelectVessel = useCallback(
     (vessel: any) => {
+      if (!vessel) return;
       onSelectVessel?.(vessel);
       const match = swarmVessels.find(
         (sv) =>
@@ -189,11 +190,11 @@ export default function MapView({
     });
 
     // Add synthetic swarm scatter layer for all interactive vessels
-    if (swarmVessels.length > 0) {
+    if (swarmVessels && swarmVessels.length > 0) {
       const swarmLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-swarm",
         data: swarmVessels,
-        getPosition: (d) => d.position,
+        getPosition: (d) => d.position || [71.85, 19.35],
         getRadius: (d) => (d.isDarkVessel ? 1200 : d.isCandidate ? 950 : 650),
         getFillColor: (d) => swarmVesselColor(d, swarmPhase),
         radiusUnits: "meters",
@@ -210,24 +211,24 @@ export default function MapView({
             return;
           }
           const v = info.object as SwarmVessel;
+          const pos = v.position || [71.85, 19.35];
           setTooltip({
             x: info.x,
             y: info.y,
             type: "swarm-vessel",
-            title: v.name,
+            title: v.name || "Vessel",
             items: [
               { label: "MMSI", value: v.mmsi || "—" },
-              { label: "Type", value: v.typeLabel },
-              { label: "Speed", value: `${v.speedKnots.toFixed(1)} kn` },
-              { label: "Heading", value: `${v.heading}°` },
-              { label: "Coord", value: `${v.position[1].toFixed(4)}°N, ${v.position[0].toFixed(4)}°E` },
+              { label: "Type", value: v.typeLabel || "Vessel" },
+              { label: "Speed", value: `${(v.speedKnots ?? 0).toFixed(1)} kn` },
+              { label: "Heading", value: `${v.heading ?? 0}°` },
+              { label: "Coord", value: `${(pos[1] ?? 19.35).toFixed(4)}°N, ${(pos[0] ?? 71.85).toFixed(4)}°E` },
             ],
           });
         },
         onClick: (info) => {
           if (info.object) {
-            const v = info.object as SwarmVessel;
-            setSelectedSwarmVessel(v);
+            handleSelectVessel(info.object as SwarmVessel);
           }
         },
       });
@@ -273,7 +274,7 @@ export default function MapView({
         extraLayers.push(trajectoryLayer);
 
         // 3. Historical waypoint pings along the trajectory
-        const waypointData = selectedSwarmVessel.trajectory.slice(0, -1).map((pt, idx, arr) => ({
+        const waypointData = (selectedSwarmVessel.trajectory || []).slice(0, -1).map((pt, idx, arr) => ({
           position: pt,
           index: idx,
           total: arr.length,
@@ -283,7 +284,7 @@ export default function MapView({
         const waypointsLayer = new ScatterplotLayer({
           id: "selected-vessel-waypoints",
           data: waypointData,
-          getPosition: (d) => d.position,
+          getPosition: (d) => d.position || [71.85, 19.35],
           getRadius: 450,
           radiusUnits: "meters",
           radiusMinPixels: 3,
@@ -295,14 +296,15 @@ export default function MapView({
           onHover: (info) => {
             if (!info.object) return;
             const wp = info.object as typeof waypointData[0];
+            const pt = wp.position || [71.85, 19.35];
             setTooltip({
               x: info.x,
               y: info.y,
               type: "vessel",
-              title: `${selectedSwarmVessel.name} — ${wp.timeLabel}`,
+              title: `${selectedSwarmVessel.name || "Target"} — ${wp.timeLabel}`,
               items: [
                 { label: "Waypoint", value: `#${wp.index + 1} of ${wp.total + 1}` },
-                { label: "Position", value: `${wp.position[1].toFixed(4)}°N, ${wp.position[0].toFixed(4)}°E` },
+                { label: "Position", value: `${(pt[1] ?? 19.35).toFixed(4)}°N, ${(pt[0] ?? 71.85).toFixed(4)}°E` },
                 { label: "Status", value: "Historical AIS Trail" },
               ],
             });
@@ -312,11 +314,11 @@ export default function MapView({
       }
 
       // 4. Forward heading course vector (shows current travel direction)
-      if (selectedSwarmVessel.speedKnots > 0.5) {
+      if ((selectedSwarmVessel.speedKnots ?? 0) > 0.5 && selectedSwarmVessel.position) {
         const [lng, lat] = selectedSwarmVessel.position;
-        const rad = (selectedSwarmVessel.heading * Math.PI) / 180;
+        const rad = ((selectedSwarmVessel.heading ?? 0) * Math.PI) / 180;
         const cosLat = Math.cos((lat * Math.PI) / 180) || 1;
-        const vectorLen = 0.045 * (selectedSwarmVessel.speedKnots / 12);
+        const vectorLen = 0.045 * ((selectedSwarmVessel.speedKnots ?? 12) / 12);
         const forwardPos: [number, number] = [
           lng + (Math.sin(rad) / cosLat) * vectorLen,
           lat + Math.cos(rad) * vectorLen,
@@ -338,7 +340,7 @@ export default function MapView({
       const ringLayer = new ScatterplotLayer<SwarmVessel>({
         id: "selected-vessel-ring",
         data: [selectedSwarmVessel],
-        getPosition: (d) => d.position,
+        getPosition: (d) => d.position || [71.85, 19.35],
         getRadius: isDarkTarget ? 2200 : 1600,
         radiusUnits: "meters",
         radiusMinPixels: 9,
@@ -367,11 +369,10 @@ export default function MapView({
     selectedTrackColor,
     followTrack,
     primarySuspectVesselId,
-    onSelectVessel,
+    handleSelectVessel,
     swarmVessels,
     swarmPhase,
     selectedSwarmVessel,
-    tooltip?.type,
   ]);
 
   // Initialize Map
@@ -440,15 +441,15 @@ export default function MapView({
 
   // Collect all 4 dark vessel positions & metadata for CSS pulse overlays
   const darkVesselPositions = useMemo(() => {
-    return p5Data.vessels
-      .filter((v) => v.isDarkVessel)
+    return (p5Data?.vessels || [])
+      .filter((v) => v && v.isDarkVessel)
       .map((v) => {
         const pos = (v.path?.[v.path.length - 1] || v.pings?.[0]?.position) as [number, number] | undefined;
         return {
           vessel: v,
-          position: pos ?? [71.9, 19.28],
-          label: v.vesselName,
-          statusText: v.darkAnomaly
+          position: (pos && pos.length >= 2 ? pos : [71.9, 19.28]) as [number, number],
+          label: v.vesselName || "DARK VESSEL",
+          statusText: v.darkAnomaly && typeof v.darkAnomaly.gapDurationHours === "number"
             ? `GAP ${v.darkAnomaly.gapDurationHours.toFixed(1)}h · NO SIGNAL`
             : "AIS: BLACKOUT · NO SIGNAL",
         };

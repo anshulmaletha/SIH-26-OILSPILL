@@ -29,8 +29,15 @@ export function DarkVesselPulse({
     if (!map) return;
 
     const update = () => {
-      const pt = map.project(position as [number, number]);
-      setScreenPos({ x: pt.x, y: pt.y });
+      if (!map || !position || position.length < 2) return;
+      try {
+        const pt = map.project(position as [number, number]);
+        if (pt && typeof pt.x === "number" && typeof pt.y === "number" && !isNaN(pt.x) && !isNaN(pt.y)) {
+          setScreenPos({ x: pt.x, y: pt.y });
+        }
+      } catch {
+        // Map transform may not be fully initialized
+      }
     };
 
     // Initial position
@@ -53,7 +60,7 @@ export function DarkVesselPulse({
     };
   }, [position, mapRef]);
 
-  if (!screenPos) return null;
+  if (!screenPos || !position || position.length < 2) return null;
 
   return (
     <div
@@ -174,7 +181,9 @@ export function DarkVesselPulse({
             lineHeight: 1.3,
           }}
         >
-          {position[1].toFixed(4)}°N, {position[0].toFixed(4)}°E
+          {Array.isArray(position) && position.length >= 2 && typeof position[0] === "number" && typeof position[1] === "number"
+            ? `${position[1].toFixed(4)}°N, ${position[0].toFixed(4)}°E`
+            : "19.2800°N, 71.9000°E"}
         </div>
         <div
           style={{
