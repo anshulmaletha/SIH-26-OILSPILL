@@ -163,23 +163,31 @@ export function createAisTrackLayers({
   });
 
   // ── 3. Directional Chevron Ship Icons (IconLayer) ──────────────────────────
-  const shipIconAtlas = getShipIconDataUri("22D3EE");
+  const shipIconAtlas = getMasterShipAtlasDataUri();
 
   const shipIcons = new IconLayer<ActiveVesselPosition>({
     id: `${LAYER_IDS.aisTracks}-icons`,
     visible,
     data: aisPositions,
     getPosition: (d) => d.currentPosition,
-    getIcon: () => "ship",
-    getSize: (d) => d.vessel.vesselId === selectedTrackId ? SHIP_ICON_SIZE * 1.3 : SHIP_ICON_SIZE,
-    getAngle: (d) => -(d.heading ?? 0),   // deck.gl angles: CCW; heading is CW from north
-    getColor: (d) => {
-      const isThisSelected = d.vessel.vesselId === selectedTrackId;
-      if (isThisSelected) {
-        return [...selectedTrackColor, 255] as [number, number, number, number];
-      }
-      return [...(d.vessel.isCandidate ? CYAN_FULL : TEAL), isSpecificSelected ? 120 : 235] as [number, number, number, number];
+    getIcon: (d) => {
+      if (d.vessel.isCandidate) return "ship-amber";
+      const typeLower = (d.vessel.vesselType || "").toLowerCase();
+      if (typeLower.includes("tanker")) return "ship-tanker";
+      if (typeLower.includes("bulk")) return "ship-bulk";
+      if (typeLower.includes("container")) return "ship-container";
+      if (typeLower.includes("tug") || typeLower.includes("osv") || typeLower.includes("support") || typeLower.includes("service")) return "ship-other";
+      return "ship-cyan";
     },
+    getSize: (d) => {
+      const isThisSelected = d.vessel.vesselId === selectedTrackId;
+      if (isThisSelected) return SHIP_ICON_SIZE * 1.35;
+      const typeLower = (d.vessel.vesselType || "").toLowerCase();
+      if (typeLower.includes("tanker") || typeLower.includes("bulk")) return SHIP_ICON_SIZE * 1.08;
+      if (typeLower.includes("container")) return SHIP_ICON_SIZE;
+      return SHIP_ICON_SIZE * 0.92;
+    },
+    getAngle: (d) => -(d.heading ?? 0),   // deck.gl angles: CCW; heading is CW from north
     iconAtlas: shipIconAtlas,
     iconMapping: SHIP_ICON_MAPPING,
     sizeUnits: "pixels",
@@ -192,7 +200,6 @@ export function createAisTrackLayers({
       getPosition: [activePositions],
       getAngle: [activePositions],
       getSize: [selectedTrackId],
-      getColor: [selectedTrackId, selectedTrackColor],
     },
     onHover: (info) => {
       if (!onHover) return;
@@ -204,6 +211,7 @@ export function createAisTrackLayers({
         title: p.vessel.vesselName,
         items: [
           { label: "MMSI",    value: p.vessel.mmsi || "—" },
+          { label: "Type",    value: p.vessel.vesselType || "Vessel" },
           { label: "Speed",   value: `${p.speedKnots.toFixed(1)} kn` },
           { label: "Heading", value: `${p.heading.toFixed(0)}°` },
           { label: "Coord",   value: `${p.currentPosition[1].toFixed(4)}°N, ${p.currentPosition[0].toFixed(4)}°E` },
@@ -241,21 +249,20 @@ export function createAisTrackLayers({
     }
   }
 
-  // ── 4. Dark vessel marker (ScatterplotLayer) — red, SAR-only, no track ─────
-  // This is the ONE place in the app where red appears.
-  const darkVesselLayer = new ScatterplotLayer<ActiveVesselPosition>({
+  // ── 4. Dark vessel marker (IconLayer) — red ship hull silhouette rotated to heading ─────
+  const darkVesselLayer = new IconLayer<ActiveVesselPosition>({
     id: `${LAYER_IDS.aisTracks}-dark-vessel`,
     visible,
     data: darkVesselPositions,
     getPosition: (d) => d.currentPosition,
-    getRadius: () => 120,
-    radiusUnits: "meters",
-    getFillColor: () => DARK_VESSEL_COLOR,
-    getLineColor: () => [239, 68, 68, 200] as [number, number, number, number],
-    lineWidthMinPixels: 1.5,
-    stroked: true,
+    getIcon: () => "ship-red",
+    getSize: () => SHIP_ICON_SIZE * 1.25,
+    getAngle: (d) => -(d.heading ?? 0),
+    iconAtlas: shipIconAtlas,
+    iconMapping: SHIP_ICON_MAPPING,
+    sizeUnits: "pixels",
     pickable: true,
-    updateTriggers: { getPosition: [darkVesselPositions] },
+    updateTriggers: { getPosition: [darkVesselPositions], getAngle: [darkVesselPositions] },
     onHover: (info) => {
       if (!onHover) return;
       if (!info.object) { onHover(null); return; }
@@ -263,11 +270,12 @@ export function createAisTrackLayers({
       onHover({
         x: info.x, y: info.y,
         type: "dark-vessel",
-        title: "DARK VESSEL — SAR Only",
+        title: p.vessel.vesselName || "DARK VESSEL — SAR Only",
         items: [
-          { label: "Detection", value: p.vessel.darkAnomaly ? "CFAR_DARK_002" : "SAR" },
+          { label: "Detection", value: p.vessel.darkAnomaly ? "CFAR_DARK_002" : "SAR Target" },
           { label: "AIS", value: "BLACKOUT — No signal" },
-          { label: "Position", value: `${p.currentPosition[0].toFixed(3)}°E, ${p.currentPosition[1].toFixed(3)}°N` },
+          { label: "Heading", value: `${(p.heading ?? 0).toFixed(0)}°` },
+          { label: "Position", value: `${p.currentPosition[1].toFixed(4)}°N, ${p.currentPosition[0].toFixed(4)}°E` },
         ],
         vesselData: p.vessel,
       });

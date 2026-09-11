@@ -8,6 +8,10 @@ interface DarkVesselPulseProps {
   mapRef: React.RefObject<MapLibreMap | null>;
   /** Called when user clicks the pulsing marker */
   onClick?: () => void;
+  /** Custom label / name for the dark vessel */
+  label?: string;
+  /** Custom status / anomaly note */
+  statusText?: string;
 }
 
 /**
@@ -18,9 +22,15 @@ interface DarkVesselPulseProps {
  * Updates on every map move/zoom so the marker tracks the geo-point.
  *
  * Color: #EF4444 (alert red) — the ONE place red appears in the app.
- * No glow, no bloom — just concentric ring scale+fade animation.
+ * Concentric ring scale+fade animation with high-contrast radar ping styling.
  */
-export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulseProps) {
+export function DarkVesselPulse({
+  position,
+  mapRef,
+  onClick,
+  label = "DARK VESSEL (CFAR)",
+  statusText = "AIS: BLACKOUT · NO SIGNAL",
+}: DarkVesselPulseProps) {
   const [screenPos, setScreenPos] = useState<{ x: number; y: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -29,8 +39,24 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
     if (!map) return;
 
     const update = () => {
-      const pt = map.project(position as [number, number]);
-      setScreenPos({ x: pt.x, y: pt.y });
+      try {
+        if (
+          !map ||
+          !position ||
+          typeof position[0] !== "number" ||
+          typeof position[1] !== "number" ||
+          isNaN(position[0]) ||
+          isNaN(position[1])
+        ) {
+          return;
+        }
+        const pt = map.project(position as [number, number]);
+        if (pt && typeof pt.x === "number" && typeof pt.y === "number") {
+          setScreenPos({ x: pt.x, y: pt.y });
+        }
+      } catch {
+        // Map may not be ready or point outside bounds
+      }
     };
 
     // Initial position
@@ -55,6 +81,15 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
 
   if (!screenPos) return null;
 
+  const latStr =
+    position && typeof position[1] === "number" && !isNaN(position[1])
+      ? `${position[1].toFixed(4)}°N`
+      : "";
+  const lngStr =
+    position && typeof position[0] === "number" && !isNaN(position[0])
+      ? `${position[0].toFixed(4)}°E`
+      : "";
+
   return (
     <div
       style={{
@@ -66,36 +101,36 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
         zIndex: 25,
       }}
       onClick={onClick}
-      title="Dark Vessel — SAR-only detection (click to inspect)"
+      title={`${label} — Click for full radar & SAR telemetry`}
     >
       {/* ── Concentric radiating dashed sonar rings ── */}
       <div
         className="dark-vessel-sonar-ring"
         style={{
-          width: 32,
-          height: 32,
-          marginLeft: -16,
-          marginTop: -16,
+          width: 34,
+          height: 34,
+          marginLeft: -17,
+          marginTop: -17,
           animationDelay: "0ms",
         }}
       />
       <div
         className="dark-vessel-sonar-ring"
         style={{
-          width: 32,
-          height: 32,
-          marginLeft: -16,
-          marginTop: -16,
+          width: 34,
+          height: 34,
+          marginLeft: -17,
+          marginTop: -17,
           animationDelay: "800ms",
         }}
       />
       <div
         className="dark-vessel-sonar-ring"
         style={{
-          width: 32,
-          height: 32,
-          marginLeft: -16,
-          marginTop: -16,
+          width: 34,
+          height: 34,
+          marginLeft: -17,
+          marginTop: -17,
           animationDelay: "1600ms",
         }}
       />
@@ -109,22 +144,34 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
           marginLeft: -9,
           marginTop: -9,
           borderRadius: "50%",
-          border: "1px dashed rgba(239, 68, 68, 0.75)",
+          border: "1px dashed rgba(239, 68, 68, 0.85)",
           pointerEvents: "none",
         }}
       />
 
-      {/* Solid red core dot */}
-      <div
-        className="dark-vessel-pulse-core"
+      {/* Red Dark Ship Hull Marker Core */}
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
         style={{
-          width: 8,
-          height: 8,
-          marginLeft: -4,
-          marginTop: -4,
-          background: "#EF4444",
+          position: "absolute",
+          left: -9,
+          top: -9,
+          filter: "drop-shadow(0 0 8px #EF4444)",
+          pointerEvents: "none",
         }}
-      />
+      >
+        <path
+          d="M 12,2 C 14,4 17,9 16.5,14 L 15,20 L 9,20 L 7.5,14 C 7,9 10,4 12,2 Z"
+          fill="#EF4444"
+          stroke="#FCA5A5"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <rect x="10" y="10" width="4" height="5" rx="0.5" fill="#0D1117" stroke="#EF4444" strokeWidth="0.6" />
+        <circle cx="12" cy="12.5" r="0.8" fill="#EF4444" />
+      </svg>
 
       {/* ── Compact docked label card near the marker on the map canvas ── */}
       <div
@@ -137,10 +184,11 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
           borderLeft: "2px solid #EF4444",
           borderRadius: "2px",
           padding: "5px 8px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.75)",
           fontFamily: "'JetBrains Mono', monospace",
           pointerEvents: "auto",
           whiteSpace: "nowrap",
+          userSelect: "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -163,28 +211,31 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
               textTransform: "uppercase",
             }}
           >
-            DARK VESSEL (CFAR)
+            {label}
           </span>
         </div>
-        <div
-          style={{
-            fontSize: "8.5px",
-            color: "#C8D8E8",
-            marginTop: 2,
-            lineHeight: 1.3,
-          }}
-        >
-          {position[1].toFixed(4)}°N, {position[0].toFixed(4)}°E
-        </div>
+        {(latStr || lngStr) && (
+          <div
+            style={{
+              fontSize: "8.5px",
+              color: "#C8D8E8",
+              marginTop: 2,
+              lineHeight: 1.3,
+            }}
+          >
+            {latStr}, {lngStr}
+          </div>
+        )}
         <div
           style={{
             fontSize: "7px",
-            color: "#5A7A94",
+            color: "#EF4444",
+            opacity: 0.85,
             marginTop: 1,
             letterSpacing: "0.04em",
           }}
         >
-          AIS: BLACKOUT · NO SIGNAL
+          {statusText}
         </div>
       </div>
     </div>
