@@ -108,59 +108,6 @@ export default function MapView({
     };
   }, [selectedHexCell]);
 
-  const handleSelectVessel = useCallback(
-    (vessel: any) => {
-      onSelectVessel?.(vessel);
-      const match = swarmVessels.find(
-        (sv) =>
-          sv.id === vessel.vesselId ||
-          sv.id === vessel.id ||
-          (vessel.mmsi && sv.mmsi === vessel.mmsi) ||
-          (vessel.vesselName && sv.name === vessel.vesselName)
-      );
-      if (match) {
-        setSelectedSwarmVessel(match);
-      } else {
-        const pathCoords = vessel.path || (vessel.pings?.map((p: any) => p.position)) || [];
-        const currentPos = (pathCoords[pathCoords.length - 1] || vessel.position || [71.9, 19.28]) as [number, number];
-        const heading = vessel.pings?.[0]?.headingDegrees ?? vessel.heading ?? 135;
-        const speed = vessel.pings?.[0]?.sogKnots ?? vessel.darkAnomaly?.estimatedTransitSpeedKnots ?? vessel.speedKnots ?? (vessel.isDarkVessel ? 0.0 : 14.0);
-
-        setSelectedSwarmVessel({
-          id: vessel.vesselId || vessel.id || `vessel-${Date.now()}`,
-          name: vessel.vesselName || vessel.name || "UNIDENTIFIED VESSEL",
-          mmsi: vessel.mmsi || "N/A (BLACKOUT)",
-          callsign: vessel.callsign || "UNKNOWN",
-          flag: vessel.flag || "Unknown",
-          vesselType: ((vessel.vesselType || "").toLowerCase().includes("tanker")
-            ? "tanker"
-            : (vessel.vesselType || "").toLowerCase().includes("container")
-            ? "container"
-            : "bulk") as any,
-          typeLabel: vessel.vesselType || "Commercial Vessel",
-          position: currentPos,
-          heading: heading,
-          course: heading,
-          speedKnots: speed,
-          navStatus: vessel.isDarkVessel ? "AIS Blackout / Radar Target" : (vessel.navStatus || "Underway using Engine"),
-          destination: vessel.destination || "UNREPORTED",
-          eta: vessel.eta || "2026-05-15 14:00 UTC",
-          lastSeen: vessel.isDarkVessel ? "BLACKOUT (CFAR-002)" : "06:00:00 UTC",
-          lengthMeters: vessel.lengthMeters || (vessel.isDarkVessel ? 175 : 200),
-          beamMeters: vessel.beamMeters || (vessel.isDarkVessel ? 28 : 32),
-          draughtMeters: vessel.draughtMeters || (vessel.isDarkVessel ? 9.8 : 10.5),
-          trajectory: pathCoords.length > 0 ? pathCoords : [currentPos],
-          isCandidate: !!vessel.isCandidate,
-          suspicionLevel: vessel.isDarkVessel ? "high" : vessel.isCandidate ? "medium" : "none",
-          isDarkVessel: !!vessel.isDarkVessel,
-          suspiciousReason: vessel.darkAnomaly?.notes || (vessel.isDarkVessel ? "Radar contact correlated with spill origin under AIS blackout." : undefined),
-          threatTag: vessel.isDarkVessel ? "AIS BLACKOUT · PRIMARY SUSPECT" : undefined,
-        });
-      }
-    },
-    [onSelectVessel, swarmVessels]
-  );
-
   const layers = useMemo(() => {
     const extraLayers = [];
 
@@ -176,7 +123,46 @@ export default function MapView({
       followTrack,
       primarySuspectVesselId,
       onHover: (info) => setTooltip(info),
-      onSelectVessel: (vessel) => handleSelectVessel(vessel),
+      onSelectVessel: (vessel) => {
+        onSelectVessel?.(vessel);
+        const match = swarmVessels.find(
+          (sv) => sv.mmsi === vessel.mmsi || sv.name === vessel.vesselName || sv.id === vessel.vesselId
+        );
+        if (match) {
+          setSelectedSwarmVessel(match);
+        } else {
+          setSelectedSwarmVessel({
+            id: vessel.vesselId,
+            name: vessel.vesselName,
+            mmsi: vessel.mmsi || "N/A",
+            callsign: vessel.callsign || "N/A",
+            flag: vessel.flag,
+            vesselType: (vessel.vesselType.toLowerCase().includes("tanker")
+              ? "tanker"
+              : vessel.vesselType.toLowerCase().includes("container")
+              ? "container"
+              : "bulk") as any,
+            typeLabel: vessel.vesselType,
+            position: vessel.path[vessel.path.length - 1] || [71.2, 19.65],
+            heading: 135,
+            course: 135,
+            speedKnots: 14.0,
+            navStatus: vessel.isDarkVessel ? "AIS Blackout" : "Underway using Engine",
+            destination: vessel.destination || "MUMBAI",
+            eta: vessel.eta || "2026-05-15 14:00 UTC",
+            lastSeen: "06:00:00 UTC",
+            lengthMeters: vessel.lengthMeters || 200,
+            beamMeters: vessel.beamMeters || 32,
+            draughtMeters: vessel.draughtMeters || 10.5,
+            trajectory: vessel.path || [],
+            isCandidate: vessel.isCandidate,
+            suspicionLevel: vessel.isCandidate ? "high" : "none",
+            isDarkVessel: vessel.isDarkVessel,
+            suspiciousReason: vessel.darkAnomaly?.notes,
+            threatTag: vessel.isDarkVessel ? "AIS BLACKOUT" : undefined,
+          });
+        }
+      },
       onClickHex: (cell, coord) => {
         let k = 0;
         try {
@@ -471,7 +457,7 @@ export default function MapView({
             statusText={dv.statusText}
             mapRef={mapRef}
             onClick={() => {
-              handleSelectVessel(dv.vessel);
+              if (onSelectVessel) onSelectVessel(dv.vessel);
             }}
           />
         ))}
