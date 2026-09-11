@@ -198,12 +198,12 @@ export default function MapView({
         getRadius: (d) => (d.isDarkVessel ? 1200 : d.isCandidate ? 950 : 650),
         getFillColor: (d) => swarmVesselColor(d, swarmPhase),
         radiusUnits: "meters",
-        radiusMinPixels: (d) => (d.isDarkVessel ? 4 : swarmPhase === "backtrack" ? 3 : 2.5),
+        radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2.5,
         pickable: true,
         parameters: { depthTest: false },
         updateTriggers: {
-          getFillColor: [swarmPhase, selectedSwarmVessel],
-          getRadius: [selectedSwarmVessel],
+          getFillColor: [swarmPhase, selectedSwarmVessel?.id],
+          getRadius: [selectedSwarmVessel?.id],
         },
         onHover: (info) => {
           if (!info.object) {
@@ -251,8 +251,8 @@ export default function MapView({
           widthUnits: "pixels",
           pickable: false,
           updateTriggers: {
-            getPath: [selectedSwarmVessel],
-            getColor: [selectedSwarmVessel],
+            getPath: [selectedSwarmVessel?.id],
+            getColor: [selectedSwarmVessel?.id],
           },
         });
         extraLayers.push(glowLayer);
@@ -267,8 +267,8 @@ export default function MapView({
           widthUnits: "pixels",
           pickable: false,
           updateTriggers: {
-            getPath: [selectedSwarmVessel],
-            getColor: [selectedSwarmVessel],
+            getPath: [selectedSwarmVessel?.id],
+            getColor: [selectedSwarmVessel?.id],
           },
         });
         extraLayers.push(trajectoryLayer);
@@ -350,8 +350,8 @@ export default function MapView({
         stroked: true,
         pickable: false,
         updateTriggers: {
-          getPosition: [selectedSwarmVessel],
-          getLineColor: [selectedSwarmVessel],
+          getPosition: [selectedSwarmVessel?.id],
+          getLineColor: [selectedSwarmVessel?.id],
         },
       });
       extraLayers.push(ringLayer);
