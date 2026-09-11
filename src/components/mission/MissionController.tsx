@@ -9,7 +9,7 @@
  */
 
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useRef, useCallback } from "react";
+import { Suspense, lazy, useEffect, useRef, useCallback, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 import {
@@ -23,6 +23,20 @@ import {
 } from "@/lib/mission/swarmData";
 import { getOfflineScenario } from "@/lib/data/offlineDemoData";
 import { DEFAULT_VISIBILITY, type LayerId } from "@/lib/map/config";
+import type { P1Output } from "@/lib/contracts/p1";
+import type { P3Output } from "@/lib/contracts/p3";
+import type { P4Output } from "@/lib/contracts/p4";
+import type { P5Output } from "@/lib/contracts/p5";
+import { convertDetectionResponseToP1 } from "@/lib/adapters/p1Adapter";
+import { convertSuspectsResponseToP3 } from "@/lib/adapters/p3Adapter";
+import { convertCorridorResponseToP4 } from "@/lib/adapters/p4Adapter";
+import { convertAisResponseToP5 } from "@/lib/adapters/p5Adapter";
+import {
+  fetchDetection,
+  fetchCorridor,
+  fetchSuspects,
+  fetchAisTracks,
+} from "@/lib/api/client";
 
 // Mission overlay components
 import { StandbyScreen } from "./StandbyScreen";
@@ -161,8 +175,52 @@ function MissionControllerInner() {
   const mapRef = useRef<MapLibreMap | null>(null);
   const prevStageRef = useRef<MissionStage | null>(null);
 
-  const scenario = getOfflineScenario("active");
-  const { p1Data, p3Data, p4Data, p5Data } = scenario;
+  const [p1Data, setP1Data] = useState<P1Output>(() => getOfflineScenario(state.scenario).p1Data);
+  const [p3Data, setP3Data] = useState<P3Output>(() => getOfflineScenario(state.scenario).p3Data);
+  const [p4Data, setP4Data] = useState<P4Output>(() => getOfflineScenario(state.scenario).p4Data);
+  const [p5Data, setP5Data] = useState<P5Output>(() => getOfflineScenario(state.scenario).p5Data);
+
+  useEffect(() => {
+    // 1. Immediately sync baseline offline cache for the scenario
+    const offline = getOfflineScenario(state.scenario);
+    setP1Data(offline.p1Data);
+    setP3Data(offline.p3Data);
+    setP4Data(offline.p4Data);
+    setP5Data(offline.p5Data);
+
+    // 2. Concurrently fetch live data from Python backend
+    let mounted = true;
+
+    fetchDetection(state.scenario)
+      .then((det) => {
+        if (mounted) setP1Data(convertDetectionResponseToP1(det));
+      })
+      .catch((err) => console.warn("API fetchDetection error:", err));
+
+    fetchCorridor()
+      .then((corr) => {
+        if (mounted) setP4Data(convertCorridorResponseToP4(corr));
+      })
+      .catch((err) => console.warn("API fetchCorridor error:", err));
+
+    fetchSuspects(state.scenario)
+      .then((susp) => {
+        if (mounted) setP3Data(convertSuspectsResponseToP3(susp));
+      })
+      .catch((err) => console.warn("API fetchSuspects error:", err));
+
+    if (state.scenario !== "no_candidates") {
+      fetchAisTracks()
+        .then((ais) => {
+          if (mounted) setP5Data(convertAisResponseToP5(ais));
+        })
+        .catch((err) => console.warn("API fetchAisTracks error:", err));
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [state.scenario]);
 
   // Trigger camera flyTo on stage change
   useEffect(() => {
@@ -191,20 +249,24 @@ function MissionControllerInner() {
   const visibility = getLayerVisibility(currentStage);
   const sarOpacity = getSarOpacity(currentStage, state.stageElapsedMs);
 
-  // In backtrack stage, only show candidates at full opacity
+  // Primary suspect from scored suspect list
+  const primarySuspect = p3Data.suspects.find((s) => s.isPrimarySuspect)?.vesselId;
+
+  // In backtrack stage, only show candidates at full opacity; in culprit lock, isolate primary suspect
   const selectedTrackId =
     currentStage === "CULPRIT_LOCK"
-      ? p3Data.suspects[0]?.vesselId ?? "all"
-      : currentStage === "BACKTRACK_CORRIDOR"
-        ? "all"
-        : "all";
-
-  const primarySuspect = p3Data.suspects[0]?.vesselId;
+      ? (primarySuspect ?? "none")
+      : "all";
 
   // Swarm vessels for phase 3 & 4
   const swarmVessels =
     currentStage === "AIS_SWARM" || currentStage === "BACKTRACK_CORRIDOR"
-      ? generateSwarmVessels()
+      ? generateSwarmVessels().map((v) => {
+          if (state.scenario === "no_candidates") {
+            return { ...v, isCandidate: false, suspicionLevel: "none" as const };
+          }
+          return v;
+        })
       : [];
 
   // Determine the "swarm phase" for color assignment

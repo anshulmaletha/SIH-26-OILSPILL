@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-05-15T06:00:00Z",
+  "total_radar_detections": 2,
+  "identified_vessels": [
+    {
+      "cfar_id": "CFAR_RADAR_001",
+      "vessel_id": "MMSI_419000101",
+      "vessel_name": "IND_TANKER_412",
+      "distance_km": 0.64,
+      "lat": 19.1,
+      "lon": 71.9
+    }
+  ],
+  "dark_vessels": [
+    {
+      "cfar_detection_id": "CFAR_DARK_002",
+      "position": {
+        "type": "Point",
+        "coordinates": [
+          71.9,
+          19.28
+        ]
+      },
+      "timestamp": "2026-05-15T06:00:00Z",
+      "ais_match_found": false,
+      "proximity_to_corridor": "8742da462ffffff"
+    }
+  ]
+}

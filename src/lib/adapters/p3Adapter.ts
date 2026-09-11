@@ -5,7 +5,7 @@ export const DEFAULT_P3_DATA: P3Output = {
   incidentId: "INC-2026-MUM-001",
   generatedAt: "2026-05-15T06:30:00Z",
   totalSuspectsEvaluated: 2,
-  algorithmVersion: "XGBoost-Ensemble-v2.4",
+  algorithmVersion: "Weighted Rule-Based Attribution Model",
   suspects: [
     {
       rank: 1,
@@ -14,59 +14,34 @@ export const DEFAULT_P3_DATA: P3Output = {
       mmsi: "419000101",
       vesselType: "Crude Oil Tanker",
       flag: "India",
-      // total_score: 98.33 from ranked_suspects.json → overallScore: 0.9833 (÷100)
-      // case_file_output.json → ranked_suspects[0].total_score: 0.912 (normalized 0–1)
-      // Using case_file_output.json value as authoritative (already normalized by scorer)
-      overallScore: 0.912,
-      confidence: 0.95,
+      overallScore: 0.6572,
+      confidence: 0.88,
       isDarkVessel: false,
       isPrimarySuspect: true,
-      recommendation: "CRITICAL PROBABILITY — Recommend Indian Coast Guard inspection at Nhava Sheva anchorage. Speed anomaly of 3.8–4.3 kts at T-12h within backtracked corridor.",
+      recommendation: "HIGH PROBABILITY — Recommend Indian Coast Guard inspection at Nhava Sheva anchorage. Speed anomaly of 4.1 kts at discharge window with 3.4h AIS blackout.",
       featureScores: {
-        // From ranked_suspects.json → feature_breakdown (mapped: corridor_overlap→trajectoryIntersection, heading_alignment→temporalProximity, speed_anomaly→speedAnomaly, ais_gap_history→aisGapScore)
-        trajectoryIntersection: 1.0,    // corridor_overlap_score: 1.0
-        temporalProximity: 0.9444,      // heading_alignment_score: 0.9444
-        speedAnomaly: 1.0,              // speed_anomaly_score: 1.0
-        aisGapScore: 1.0,               // ais_gap_history_score: 1.0
+        trajectoryIntersection: 0.1429,
+        temporalProximity: 0.9444,
+        speedAnomaly: 1.0,
+        aisGapScore: 1.0,
       },
     },
     {
       rank: 2,
       vesselId: "dark-vessel-cfar-002",
-      vesselName: "DARK VESSEL (SAR-only)",
+      vesselName: "DARK VESSEL (SAR CFAR_DARK_002)",
       mmsi: "",
-      vesselType: "Unknown (SAR-only CFAR detection)",
+      vesselType: "Unknown (SAR-only CFAR contact)",
       flag: "Unknown",
-      // No AIS → no scoring from ranked_suspects.json. Candidate by virtue of positional proximity.
       overallScore: 0.0,
       confidence: 0.0,
       isDarkVessel: true,
       isPrimarySuspect: false,
-      recommendation: "UNIDENTIFIED VESSEL — SAR CFAR detection CFAR_DARK_002 at [71.9°E, 19.28°N]. No AIS transponder throughout 12h window. H3 cell 8742da462ffffff within dispersion corridor.",
+      recommendation: "UNIDENTIFIED VESSEL — Radar contact CFAR_DARK_002 at [71.9°E, 19.28°N]. Zero AIS transponder activity.",
       featureScores: {
         trajectoryIntersection: 0.0,
         temporalProximity: 0.0,
         speedAnomaly: 0.0,
-        aisGapScore: 0.0,
-      },
-    },
-    {
-      rank: 3,
-      vesselId: "mmsi-419000202",
-      vesselName: "CONTAINER_EXPRESS",
-      mmsi: "419000202",
-      vesselType: "Container Ship",
-      flag: "Panama",
-      // case_file_output.json → ranked_suspects[1].total_score: 0.184 (already 0–1 normalized)
-      overallScore: 0.184,
-      confidence: 0.91,
-      isDarkVessel: false,
-      isPrimarySuspect: false,
-      recommendation: "CLEARED — Transit speed 18–19 kts, COG 85° (perpendicular to spill corridor). No corridor intersection. Score 18.4%.",
-      featureScores: {
-        trajectoryIntersection: 0.12,
-        temporalProximity: 0.08,
-        speedAnomaly: 0.05,
         aisGapScore: 0.0,
       },
     },
@@ -78,9 +53,75 @@ export const NO_CANDIDATES_P3_DATA: P3Output = {
   incidentId: "INC-2026-MUM-002",
   generatedAt: "2026-05-15T06:30:00Z",
   totalSuspectsEvaluated: 0,
-  algorithmVersion: "XGBoost-Ensemble-v2.4",
+  algorithmVersion: "Weighted Rule-Based Attribution Model",
   suspects: [],
 };
+
+export function convertSuspectsResponseToP3(data: any): P3Output {
+  if (!data || data.null_result || !Array.isArray(data.ranked_suspects) || data.ranked_suspects.length === 0) {
+    return {
+      ...NO_CANDIDATES_P3_DATA,
+      algorithmVersion: data?.scoring_model || "Weighted Rule-Based Attribution Model",
+    };
+  }
+
+  const suspects: RankedSuspect[] = data.ranked_suspects.map((s: any, idx: number) => {
+    const fb = s.feature_breakdown || {};
+    const normScore = s.normalized_score ?? (s.total_score ? s.total_score / 100 : 0);
+    return {
+      rank: s.rank ?? idx + 1,
+      vesselId: s.vessel_id?.toLowerCase()?.replace("_", "-") || `vessel-${idx + 1}`,
+      vesselName: s.vessel_name || `VESSEL_${idx + 1}`,
+      mmsi: String(s.vessel_id || "").replace("MMSI_", ""),
+      vesselType: s.vessel_type || "Commercial Vessel",
+      flag: s.flag || "Unknown",
+      overallScore: Number(normScore.toFixed(4)),
+      confidence: Number((normScore * 0.95).toFixed(2)),
+      isDarkVessel: false,
+      isPrimarySuspect: idx === 0,
+      recommendation: s.assessment || (idx === 0 ? "PRIMARY SUSPECT — Recommend maritime authority boarding and inspection." : "SECONDARY CONTACT"),
+      featureScores: {
+        trajectoryIntersection: fb.corridor_overlap_score ?? 0,
+        temporalProximity: fb.heading_alignment_score ?? 0,
+        speedAnomaly: fb.speed_anomaly_score ?? 0,
+        aisGapScore: fb.ais_gap_history_score ?? 0,
+      },
+    };
+  });
+
+  // If dark vessels are present in response, add them to P3 suspects list
+  if (Array.isArray(data.dark_vessels)) {
+    data.dark_vessels.forEach((dv: any, idx: number) => {
+      suspects.push({
+        rank: suspects.length + 1,
+        vesselId: dv.cfar_detection_id ? dv.cfar_detection_id.toLowerCase().replace("_", "-") : `dark-vessel-${idx + 1}`,
+        vesselName: `DARK VESSEL (${dv.cfar_detection_id || "UNIDENTIFIED"})`,
+        mmsi: "",
+        vesselType: "Radar Contact (CFAR Detection)",
+        flag: "Unknown",
+        overallScore: 0.0,
+        confidence: 0.0,
+        isDarkVessel: true,
+        isPrimarySuspect: false,
+        recommendation: `SAR radar contact at [${dv.position?.coordinates?.[0] ?? 71.9}°E, ${dv.position?.coordinates?.[1] ?? 19.28}°N]. Zero correlated AIS broadcasts.`,
+        featureScores: {
+          trajectoryIntersection: 0,
+          temporalProximity: 0,
+          speedAnomaly: 0,
+          aisGapScore: 0,
+        },
+      });
+    });
+  }
+
+  return {
+    incidentId: "INC-2026-MUM-001",
+    generatedAt: new Date().toISOString(),
+    totalSuspectsEvaluated: suspects.length,
+    algorithmVersion: data.scoring_model || "Weighted Rule-Based Attribution Model",
+    suspects,
+  };
+}
 
 export function parseP3Payload(raw: unknown): P3Output {
   if (!raw || typeof raw !== "object") return DEFAULT_P3_DATA;

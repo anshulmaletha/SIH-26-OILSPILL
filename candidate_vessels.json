@@ -1,0 +1,64 @@
+{
+  "candidates": [
+    {
+      "vessel_id": "MMSI_419000101",
+      "vessel_name": "IND_TANKER_412",
+      "vessel_type": "Crude Oil Tanker",
+      "flag": "India (IND)",
+      "heading_deg": 135.0,
+      "speed_knots_before": 14.16,
+      "speed_knots_during": 3.83,
+      "speed_dropped_during_transit": true,
+      "ais_gap_minutes": 204,
+      "matches": [
+        {
+          "hex_id": "8742da419ffffff",
+          "timestep": "t0",
+          "match_type": "k_ring",
+          "k_ring": 8,
+          "decay_weight": 0.1111
+        },
+        {
+          "hex_id": "8742da505ffffff",
+          "timestep": "t_minus_6h",
+          "match_type": "k_ring",
+          "k_ring": 6,
+          "decay_weight": 0.1429
+        }
+      ]
+    }
+  ],
+  "ais_query_bounds": {
+    "spatial": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            70.5,
+            18.0
+          ],
+          [
+            73.0,
+            18.0
+          ],
+          [
+            73.0,
+            20.5
+          ],
+          [
+            70.5,
+            20.5
+          ],
+          [
+            70.5,
+            18.0
+          ]
+        ]
+      ]
+    },
+    "temporal": {
+      "start": "2026-05-14T06:00:00+00:00",
+      "end": "2026-05-15T06:00:00+00:00"
+    }
+  }
+}

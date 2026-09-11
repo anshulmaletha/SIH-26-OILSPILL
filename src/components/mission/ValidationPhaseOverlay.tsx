@@ -1,5 +1,6 @@
-﻿import React from "react";
+import React, { useState, useEffect } from "react";
 import { useMission } from "@/lib/mission/missionState";
+import { fetchDetection, type DetectionResult } from "@/lib/api/client";
 
 // Inject keyframes once
 const VAL_KEYFRAMES = `
@@ -27,9 +28,9 @@ if (typeof document !== "undefined") {
 type CheckStatus = "pending" | "active" | "complete";
 
 // ── Helper: status dot ─────────────────────────────────────────────────────
-const StatusDot: React.FC<{ status: CheckStatus }> = ({ status }) => {
+const StatusDot: React.FC<{ status: CheckStatus; dotColor?: string }> = ({ status, dotColor = "#22D3EE" }) => {
   const bg =
-    status === "complete" ? "#22D3EE" : status === "active" ? "#F59E0B" : "#1C2A38";
+    status === "complete" ? dotColor : status === "active" ? "#F59E0B" : "#1C2A38";
 
   return (
     <div
@@ -65,7 +66,7 @@ const CheckRow: React.FC<CheckRowProps> = ({
   <div style={{ padding: "8px 12px", borderBottom: "1px solid #1C2A38" }}>
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
       <div style={{ paddingTop: 2 }}>
-        <StatusDot status={status} />
+        <StatusDot status={status} dotColor={resultColor} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -165,7 +166,27 @@ export const ValidationPhaseOverlay: React.FC = () => {
   const isActive = state.currentStage === "VALIDATION_AUDIT";
   const elapsed = state.stageElapsedMs ?? 0;
 
+  const [detectionData, setDetectionData] = useState<DetectionResult | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchDetection(state.scenario)
+      .then((data) => {
+        if (mounted) setDetectionData(data);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch detection data from API:", err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [state.scenario]);
+
   if (!isActive) return null;
+
+  const poly = detectionData?.polygons?.[0];
+  const lf = poly?.lookalike_filter;
+  const isRejected = lf?.final_decision === "rejected";
 
   const getCheckStatus = (showAt: number, completeAt: number): CheckStatus => {
     if (elapsed < showAt) return "pending";
@@ -180,8 +201,13 @@ export const ValidationPhaseOverlay: React.FC = () => {
   const showDiagnostic = elapsed > 6500;
   const showBadge = elapsed > 7500;
 
-  // Confidence fill: 0 → 94.8% over 1000ms starting at elapsed=6500
-  const confPct = showDiagnostic ? Math.min(((elapsed - 6500) / 1000) * 94.8, 94.8) : 0;
+  // Real confidence target: 94.0% for confirmed slick, 32.0% for rejected lookalike
+  const targetConf = poly?.confidence ? poly.confidence * 100 : (isRejected ? 32.0 : 94.0);
+  const confPct = showDiagnostic ? Math.min(((elapsed - 6500) / 1000) * targetConf, targetConf) : 0;
+
+  const windPassed = lf ? lf.wind_gate_passed : true;
+  const dampingPassed = lf ? (lf.damping_gate_passed ?? lf.damping_ratio >= 0.5) : true;
+  const shapePassed = lf ? lf.shape_gate_passed : true;
 
   return (
     <div
@@ -198,7 +224,7 @@ export const ValidationPhaseOverlay: React.FC = () => {
           position: "absolute",
           top: 80,
           right: 12,
-          width: 300,
+          width: 310,
           border: "1px solid #1C2A38",
           backgroundColor: "#0D1117",
           borderRadius: 2,
@@ -217,7 +243,7 @@ export const ValidationPhaseOverlay: React.FC = () => {
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
-              color: "#22D3EE",
+              color: isRejected ? "#F59E0B" : "#22D3EE",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               marginBottom: 3,
@@ -232,39 +258,51 @@ export const ValidationPhaseOverlay: React.FC = () => {
               color: "#5A7A94",
             }}
           >
-            Lookalike Discrimination Filter v2.4
+            {detectionData?.filter_model || "Physical Look-Alike Discriminator (ERA5 + Damping)"}
           </div>
         </div>
 
-        {/* Check 1 — ERA5 Wind */}
+        {/* Check 1 — ERA5 Wind (Gate A) */}
         {elapsed >= 500 && (
           <CheckRow
             status={check1Status}
-            label="ERA5 Surface Wind Analysis"
-            result="6.6 m/s WSW — Above 3.0 m/s calm threshold"
-            resultColor="#22D3EE"
+            label="Gate A: ERA5 Surface Wind Analysis"
+            result={
+              lf
+                ? `${lf.wind_speed_ms.toFixed(1)} m/s — ${windPassed ? "Above 2.0 m/s operational floor (Valid SAR)" : "Below 2.0 m/s calm threshold (Look-alike alert)"}`
+                : "6.4 m/s WSW — Above 2.0 m/s operational floor"
+            }
+            resultColor={windPassed ? "#22D3EE" : "#EF4444"}
             showProgressBar
           />
         )}
 
-        {/* Check 2 — Chlorophyll */}
+        {/* Check 2 — Damping Ratio (Gate B) */}
         {elapsed >= 2500 && (
           <CheckRow
             status={check2Status}
-            label="Chlorophyll-a / Algal Index"
-            result="0.21 mg/m³ — Biogenic surfactant: NEGATIVE"
-            resultColor="#22D3EE"
+            label="Gate B: Radar Backscatter Damping"
+            result={
+              lf
+                ? `${lf.damping_ratio.toFixed(2)} dB — ${dampingPassed ? "Damping ratio ≥ 0.50 dB (Crude surfactant)" : "Insufficient damping < 0.50 dB (Biogenic film)"}`
+                : "3.82 dB — Damping ratio ≥ 0.50 dB (Crude surfactant)"
+            }
+            resultColor={dampingPassed ? "#22D3EE" : "#EF4444"}
             showProgressBar
           />
         )}
 
-        {/* Check 3 — Internal Waves */}
+        {/* Check 3 — Shape Gate (Gate C) */}
         {elapsed >= 4500 && (
           <CheckRow
             status={check3Status}
-            label="Internal Waves / Bathymetric Check"
-            result="Depth 62m — No reflection artifact detected"
-            resultColor="#22D3EE"
+            label="Gate C: Geometric Eccentricity & Aspect"
+            result={
+              poly
+                ? `Eccentricity ${(poly.geometry_features?.eccentricity ?? 0.94).toFixed(2)} — ${shapePassed ? "Elongated trail morphology (≥ 0.70)" : "Non-linear circular patch (< 0.70)"}`
+                : "Eccentricity 0.94 — Elongated trail morphology"
+            }
+            resultColor={shapePassed ? "#22D3EE" : "#EF4444"}
             showProgressBar
           />
         )}
@@ -300,7 +338,7 @@ export const ValidationPhaseOverlay: React.FC = () => {
                 style={{
                   height: "100%",
                   width: `${confPct}%`,
-                  backgroundColor: "#22D3EE",
+                  backgroundColor: isRejected ? "#EF4444" : "#22D3EE",
                   transition: "width 0.05s linear",
                 }}
               />
@@ -319,29 +357,69 @@ export const ValidationPhaseOverlay: React.FC = () => {
               {confPct.toFixed(1)}%
             </div>
 
-            {/* Confirmation badge */}
+            {/* Confirmation or Rejection badge */}
             {showBadge && (
-              <div
-                style={{
-                  display: "inline-block",
-                  backgroundColor: "rgba(34,211,238,0.063)",
-                  border: "1px solid rgba(34,211,238,0.25)",
-                  padding: "4px 8px",
-                  borderRadius: 2,
-                }}
-              >
-                <span
+              isRejected ? (
+                <div
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 9,
-                    color: "#22D3EE",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
+                    display: "block",
+                    backgroundColor: "rgba(239,68,68,0.08)",
+                    border: "1px solid rgba(239,68,68,0.4)",
+                    padding: "6px 8px",
+                    borderRadius: 2,
                   }}
                 >
-                  CONFIRMED CRUDE PETROLEUM SLICK
-                </span>
-              </div>
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 9,
+                      color: "#EF4444",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      display: "block",
+                      fontWeight: 700,
+                    }}
+                  >
+                    REJECTED — LOOK-ALIKE DISCARDED
+                  </span>
+                  {lf?.rejection_reason && (
+                    <span
+                      style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 8,
+                        color: "#FCA5A5",
+                        marginTop: 4,
+                        display: "block",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {lf.rejection_reason}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "inline-block",
+                    backgroundColor: "rgba(34,211,238,0.063)",
+                    border: "1px solid rgba(34,211,238,0.25)",
+                    padding: "4px 8px",
+                    borderRadius: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 9,
+                      color: "#22D3EE",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    CONFIRMED CRUDE PETROLEUM SLICK
+                  </span>
+                </div>
+              )
             )}
           </div>
         )}

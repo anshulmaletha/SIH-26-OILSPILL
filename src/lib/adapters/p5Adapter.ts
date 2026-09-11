@@ -112,14 +112,69 @@ export const DEFAULT_P5_DATA: P5Output = {
 };
 
 export const EMPTY_P5_DATA: P5Output = {
-  timeWindowStart: "2026-09-01T06:00:00Z",
-  timeWindowEnd: "2026-09-02T06:00:00Z",
+  timeWindowStart: "2026-05-14T06:00:00Z",
+  timeWindowEnd: "2026-05-15T06:00:00Z",
   totalVesselsMonitored: 0,
   candidatesIdentified: 0,
   darkVesselsDetected: 0,
-  generatedAt: "2026-09-02T06:30:00Z",
+  generatedAt: "2026-05-15T06:30:00Z",
   vessels: [],
 };
+
+export function convertAisResponseToP5(data: any): P5Output {
+  if (!data || !Array.isArray(data.vessels) || data.vessels.length === 0) {
+    return DEFAULT_P5_DATA;
+  }
+
+  const baseT0 = new Date("2026-05-15T06:00:00Z").getTime();
+  let candidateCount = 0;
+  let darkCount = 0;
+
+  const vessels: VesselTrack[] = data.vessels.map((v: any) => {
+    if (v.isCandidate) candidateCount++;
+    if (v.isDarkVessel) darkCount++;
+
+    const pings: VesselPing[] = (v.pings || []).map((p: any) => {
+      const pingTime = new Date(p.timestamp).getTime();
+      const relHour = Math.round((pingTime - baseT0) / 3600000);
+      return {
+        timestamp: p.timestamp,
+        relativeHour: isNaN(relHour) ? 0 : relHour,
+        position: p.position as [number, number],
+        sogKnots: p.sog ?? 0,
+        cogDegrees: p.cog ?? 0,
+        headingDegrees: p.cog ?? 0,
+        navStatus: v.isDarkVessel ? "Unknown" : "Underway",
+      };
+    });
+
+    return {
+      vesselId: v.vesselId,
+      vesselName: v.vesselName,
+      mmsi: v.mmsi || "",
+      flag: v.flag || "Unknown",
+      vesselType: v.vesselType || "Cargo",
+      lengthMeters: v.isDarkVessel ? 0 : (v.isCandidate ? 245 : 300),
+      beamMeters: v.isDarkVessel ? 0 : (v.isCandidate ? 42 : 45),
+      draughtMeters: v.isDarkVessel ? 0 : 14.5,
+      destination: v.isDarkVessel ? "Unknown" : (v.isCandidate ? "NHAVA SHEVA PORT" : "MUNDRA PORT"),
+      isCandidate: !!v.isCandidate,
+      isDarkVessel: !!v.isDarkVessel,
+      path: v.path || (pings.map((p) => p.position)),
+      pings,
+    };
+  });
+
+  return {
+    timeWindowStart: "2026-05-14T06:00:00Z",
+    timeWindowEnd: "2026-05-15T06:00:00Z",
+    totalVesselsMonitored: vessels.length,
+    candidatesIdentified: candidateCount,
+    darkVesselsDetected: darkCount,
+    generatedAt: "2026-05-15T06:30:00Z",
+    vessels,
+  };
+}
 
 export function getVesselPositionsAtHour(p5: P5Output, relativeHour: number): ActiveVesselPosition[] {
   const vessels = p5?.vessels || DEFAULT_P5_DATA.vessels;

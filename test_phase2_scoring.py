@@ -202,10 +202,10 @@ class TestDeterministicScoring:
 
         f2_expected = 1.0 - (10.0 / HEADING_MAX_DIFF_DEG)
         raw = (
-            0.40 * 0.5
-            + 0.30 * f2_expected
-            + 0.20 * 1.0
-            + 0.10 * 0.0
+            WEIGHTS["corridor_overlap"] * 0.5
+            + WEIGHTS["heading_alignment"] * f2_expected
+            + WEIGHTS["speed_anomaly"] * 1.0
+            + WEIGHTS["ais_gap_history"] * 0.0
         )
         expected_total = round(raw * 100, 2)
         assert result["total_score"] == pytest.approx(
