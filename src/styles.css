@@ -5,36 +5,39 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * SIH Maritime Intelligence — Design System
+ * SIH Maritime Intelligence — Refreshed Design System v2
  *
  * Palette:
- *   bg-base:     #0A0E14  (page / map bg)
- *   bg-panel:    #0D1117  (panels)
- *   bg-elevated: #111822  (hover / selected)
- *   border:      #1C2A38  (all borders)
- *   text-dim:    #3A5268  (section headings)
- *   text-mid:    #5A7A94  (labels)
- *   text-body:   #C8D8E8  (body)
- *   text-bright: #E2E8F0  (primary readable)
- *   cyan:        #22D3EE  (accent — all data / UI)
- *   amber:       #F59E0B  (caution states ONLY)
- *   alert-red:   #EF4444  (dark vessel ONLY)
+ *   bg-base:     #080C14  page / map bg
+ *   bg-panel:    #0C1220  all panels
+ *   bg-elevated: #111B2A  hover / selected rows
+ *   bg-header:   #0A101C  panel section headers
+ *   border:      #1A2B3D  all borders
+ *   text-dim:    #3C536A  section headings, timestamps
+ *   text-mid:    #5C7A94  labels, subtitles
+ *   text-body:   #A8BDD0  body text
+ *   text-bright: #EDF2F7  primary readable
+ *   sky:         #38BDF8  primary accent — data, UI highlights
+ *   emerald:     #10B981  containment/response ONLY
+ *   amber:       #F59E0B  caution/warning ONLY
+ *   alert-red:   #EF4444  dark vessel/alert ONLY
  *
  * Font:
- *   mono → JetBrains Mono (coords, IDs, timestamps, hex values)
- *   sans → Inter / Space Grotesk (labels, body)
+ *   mono → JetBrains Mono (coords, IDs, timestamps, data values)
+ *   sans → Inter / Space Grotesk (labels, body, panel titles)
  *
- * Shape: flat & sharp — 2–4px corner radius max, 1px borders, no blur.
+ * Shape: flat, sharp — 2–3px max radius, 1px borders, no blur.
+ * Minimum font size: 10px everywhere.
  */
 
 @theme inline {
   --radius-sm: 2px;
   --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
-  --radius-3xl: 4px;
-  --radius-4xl: 4px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+  --radius-3xl: 3px;
+  --radius-4xl: 3px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -70,16 +73,16 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Light mode fallback (spec mandates dark; kept minimal) */
+/* Light mode fallback */
 :root {
-  --radius: 0.25rem;
+  --radius: 0.1875rem;
   --background: oklch(0.98 0.003 247);
   --foreground: oklch(0.13 0.04 265);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.13 0.04 265);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.13 0.04 265);
-  --primary: oklch(0.65 0.16 199);   /* cyan */
+  --primary: oklch(0.65 0.18 215);
   --primary-foreground: oklch(0.07 0.02 255);
   --secondary: oklch(0.94 0.01 248);
   --secondary-foreground: oklch(0.13 0.04 265);
@@ -91,61 +94,61 @@
   --destructive-foreground: oklch(0.98 0.003 247);
   --border: oklch(0.88 0.015 256);
   --input: oklch(0.88 0.015 256);
-  --ring: oklch(0.65 0.16 199);
-  --chart-1: oklch(0.65 0.16 199);
+  --ring: oklch(0.65 0.18 215);
+  --chart-1: oklch(0.65 0.18 215);
   --chart-2: oklch(0.72 0.16 80);
   --chart-3: oklch(0.57 0.22 27);
   --chart-4: oklch(0.78 0.14 199);
   --chart-5: oklch(0.52 0.14 199);
   --sidebar: oklch(0.94 0.01 248);
   --sidebar-foreground: oklch(0.13 0.04 265);
-  --sidebar-primary: oklch(0.65 0.16 199);
+  --sidebar-primary: oklch(0.65 0.18 215);
   --sidebar-primary-foreground: oklch(0.07 0.02 255);
   --sidebar-accent: oklch(0.90 0.01 248);
   --sidebar-accent-foreground: oklch(0.13 0.04 265);
   --sidebar-border: oklch(0.88 0.015 256);
-  --sidebar-ring: oklch(0.65 0.16 199);
+  --sidebar-ring: oklch(0.65 0.18 215);
 }
 
 /* Dark mode — primary design target */
 .dark {
-  --radius: 0.25rem;
+  --radius: 0.1875rem;
 
-  /* #0A0E14 */ --background: oklch(0.07 0.022 255);
-  /* #E2E8F0 */ --foreground: oklch(0.925 0.012 240);
-  /* #0D1117 */ --card: oklch(0.085 0.022 255);
-  /* #E2E8F0 */ --card-foreground: oklch(0.925 0.012 240);
-  /* #0D1117 */ --popover: oklch(0.085 0.022 255);
-  /* #E2E8F0 */ --popover-foreground: oklch(0.925 0.012 240);
-  /* #22D3EE */ --primary: oklch(0.78 0.14 199);
-  /* #0A0E14 */ --primary-foreground: oklch(0.07 0.022 255);
-  /* #111822 */ --secondary: oklch(0.11 0.028 250);
-  /* #C8D8E8 */ --secondary-foreground: oklch(0.86 0.025 228);
-  /* #111822 */ --muted: oklch(0.11 0.028 250);
-  /* #5A7A94 */ --muted-foreground: oklch(0.52 0.055 225);
-  /* #111822 */ --accent: oklch(0.13 0.03 250);
-  /* #22D3EE */ --accent-foreground: oklch(0.78 0.14 199);
+  /* #080C14 */ --background: oklch(0.065 0.025 255);
+  /* #EDF2F7 */ --foreground: oklch(0.955 0.008 240);
+  /* #0C1220 */ --card: oklch(0.08 0.028 250);
+  /* #EDF2F7 */ --card-foreground: oklch(0.955 0.008 240);
+  /* #0C1220 */ --popover: oklch(0.08 0.028 250);
+  /* #EDF2F7 */ --popover-foreground: oklch(0.955 0.008 240);
+  /* #38BDF8 */ --primary: oklch(0.74 0.17 210);
+  /* #080C14 */ --primary-foreground: oklch(0.065 0.025 255);
+  /* #111B2A */ --secondary: oklch(0.115 0.032 248);
+  /* #A8BDD0 */ --secondary-foreground: oklch(0.77 0.03 228);
+  /* #111B2A */ --muted: oklch(0.115 0.032 248);
+  /* #5C7A94 */ --muted-foreground: oklch(0.52 0.055 225);
+  /* #111B2A */ --accent: oklch(0.13 0.035 248);
+  /* #38BDF8 */ --accent-foreground: oklch(0.74 0.17 210);
   /* #EF4444 */ --destructive: oklch(0.57 0.22 27);
-  /* #E2E8F0 */ --destructive-foreground: oklch(0.925 0.012 240);
-  /* #1C2A38 */ --border: oklch(0.20 0.042 238);
-  /* #1C2A38 */ --input: oklch(0.20 0.042 238);
-  /* #22D3EE */ --ring: oklch(0.78 0.14 199);
+  /* #EDF2F7 */ --destructive-foreground: oklch(0.955 0.008 240);
+  /* #1A2B3D */ --border: oklch(0.195 0.048 238);
+  /* #1A2B3D */ --input: oklch(0.195 0.048 238);
+  /* #38BDF8 */ --ring: oklch(0.74 0.17 210);
 
-  /* Charts reused for density/track indicators */
-  /* cyan bright */    --chart-1: oklch(0.78 0.14 199);
-  /* cyan mid */       --chart-2: oklch(0.65 0.12 199);
-  /* amber (caution)*/ --chart-3: oklch(0.72 0.16 80);
-  /* cyan dim */       --chart-4: oklch(0.50 0.09 199);
-  /* red (alert) */    --chart-5: oklch(0.57 0.22 27);
+  /* Charts */
+  /* sky */      --chart-1: oklch(0.74 0.17 210);
+  /* sky-dim */  --chart-2: oklch(0.60 0.14 210);
+  /* amber */    --chart-3: oklch(0.72 0.16 80);
+  /* sky-dimmer*/ --chart-4: oklch(0.46 0.10 210);
+  /* red */      --chart-5: oklch(0.57 0.22 27);
 
-  --sidebar: oklch(0.085 0.022 255);
-  --sidebar-foreground: oklch(0.925 0.012 240);
-  --sidebar-primary: oklch(0.78 0.14 199);
-  --sidebar-primary-foreground: oklch(0.07 0.022 255);
-  --sidebar-accent: oklch(0.13 0.03 250);
-  --sidebar-accent-foreground: oklch(0.78 0.14 199);
-  --sidebar-border: oklch(0.20 0.042 238);
-  --sidebar-ring: oklch(0.78 0.14 199);
+  --sidebar: oklch(0.08 0.028 250);
+  --sidebar-foreground: oklch(0.955 0.008 240);
+  --sidebar-primary: oklch(0.74 0.17 210);
+  --sidebar-primary-foreground: oklch(0.065 0.025 255);
+  --sidebar-accent: oklch(0.13 0.035 248);
+  --sidebar-accent-foreground: oklch(0.74 0.17 210);
+  --sidebar-border: oklch(0.195 0.048 238);
+  --sidebar-ring: oklch(0.74 0.17 210);
 }
 
 @layer base {
@@ -158,53 +161,39 @@
     color: var(--color-foreground);
     overflow: hidden;
     font-family: "Inter", "Space Grotesk", system-ui, sans-serif;
+    font-size: 13px;
   }
 
-  /* Monospace class for all data readouts */
   .font-mono {
     font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
   }
 }
 
-/* ─── Custom scrollbar — thin dark track ─── */
+/* ─── Custom scrollbar ─── */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
+  width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #1C2A38;
+  background: #1A2B3D;
   border-radius: 0;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #22D3EE40;
+  background: #38BDF820;
 }
 
-/* ─── Dark Vessel Sonar Radar Pulse Animation ─── */
+/* ─── Dark Vessel Sonar Radar Pulse ─── */
 @keyframes sonar-pulse {
-  0% {
-    transform: scale(0.35);
-    opacity: 0.95;
-  }
-  50% {
-    opacity: 0.70;
-  }
-  100% {
-    transform: scale(2.8);
-    opacity: 0;
-  }
+  0%   { transform: scale(0.35); opacity: 0.95; }
+  50%  { opacity: 0.70; }
+  100% { transform: scale(2.8); opacity: 0; }
 }
 
 @keyframes pulse-ring-inner {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.75;
-    transform: scale(1.15);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.75; transform: scale(1.15); }
 }
 
 .dark-vessel-sonar-ring {
@@ -224,9 +213,9 @@
   pointer-events: none;
 }
 
-/* ─── Basemap Canvas Contrast & Darkening Polish ─── */
+/* ─── Basemap Canvas ─── */
 .maplibregl-canvas {
-  filter: brightness(0.78) contrast(1.22) saturate(0.8);
+  filter: brightness(0.75) contrast(1.25) saturate(0.75);
 }
 
 /* ─── Layer fade/slide transition ─── */
@@ -240,190 +229,221 @@
   transition: opacity 200ms ease, transform 200ms ease;
 }
 
-/* ─── Offset MapLibre controls to clear the top header bar ─── */
+/* ─── MapLibre controls ─── */
 .maplibregl-ctrl-top-right {
-  top: 56px !important;
+  top: 60px !important;
   right: 12px !important;
 }
-
 .maplibregl-ctrl-bottom-right {
   bottom: 12px !important;
   right: 12px !important;
 }
-
-/* Flat MapLibre control style — no glassmorphism */
 .maplibregl-ctrl-group {
-  background: #0D1117 !important;
-  border: 1px solid #1C2A38 !important;
+  background: #0C1220 !important;
+  border: 1px solid #1A2B3D !important;
   border-radius: 2px !important;
   box-shadow: none !important;
   overflow: hidden !important;
   backdrop-filter: none !important;
 }
-
 .maplibregl-ctrl-group button {
-  border-bottom: 1px solid #1C2A38 !important;
+  border-bottom: 1px solid #1A2B3D !important;
   background: transparent !important;
   width: 28px !important;
   height: 28px !important;
 }
-
 .maplibregl-ctrl-group button:last-child {
   border-bottom: none !important;
 }
-
 .maplibregl-ctrl-group button:hover {
-  background: #111822 !important;
+  background: #111B2A !important;
 }
-
 .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(0.7) sepia(1) saturate(2) hue-rotate(165deg) brightness(1.1);
+  filter: invert(0.7) sepia(1) saturate(2) hue-rotate(185deg) brightness(1.1);
 }
 
-/* MapLibre popup — flat panel */
+/* MapLibre popup */
 .maplibregl-popup-content {
-  background: #0D1117 !important;
-  border: 1px solid #1C2A38 !important;
+  background: #0C1220 !important;
+  border: 1px solid #1A2B3D !important;
   border-radius: 2px !important;
   box-shadow: none !important;
   padding: 8px 10px !important;
   font-family: "JetBrains Mono", monospace !important;
   font-size: 11px !important;
-  color: #C8D8E8 !important;
+  color: #A8BDD0 !important;
 }
-
 .maplibregl-popup-tip {
-  border-top-color: #1C2A38 !important;
-  border-bottom-color: #1C2A38 !important;
+  border-top-color: #1A2B3D !important;
+  border-bottom-color: #1A2B3D !important;
 }
 
-/* ─── Shadcn Slider — override to flat style ─── */
+/* ─── Shadcn Slider overrides ─── */
 [data-slot="slider-track"] {
-  background: #1C2A38 !important;
+  background: #1A2B3D !important;
   border-radius: 0 !important;
   height: 2px !important;
 }
-
 [data-slot="slider-range"] {
-  background: #22D3EE !important;
+  background: #38BDF8 !important;
   border-radius: 0 !important;
 }
-
 [data-slot="slider-thumb"] {
-  background: #0D1117 !important;
-  border: 1px solid #22D3EE !important;
+  background: #0C1220 !important;
+  border: 1px solid #38BDF8 !important;
   border-radius: 0 !important;
   width: 10px !important;
   height: 10px !important;
   box-shadow: none !important;
 }
 
-/* ─── Range input (native scrubber) — flat ─── */
+/* ─── Range input (scrubber) ─── */
 input[type="range"].scrubber {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 2px;
-  background: #1C2A38;
+  background: #1A2B3D;
   outline: none;
   cursor: pointer;
 }
-
 input[type="range"].scrubber::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 10px;
   height: 10px;
-  background: #0D1117;
-  border: 1px solid #22D3EE;
+  background: #0C1220;
+  border: 1px solid #38BDF8;
   border-radius: 0;
   cursor: pointer;
 }
-
 input[type="range"].scrubber::-moz-range-thumb {
   width: 10px;
   height: 10px;
-  background: #0D1117;
-  border: 1px solid #22D3EE;
+  background: #0C1220;
+  border: 1px solid #38BDF8;
   border-radius: 0;
   cursor: pointer;
 }
-
 input[type="range"].scrubber::-webkit-slider-runnable-track {
   height: 2px;
   background: linear-gradient(
     to right,
-    #22D3EE var(--range-fill, 0%),
-    #1C2A38 var(--range-fill, 0%)
+    #38BDF8 var(--range-fill, 0%),
+    #1A2B3D var(--range-fill, 0%)
   );
 }
 
-/* ─── Mission Controller Animations ────────────────────────────────────────── */
+/* ─── Toggle Switch (inspired by reference UI) ─── */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #1A2B3D;
+  border: 1px solid #2A3D52;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #3C536A;
+  border-radius: 50%;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.toggle-switch input:checked + .toggle-track {
+  background: #0D2A40;
+  border-color: #38BDF8;
+}
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateY(-50%) translateX(14px);
+  background: #38BDF8;
+}
+.toggle-switch.emerald input:checked + .toggle-track {
+  background: #0D2A1E;
+  border-color: #10B981;
+}
+.toggle-switch.emerald input:checked + .toggle-track::after {
+  background: #10B981;
+}
 
-/* Radar sweep rotation */
+/* ─── Panel entrance animations ─── */
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes panel-slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.panel-slide-in {
+  animation: panel-slide-in 0.25s ease forwards;
+}
+.panel-slide-in-left {
+  animation: panel-slide-in-left 0.25s ease forwards;
+}
+
+/* ─── Mission Controller Animations ─── */
 @keyframes radar-sweep-rotate {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-
-/* SAR scanline reveal — fades out after completing scan */
 @keyframes sar-scanline-fade {
   0%   { opacity: 0.8; }
   80%  { opacity: 0.8; }
   100% { opacity: 0; }
 }
-
-/* Culprit targeting ring pulse */
 @keyframes culprit-ring-pulse {
   0%   { transform: scale(1); opacity: 0.9; }
   50%  { transform: scale(1.1); opacity: 0.6; }
   100% { transform: scale(1); opacity: 0.9; }
 }
-
-/* Generic fade-in for progressively revealed list items */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Terminal cursor blink */
 @keyframes terminal-blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
-
-/* Score bar roll-up — driven by inline transform, no keyframe needed but kept for reference */
 @keyframes score-rollup {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
 }
-
-/* Boom barrier draw-on (SVG stroke-dashoffset) */
 @keyframes boom-draw {
   from { stroke-dashoffset: 1000; }
   to   { stroke-dashoffset: 0; }
 }
-
-/* AIS vessel cascade — staggered dot fade-in */
 @keyframes vessel-cascade {
   from { opacity: 0; transform: scale(0.4); }
   to   { opacity: 1; transform: scale(1); }
 }
-
-/* Standby pulse for the start button dot */
 @keyframes standby-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(1.3); }
 }
-
-/* Validation check status transition */
 @keyframes check-complete {
   from { background: #F59E0B; }
-  to   { background: #22D3EE; }
+  to   { background: #38BDF8; }
 }
-
-/* Containment room teal pulse for active boom markers */
 @keyframes teal-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
-

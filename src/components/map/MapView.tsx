@@ -30,6 +30,10 @@ export interface MapViewProps {
   p4Data?: P4Output | undefined;
   p5Data?: P5Output | undefined;
   relativeHour?: number | undefined;
+  windSpeedMs?: number | undefined;
+  windHeadingDeg?: number | undefined;
+  currentSpeedMs?: number | undefined;
+  currentHeadingDeg?: number | undefined;
   sarOpacity?: number | undefined;
   selectedTrackId?: string | undefined;
   selectedTrackColor?: [number, number, number] | undefined;
@@ -57,6 +61,10 @@ export default function MapView({
   p4Data = DEFAULT_P4_DATA,
   p5Data = DEFAULT_P5_DATA,
   relativeHour = 0,
+  windSpeedMs,
+  windHeadingDeg,
+  currentSpeedMs,
+  currentHeadingDeg,
   sarOpacity = 0.55,
   selectedTrackId = "all",
   selectedTrackColor = [34, 211, 238],
@@ -171,6 +179,10 @@ export default function MapView({
       p4Data,
       p5Data,
       relativeHour,
+      windSpeedMs,
+      windHeadingDeg,
+      currentSpeedMs,
+      currentHeadingDeg,
       sarOpacity,
       selectedTrackId,
       selectedTrackColor,
@@ -364,6 +376,10 @@ export default function MapView({
     p4Data,
     p5Data,
     relativeHour,
+    windSpeedMs,
+    windHeadingDeg,
+    currentSpeedMs,
+    currentHeadingDeg,
     sarOpacity,
     selectedTrackId,
     selectedTrackColor,

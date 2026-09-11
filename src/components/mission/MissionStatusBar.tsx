@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useMission, STAGE_LABELS, STAGE_ORDER, MissionStage } from '@/lib/mission/missionState';
+import { T } from '@/components/ui/PanelKit';
 
 const SPEEDS: (1 | 2 | 4)[] = [1, 2, 4];
-
 const FIRST_STAGE = STAGE_ORDER[0];
 const LAST_STAGE = STAGE_ORDER[STAGE_ORDER.length - 1];
 
@@ -18,12 +18,22 @@ function formatZulu(date: Date | string | number): string {
   return `${day}${mon}${yr} ${hh}:${mm}:${ss}Z`;
 }
 
-const MissionStatusBar: React.FC = () => {
+export interface MissionStatusBarProps {
+  relativeHour?: number;
+}
+
+const MissionStatusBar: React.FC<MissionStatusBarProps> = ({ relativeHour }) => {
   const { state, dispatch } = useMission();
+
+  // Baseline SAR Detection timestamp: 15 MAY 2026 06:00:00Z
+  const T0_TIMESTAMP = useMemo(() => new Date('2026-05-15T06:00:00Z').getTime(), []);
+  const activeZuluTimestamp = useMemo(() => {
+    if (relativeHour === undefined) return state.simulatedTime;
+    return T0_TIMESTAMP + relativeHour * 3600 * 1000;
+  }, [relativeHour, state.simulatedTime, T0_TIMESTAMP]);
 
   const currentStageIndex = STAGE_ORDER.indexOf(state.currentStage as MissionStage);
   const stageProgress = useMemo(() => {
-    // Compute progress 0-1 from stageElapsedMs assuming each stage lasts ~6000ms for visual
     const STAGE_DURATION_MS = 6000;
     return Math.min(state.stageElapsedMs / STAGE_DURATION_MS, 1);
   }, [state.stageElapsedMs]);
@@ -36,6 +46,9 @@ const MissionStatusBar: React.FC = () => {
 
   if (!state.initiated) return null;
 
+  const stageNum = Math.max(0, currentStageIndex);
+  const totalStages = STAGE_ORDER.length - 1; // exclude STANDBY
+
   return (
     <div
       style={{
@@ -43,10 +56,10 @@ const MissionStatusBar: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        height: '52px',
+        height: '56px',
         zIndex: 25,
-        backgroundColor: '#0D1117',
-        borderBottom: '1px solid #1C2A38',
+        backgroundColor: T.bgPanel,
+        borderBottom: `1px solid ${T.border}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -56,14 +69,14 @@ const MissionStatusBar: React.FC = () => {
       }}
     >
       {/* LEFT SECTION */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-        {/* Triangle icon */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        {/* Logo mark */}
         <div
           style={{
-            width: '28px',
-            height: '28px',
-            border: '1px solid #1C2A38',
-            backgroundColor: '#111822',
+            width: '30px',
+            height: '30px',
+            border: `1px solid ${T.border}`,
+            backgroundColor: T.bgElevated,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -74,21 +87,21 @@ const MissionStatusBar: React.FC = () => {
           <svg width="16" height="14" viewBox="0 0 16 14">
             <polygon
               points="8,2 14,12 2,12"
-              stroke="#22D3EE"
-              strokeWidth="1.2"
+              stroke={T.sky}
+              strokeWidth="1.5"
               fill="none"
             />
           </svg>
         </div>
 
         {/* Title block */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span
             style={{
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: T.fontSans,
               fontSize: '13px',
-              fontWeight: 800,
-              color: '#E2E8F0',
+              fontWeight: 700,
+              color: T.brightText,
               lineHeight: 1,
             }}
           >
@@ -96,50 +109,57 @@ const MissionStatusBar: React.FC = () => {
           </span>
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '8px',
-              color: '#3A5268',
+              fontFamily: T.fontMono,
+              fontSize: '9px',
+              color: T.dimText,
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
               lineHeight: 1,
             }}
           >
-            MARITIME INTELLIGENCE PLATFORM
+            MARITIME INTELLIGENCE
           </span>
         </div>
 
         {/* Vertical separator */}
-        <div
-          style={{
-            width: '1px',
-            height: '24px',
-            backgroundColor: '#1C2A38',
-            marginLeft: '12px',
-            marginRight: '12px',
-            flexShrink: 0,
-          }}
-        />
+        <div style={{ width: '1px', height: '26px', backgroundColor: T.border, flexShrink: 0 }} />
 
-        {/* Stage label + progress bar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '11px',
-              color: '#22D3EE',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              lineHeight: 1,
-            }}
-          >
-            {STAGE_LABELS[state.currentStage as MissionStage] ?? state.currentStage}
-          </span>
+        {/* Stage label + progress */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              style={{
+                fontFamily: T.fontMono,
+                fontSize: '11px',
+                color: T.sky,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+              }}
+            >
+              {STAGE_LABELS[state.currentStage as MissionStage] ?? state.currentStage}
+            </span>
+            <span
+              style={{
+                fontFamily: T.fontMono,
+                fontSize: '9px',
+                color: T.midText,
+                backgroundColor: T.bgElevated,
+                border: `1px solid ${T.border}`,
+                padding: '1px 5px',
+                borderRadius: 2,
+                lineHeight: 1.4,
+              }}
+            >
+              {stageNum} / {totalStages}
+            </span>
+          </div>
           {/* Progress bar */}
           <div
             style={{
-              width: '120px',
+              width: '130px',
               height: '2px',
-              backgroundColor: '#1C2A38',
+              backgroundColor: T.border,
               borderRadius: '1px',
               overflow: 'hidden',
             }}
@@ -148,7 +168,7 @@ const MissionStatusBar: React.FC = () => {
               style={{
                 height: '100%',
                 width: `${stageProgress * 100}%`,
-                backgroundColor: '#22D3EE',
+                backgroundColor: T.sky,
                 transition: 'width 0.3s linear',
               }}
             />
@@ -156,40 +176,31 @@ const MissionStatusBar: React.FC = () => {
         </div>
 
         {/* Vertical separator */}
-        <div
-          style={{
-            width: '1px',
-            height: '24px',
-            backgroundColor: '#1C2A38',
-            marginLeft: '8px',
-            marginRight: '8px',
-            flexShrink: 0,
-          }}
-        />
+        <div style={{ width: '1px', height: '26px', backgroundColor: T.border, flexShrink: 0 }} />
 
         {/* Scenario Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '8px',
-              color: '#5A7A94',
+              fontFamily: T.fontMono,
+              fontSize: '9px',
+              color: T.midText,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               lineHeight: 1,
             }}
           >
-            SCENARIO
+            Scenario
           </span>
           <select
             value={state.scenario}
             onChange={(e) => dispatch({ type: 'SET_SCENARIO', scenario: e.target.value as any })}
             style={{
-              backgroundColor: '#111822',
-              color: '#22D3EE',
-              border: '1px solid #1C2A38',
+              backgroundColor: T.bgElevated,
+              color: T.sky,
+              border: `1px solid ${T.border}`,
               borderRadius: '2px',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: T.fontMono,
               fontSize: '10px',
               padding: '2px 6px',
               outline: 'none',
@@ -197,19 +208,19 @@ const MissionStatusBar: React.FC = () => {
             }}
           >
             <option value="active">Mumbai Offshore (Attributed)</option>
-            <option value="rejected_lookalike">Look-Alike Rejection Test</option>
-            <option value="no_candidates">Uncorrelated Sector (Null-Result)</option>
+            <option value="rejected_lookalike">Look-Alike Rejection</option>
+            <option value="no_candidates">Null-Result (No Suspect)</option>
           </select>
         </div>
       </div>
 
-      {/* CENTER SECTION */}
+      {/* CENTER — Mission Clock */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '2px',
+          gap: '3px',
           position: 'absolute',
           left: '50%',
           transform: 'translateX(-50%)',
@@ -217,23 +228,23 @@ const MissionStatusBar: React.FC = () => {
       >
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '8px',
-            color: '#3A5268',
+            fontFamily: T.fontMono,
+            fontSize: '9px',
+            color: T.dimText,
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
             lineHeight: 1,
           }}
         >
-          MISSION CLOCK
+          Mission Clock
         </span>
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '12px',
-            color: '#C8D8E8',
+            fontFamily: T.fontMono,
+            fontSize: '13px',
+            color: T.bodyText,
             lineHeight: 1,
-            letterSpacing: '0.05em',
+            letterSpacing: '0.04em',
           }}
         >
           {formatZulu(state.simulatedTime)}
@@ -250,18 +261,18 @@ const MissionStatusBar: React.FC = () => {
               key={s}
               onClick={() => dispatch({ type: 'SET_SPEED', speed: s })}
               style={{
-                width: '28px',
-                height: '28px',
+                width: '30px',
+                height: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: T.fontMono,
                 fontSize: '10px',
                 cursor: 'pointer',
                 borderRadius: '2px',
-                backgroundColor: isActive ? 'rgba(34,211,238,0.08)' : 'transparent',
-                border: isActive ? '1px solid #22D3EE' : '1px solid #1C2A38',
-                color: isActive ? '#22D3EE' : '#3A5268',
+                backgroundColor: isActive ? 'rgba(56,189,248,0.08)' : 'transparent',
+                border: isActive ? `1px solid ${T.sky}` : `1px solid ${T.border}`,
+                color: isActive ? T.sky : T.midText,
                 transition: 'all 0.15s ease',
                 padding: 0,
               }}
@@ -275,61 +286,54 @@ const MissionStatusBar: React.FC = () => {
         <button
           onClick={() => dispatch({ type: 'TOGGLE_AUTOPLAY' })}
           style={{
-            height: '28px',
-            paddingLeft: '8px',
-            paddingRight: '8px',
+            height: '30px',
+            paddingLeft: '10px',
+            paddingRight: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '9px',
+            fontFamily: T.fontMono,
+            fontSize: '10px',
             cursor: 'pointer',
             borderRadius: '2px',
-            backgroundColor: state.autoPlay ? 'rgba(34,211,238,0.08)' : 'transparent',
-            border: state.autoPlay ? '1px solid #22D3EE' : '1px solid #1C2A38',
-            color: state.autoPlay ? '#22D3EE' : '#5A7A94',
+            backgroundColor: state.autoPlay ? 'rgba(56,189,248,0.08)' : 'transparent',
+            border: state.autoPlay ? `1px solid ${T.sky}` : `1px solid ${T.border}`,
+            color: state.autoPlay ? T.sky : T.midText,
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
           }}
         >
-          {state.autoPlay ? 'AUTO ▶' : 'MANUAL'}
+          {state.autoPlay ? '> AUTO' : 'MANUAL'}
         </button>
 
         {/* Separator */}
-        <div
-          style={{
-            width: '1px',
-            height: '24px',
-            backgroundColor: '#1C2A38',
-            marginLeft: '2px',
-            marginRight: '2px',
-            flexShrink: 0,
-          }}
-        />
+        <div style={{ width: '1px', height: '26px', backgroundColor: T.border, flexShrink: 0 }} />
 
         {/* PREV button */}
         <button
           onClick={() => dispatch({ type: 'PREV_STAGE' })}
           disabled={isPrevDisabled}
           style={{
-            width: '28px',
-            height: '28px',
+            height: '30px',
+            paddingLeft: '10px',
+            paddingRight: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: T.fontMono,
             fontSize: '10px',
             cursor: isPrevDisabled ? 'not-allowed' : 'pointer',
             borderRadius: '2px',
-            backgroundColor: '#111822',
-            border: '1px solid #1C2A38',
-            color: isPrevDisabled ? '#1C2A38' : '#5A7A94',
+            backgroundColor: T.bgElevated,
+            border: `1px solid ${T.border}`,
+            color: isPrevDisabled ? T.border : T.midText,
             transition: 'all 0.15s ease',
-            padding: 0,
             opacity: isPrevDisabled ? 0.4 : 1,
+            gap: 5,
+            whiteSpace: 'nowrap',
           }}
         >
-          ◀
+          PREV
         </button>
 
         {/* NEXT button */}
@@ -337,24 +341,25 @@ const MissionStatusBar: React.FC = () => {
           onClick={() => dispatch({ type: 'NEXT_STAGE' })}
           disabled={isNextDisabled}
           style={{
-            width: '28px',
-            height: '28px',
+            height: '30px',
+            paddingLeft: '10px',
+            paddingRight: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: T.fontMono,
             fontSize: '10px',
             cursor: isNextDisabled ? 'not-allowed' : 'pointer',
             borderRadius: '2px',
-            backgroundColor: '#111822',
-            border: isNextDisabled ? '1px solid #1C2A38' : '1px solid #22D3EE',
-            color: isNextDisabled ? '#1C2A38' : '#22D3EE',
+            backgroundColor: isNextDisabled ? T.bgElevated : 'rgba(56,189,248,0.08)',
+            border: isNextDisabled ? `1px solid ${T.border}` : `1px solid ${T.sky}`,
+            color: isNextDisabled ? T.border : T.sky,
             transition: 'all 0.15s ease',
-            padding: 0,
             opacity: isNextDisabled ? 0.4 : 1,
+            whiteSpace: 'nowrap',
           }}
         >
-          ▶
+          NEXT
         </button>
       </div>
     </div>

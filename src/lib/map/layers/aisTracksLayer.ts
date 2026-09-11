@@ -39,25 +39,29 @@ const DARK_VESSEL_COLOR: [number, number, number, number] = [239, 68, 68, 255]; 
  * Cyan-only track palette. Ship-icon markers rotated to heading.
  * Dark vessel rendered as a separate red ScatterplotLayer (no path).
  */
-export function createAisTrackLayers({
-  vessels,
-  activePositions,
-  visible,
-  selectedTrackId = "all",
-  selectedTrackColor = CYAN_FULL,
-  followTrack = false,
-  primarySuspectVesselId,
-  onHover,
-  onSelectVessel,
-}: AisTrackLayerOptions) {
+export function createAisTrackLayers(options: AisTrackLayerOptions & { tracks?: VesselTrack[]; vesselPositions?: ActiveVesselPosition[] }) {
+  const {
+    vessels = options?.tracks || [],
+    activePositions = options?.vesselPositions || [],
+    visible,
+    selectedTrackId = "all",
+    selectedTrackColor = CYAN_FULL,
+    followTrack = false,
+    primarySuspectVesselId,
+    onHover,
+    onSelectVessel,
+  } = options || {};
+
   if (!visible) return [];
 
   const isSpecificSelected = selectedTrackId !== "all";
+  const safePositions = Array.isArray(activePositions) ? activePositions : [];
+  const safeVessels = Array.isArray(vessels) ? vessels : [];
 
   // Separate dark vessels (no AIS track to render)
-  const darkVesselPositions = activePositions.filter((p) => p.vessel.isDarkVessel);
-  const aisPositions = activePositions.filter((p) => !p.vessel.isDarkVessel);
-  const aisVessels = vessels.filter((v) => !v.isDarkVessel);
+  const darkVesselPositions = safePositions.filter((p) => p?.vessel?.isDarkVessel);
+  const aisPositions = safePositions.filter((p) => p?.vessel && !p.vessel.isDarkVessel);
+  const aisVessels = safeVessels.filter((v) => v && !v.isDarkVessel);
 
   // ── 1. Motion trails behind moving vessels (fading dashes indicating travel direction) ──
   interface MotionTrailDash {

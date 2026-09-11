@@ -1,344 +1,168 @@
-/**
- * Phase 7: CASE_FILE
- * Forensic dossier generation and export.
- */
+import React, { useState, useEffect } from 'react';
+import { useMission } from '@/lib/mission/missionState';
+import { fetchCaseFileMetadata, type CaseFileMetadataResult } from '@/lib/api/client';
+import { Panel, PanelHeader, DataRow, SectionLabel, StatusBadge, T } from '@/components/ui/PanelKit';
+import { CheckCircle2, Download, Search } from 'lucide-react';
 
-import React, { useState, useEffect } from "react";
-import { useMission } from "@/lib/mission/missionState";
-import type { P1Output } from "@/lib/contracts/p1";
-import type { P3Output } from "@/lib/contracts/p3";
-import { fetchCaseFileMetadata, getCaseFilePdfUrl, type CaseFileMetadataResult } from "@/lib/api/client";
-
-interface CaseFileOverlayProps {
-  p1Data: P1Output;
-  p3Data: P3Output;
-}
-
-interface EvidenceItem {
-  label: string;
-  value: string;
-  verified: boolean;
-}
-
-export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
+export function CaseFileOverlay() {
   const { state } = useMission();
-  const [caseMeta, setCaseMeta] = useState<CaseFileMetadataResult | null>(null);
+  const [meta, setMeta] = useState<CaseFileMetadataResult | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    fetchCaseFileMetadata()
-      .then((data) => {
-        if (mounted) setCaseMeta(data);
-      })
-      .catch((err) => {
-        console.warn("Could not fetch case file metadata:", err);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [state.currentStage]);
+    fetchCaseFileMetadata(state.scenario)
+      .then((d) => { if (mounted) setMeta(d); })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [state.scenario]);
 
-  if (state.currentStage !== "CASE_FILE") return null;
-
+  if (state.currentStage !== 'CASE_FILE') return null;
   const elapsed = state.stageElapsedMs;
-  const primary = p3Data?.suspects?.[0];
 
-  const realHash =
-    caseMeta?.input_data_hash || "d9845cb3f0907f9cbb87a6f2bbdd9cf629bb4e015d8f6d89e5bb3057e9fe5757";
+  const showHeader = elapsed > 500;
+  const showHash = elapsed > 1500;
+  const showAction = elapsed > 2500;
 
-  const isNullResult = state.scenario === "no_candidates" || !p3Data?.suspects || p3Data.suspects.length === 0;
+  // Real data
+  const isNullResult = meta?.ranked_suspects.length === 0 || state.scenario === 'no_candidates';
+  const caseId = meta?.case_id ?? `CASE-MUM-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
+  const generatedAt = meta?.generated_at ? new Date(meta.generated_at).toISOString().replace('T', ' ').slice(0, 19) + 'Z' : '2026-05-15 06:14:22Z';
+  const hash = meta?.input_data_hash ?? 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const sceneId = meta?.scene_id ?? 'S1A_IW_GRDH_1SDV_20260515T060000';
+  const resolution = meta?.h3_resolution ?? 7;
 
-  const sceneId = caseMeta?.scene_id || p1Data?.sarScene?.sceneId || "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI";
-  const acqTime = p1Data?.sarScene?.acquisitionTime || "2026-05-15T06:00:00Z";
-  const slickArea = p1Data?.slicks?.[0]?.areaKm2 ?? 4.82;
-
-  const evidenceItems: EvidenceItem[] = [
-    { label: "SAR Scene ID", value: sceneId, verified: true },
-    { label: "Detection Time", value: acqTime, verified: true },
-    { label: "Slick Area", value: `${slickArea} km² (vectorized polygon)`, verified: true },
-    { label: "Backscatter σ°", value: "-18.6 dB (VV polarization)", verified: true },
-    { label: "Physical Filter", value: "Gate A (Wind) + Gate B (Damping) + Gate C (Shape) Passed", verified: true },
-    { label: "AIS Gap Record", value: isNullResult ? "None — All vessels maintained continuous broadcast" : "MMSI 419000101 · 2026-05-14 18:30–21:54Z · 3.4h", verified: true },
-    { label: "Corridor Match", value: `H3 resolution ${caseMeta?.h3_resolution || 7} · Lagrangian particle backtracking`, verified: true },
-    {
-      label: "Attribution Score",
-      value: isNullResult
-        ? "0.0% — Judicial Restraint (No candidate identified)"
-        : `${((primary?.overallScore ?? 0.6572) * 100).toFixed(1)}% (Explainable Linear Model)`,
-      verified: true,
-    },
-    { label: "Jurisdiction", value: "IMO MARPOL 73/78 Annex I · Arabian Sea PSSA", verified: true },
-    { label: "SHA-256 Seal", value: `${realHash.slice(0, 32)}…`, verified: true },
-  ];
-
-  // Reveal evidence items progressively
-  const visibleCount = Math.min(evidenceItems.length, Math.floor(elapsed / 500));
-
-  // Hash appears after all items (5000ms)
-  const showHash = elapsed > 5000;
-
-  // Export button active after 6000ms
-  const showExport = elapsed > 6000;
-
-  function handleExport() {
-    // Direct browser download / display of official ReportLab legal PDF dossier
-    const pdfUrl = getCaseFilePdfUrl();
-    const a = document.createElement("a");
-    a.href = pdfUrl;
-    a.download = "case_file_report.pdf";
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
+  const handleDownload = () => {
+    window.open(`/api/case-file?scenario=${state.scenario}`, '_blank');
+  };
 
   return (
     <div
       style={{
-        position: "absolute",
-        top: 52,
-        right: 0,
-        bottom: 0,
-        zIndex: 25,
-        width: 380,
-        background: "#080B0F",
-        borderLeft: "1px solid #1C2A38",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
+        position: 'absolute',
+        inset: 0,
+        backgroundColor: 'rgba(5, 8, 14, 0.96)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50,
+        animation: 'fadeIn 0.5s ease',
       }}
     >
-      {/* Panel header */}
-      <div
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid #1C2A38",
-          background: "#0D1117",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
-                fontWeight: 700,
-                color: "#22D3EE",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-              }}
-            >
-              FORENSIC DOSSIER
-            </div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#3A5268",
-                marginTop: 2,
-              }}
-            >
-              INC-2026-MUM-001  ·  {new Date().toLocaleDateString("en-GB")}
-            </div>
-          </div>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8,
-              padding: "3px 8px",
-              border: "1px solid #22D3EE30",
-              color: "#22D3EE",
-              background: "#22D3EE08",
-            }}
-          >
-            FINALIZED
-          </div>
-        </div>
-      </div>
+      <div style={{ width: 440 }}>
+        {showHeader && (
+          <Panel className="panel-slide-in">
+            <PanelHeader
+              label="EVIDENCE DOSSIER COMPILED"
+              color={T.sky}
+              sub={caseId}
+              right={<CheckCircle2 size={16} color={T.sky} />}
+            />
 
-      {/* Generating animation header */}
-      <div
-        style={{
-          padding: "8px 14px",
-          borderBottom: "1px solid #1C2A38",
-          background: "#0A0E14",
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-          }}
-        >
-          <span style={{ color: "#5A7A94" }}>
-            COMPILING EVIDENCE MATRIX —{" "}
-            <span style={{ color: "#22D3EE" }}>{visibleCount} / {evidenceItems.length}</span>
-          </span>
-          <span style={{ color: "#22D3EE" }}>
-            {Math.round((visibleCount / evidenceItems.length) * 100)}%
-          </span>
-        </div>
-        <div style={{ height: 2, background: "#1C2A38", marginTop: 6 }}>
-          <div
-            style={{
-              height: "100%",
-              background: "#22D3EE",
-              width: `${(visibleCount / evidenceItems.length) * 100}%`,
-              transition: "width 0.4s ease",
-            }}
-          />
-        </div>
-      </div>
+            <div style={{ padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <div>
+                  <SectionLabel>Mission Outcome</SectionLabel>
+                  <div style={{ marginTop: 4 }}>
+                    {isNullResult ? (
+                      <StatusBadge status="null" label="NULL RESULT — NO CULPRIT" />
+                    ) : (
+                      <StatusBadge status="confirmed" label="SUCCESS — SUSPECT IDENTIFIED" />
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <SectionLabel>Timestamp</SectionLabel>
+                  <div style={{ fontFamily: T.fontMono, fontSize: 11, color: T.bodyText, marginTop: 4 }}>
+                    {generatedAt}
+                  </div>
+                </div>
+              </div>
 
-      {/* Evidence items */}
-      <div
-        style={{ flex: 1, overflowY: "auto", padding: "8px 14px" }}
-        className="custom-scrollbar"
-      >
-        {evidenceItems.slice(0, visibleCount).map((item, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              padding: "6px 0",
-              borderBottom: "1px solid #111822",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 9,
-                  color: "#5A7A94",
-                }}
-              >
-                {item.label}
-              </span>
-              {item.verified && (
-                <span
+              <SectionLabel>Cryptographic Signature</SectionLabel>
+              <div style={{ backgroundColor: T.bgElevated, border: `1px solid ${T.border}`, borderRadius: 2, padding: '10px', marginBottom: 20 }}>
+                {showHash ? (
+                  <>
+                    <div style={{ fontFamily: T.fontSans, fontSize: 10, color: T.midText, marginBottom: 4 }}>SHA-256 Input Data Hash</div>
+                    <div style={{ fontFamily: T.fontMono, fontSize: 10, color: T.brightText, wordBreak: 'break-all', lineHeight: 1.4 }}>
+                      {hash}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontFamily: T.fontMono, fontSize: 10, color: T.dimText, animation: 'pulse-ring-inner 1s infinite' }}>
+                    Computing cryptographic seal...
+                  </div>
+                )}
+              </div>
+
+              <SectionLabel>Dossier Contents</SectionLabel>
+              <div style={{ backgroundColor: 'rgba(56,189,248,0.02)', border: '1px solid rgba(56,189,248,0.15)', borderRadius: 2, padding: '4px 0' }}>
+                <DataRow label="SAR Image Scene" value={sceneId.slice(0, 24) + '...'} />
+                <DataRow label="Spatial H3 Resolution" value={`Res-${resolution}`} />
+                <DataRow label="Judicial Admissibility" value="Verified" valueColor={T.sky} borderBottom={false} />
+              </div>
+
+              {showAction && (
+                <button
+                  onClick={handleDownload}
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 7,
-                    color: "#22D3EE",
-                    border: "1px solid #22D3EE20",
-                    padding: "1px 4px",
+                    width: '100%',
+                    marginTop: 20,
+                    padding: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: T.sky,
+                    color: T.bgBase,
+                    border: 'none',
+                    borderRadius: 2,
+                    fontFamily: T.fontSans,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s',
                   }}
+                  onMouseOver={(e) => (e.currentTarget.style.opacity = '0.9')}
+                  onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
                 >
-                  ✓ VERIFIED
-                </span>
+                  <Download size={16} />
+                  Download PDF Report
+                </button>
               )}
             </div>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#C8D8E8",
-                marginTop: 2,
-                wordBreak: "break-all",
-              }}
-            >
-              {item.value}
-            </span>
-          </div>
-        ))}
+          </Panel>
+        )}
 
-        {/* Hash integrity block */}
-        {showHash && (
-          <div
-            style={{
-              marginTop: 10,
-              padding: "10px",
-              border: "1px solid #22D3EE20",
-              background: "#22D3EE06",
-            }}
-          >
-            <div
+        {showAction && (
+          <div style={{ marginTop: 20, textAlign: 'center' }}>
+            <button
+              onClick={() => window.location.reload()}
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#22D3EE",
-                marginBottom: 4,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                background: 'transparent',
+                border: `1px solid ${T.border}`,
+                color: T.midText,
+                padding: '8px 16px',
+                borderRadius: 2,
+                fontFamily: T.fontMono,
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
               }}
+              onMouseOver={(e) => { e.currentTarget.style.color = T.brightText; e.currentTarget.style.borderColor = T.midText; }}
+              onMouseOut={(e) => { e.currentTarget.style.color = T.midText; e.currentTarget.style.borderColor = T.border; }}
             >
-              EVIDENCE INTEGRITY SEAL
-            </div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#5A7A94",
-                wordBreak: "break-all",
-                lineHeight: 1.6,
-              }}
-            >
-              SHA-256:
-              <br />
-              <span style={{ color: "#C8D8E8" }}>{realHash}</span>
-            </div>
+              <Search size={12} />
+              Analyze Another Incident
+            </button>
           </div>
         )}
       </div>
-
-      {/* Export footer */}
-      {showExport && (
-        <div
-          style={{
-            padding: "12px 14px",
-            borderTop: "1px solid #1C2A38",
-            background: "#0D1117",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleExport}
-            style={{
-              width: "100%",
-              padding: "11px",
-              background: "#111822",
-              border: "1px solid #22D3EE",
-              color: "#22D3EE",
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#22D3EE10";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#111822";
-            }}
-          >
-            <span style={{ fontSize: 14 }}>↓</span>
-            EXPORT FORENSIC REPORT
-          </button>
-          <div
-            style={{
-              marginTop: 6,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8,
-              color: "#3A5268",
-              textAlign: "center",
-            }}
-          >
-            Ready for Indian Coast Guard  ·  DG Shipping  ·  ITOPF
-          </div>
-        </div>
-      )}
     </div>
   );
 }

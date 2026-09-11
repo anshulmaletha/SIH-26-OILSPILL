@@ -1,19 +1,7 @@
 import React, { useEffect } from "react";
-import {
-  X,
-  Navigation,
-  Compass,
-  Gauge,
-  MapPin,
-  Clock,
-  Radio,
-  AlertTriangle,
-  Anchor,
-  Flag,
-  Ship,
-  Info,
-} from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import type { SwarmVessel } from "@/lib/mission/swarmData";
+import { Panel, PanelHeader, DataRow, SectionLabel, T } from "@/components/ui/PanelKit";
 
 export interface VesselInfoPanelProps {
   vessel: SwarmVessel | null;
@@ -23,9 +11,7 @@ export interface VesselInfoPanelProps {
 export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClose }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -44,287 +30,140 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
   const beamMeters = vessel.beamMeters ?? (isDark ? 28 : 32);
   const draughtMeters = vessel.draughtMeters ?? (isDark ? 9.8 : 10.5);
 
+  const statusTitle = vessel.mmsi === "419000101"
+    ? "PRIMARY ATTRIBUTED CULPRIT"
+    : vessel.isDarkVessel
+      ? "SAR RADAR CONTACT (DARK VESSEL)"
+      : vessel.mmsi === "419000202"
+        ? "CLEARED CONTROL VESSEL"
+        : "SIMULATED CORRIDOR TRAFFIC";
+
+  const accentColor = isDark ? T.red : T.sky;
+
   return (
     <div
-      className="animate-in fade-in zoom-in-95 duration-200"
+      className="panel-slide-in"
       style={{
         position: "absolute",
-        top: "76px",
-        right: "14px",
+        top: 76,
+        right: 14,
         zIndex: 30,
-        width: "320px",
-        backgroundColor: "#0D1117",
-        border: `1px solid ${isDark ? "#EF4444" : "#1C2A38"}`,
-        borderTop: `3px solid ${isDark ? "#EF4444" : "#22D3EE"}`,
-        borderRadius: "4px",
-        boxShadow: isDark
-          ? "0 8px 32px rgba(239, 68, 68, 0.25), 0 2px 10px rgba(0,0,0,0.8)"
-          : "0 8px 32px rgba(0,0,0,0.7)",
-        overflow: "hidden",
-        fontFamily: "'JetBrains Mono', monospace",
-        color: "#C8D8E8",
+        width: 335,
         pointerEvents: "auto",
       }}
     >
-      {/* ── Header ── */}
-      <div
-        style={{
-          padding: "10px 12px",
-          borderBottom: "1px solid #1C2A38",
-          backgroundColor: isDark ? "rgba(239, 68, 68, 0.08)" : "rgba(34, 211, 238, 0.04)",
+      <Panel accentColor={accentColor}>
+        {/* Header */}
+        <div style={{
+          padding: "10px 14px",
+          borderBottom: `1px solid ${T.border}`,
+          backgroundColor: isDark ? "rgba(239, 68, 68, 0.08)" : T.bgHeader,
           display: "flex",
-          alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: "8px",
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                backgroundColor: isDark ? "#EF4444" : "#22D3EE",
-                boxShadow: isDark ? "0 0 8px #EF4444" : "0 0 8px #22D3EE",
-                flexShrink: 0,
-              }}
-            />
-            <span
-              style={{
-                fontSize: "9px",
-                fontWeight: 700,
-                color: isDark ? "#EF4444" : "#22D3EE",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
-              {vessel.mmsi === "419000101"
-                ? "⚠ PRIMARY ATTRIBUTED CULPRIT"
-                : vessel.isDarkVessel
-                  ? "⚠ SAR RADAR CONTACT (DARK VESSEL)"
-                  : vessel.mmsi === "419000202"
-                    ? "✓ CLEARED CONTROL VESSEL"
-                    : "SIMULATED CORRIDOR TRAFFIC"}
+          alignItems: "flex-start"
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', backgroundColor: accentColor,
+                boxShadow: `0 0 8px ${accentColor}`,
+              }} />
+              <span style={{
+                fontFamily: T.fontMono, fontSize: 10, fontWeight: 700, color: accentColor,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                {statusTitle}
+              </span>
+            </div>
+            <div style={{ fontFamily: T.fontSans, fontSize: 14, fontWeight: 700, color: T.brightText, marginBottom: 2 }}>
+              {vessel.name}
+            </div>
+            <div style={{ fontFamily: T.fontMono, fontSize: 10, color: T.midText }}>
+              {vessel.typeLabel} · {vessel.flag}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent', border: 'none', color: T.midText,
+              cursor: 'pointer', padding: 4, display: 'flex'
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Anomaly Banner */}
+        {isDark && vessel.suspiciousReason && (
+          <div style={{ padding: '10px 14px 0 14px' }}>
+            <div style={{
+              backgroundColor: "rgba(239, 68, 68, 0.12)",
+              border: "1px solid rgba(239, 68, 68, 0.35)",
+              borderRadius: 2, padding: "8px 10px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, color: T.red, fontFamily: T.fontMono, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+                <AlertTriangle size={12} />
+                {vessel.threatTag || "ANOMALY DETECTED"}
+              </div>
+              <div style={{ fontFamily: T.fontSans, fontSize: 11, color: "#FCA5A5", lineHeight: 1.4 }}>
+                {vessel.suspiciousReason}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: "12px 14px" }}>
+          {/* Position & Movement */}
+          <SectionLabel>Live Telemetry</SectionLabel>
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16
+          }}>
+            <div style={{ backgroundColor: T.bgElevated, border: `1px solid ${T.border}`, padding: '8px', borderRadius: 2 }}>
+              <div style={{ fontFamily: T.fontSans, fontSize: 10, color: T.midText, marginBottom: 2 }}>Coordinates</div>
+              <div style={{ fontFamily: T.fontMono, fontSize: 12, color: T.brightText, fontWeight: 600 }}>
+                {lat.toFixed(4)}°N <span style={{ color: T.dimText }}>/</span> {lng.toFixed(4)}°E
+              </div>
+            </div>
+            <div style={{ backgroundColor: T.bgElevated, border: `1px solid ${T.border}`, padding: '8px', borderRadius: 2 }}>
+              <div style={{ fontFamily: T.fontSans, fontSize: 10, color: T.midText, marginBottom: 2 }}>Kinematics</div>
+              <div style={{ fontFamily: T.fontMono, fontSize: 12, color: accentColor, fontWeight: 600 }}>
+                {speed.toFixed(1)}kts <span style={{ color: T.dimText }}>@</span> {heading}°
+              </div>
+            </div>
+          </div>
+
+          {/* Identification */}
+          <SectionLabel>Voyage & Identification</SectionLabel>
+          <div style={{ backgroundColor: 'rgba(56,189,248,0.02)', border: `1px solid ${T.border}`, borderRadius: 2, padding: '4px 0' }}>
+            <DataRow label="MMSI" value={vessel.mmsi || "N/A"} />
+            <DataRow label="Call Sign" value={vessel.callsign || "UNKNOWN"} />
+            <DataRow label="Status" value={vessel.navStatus || (isDark ? "AIS Blackout" : "Underway")} valueColor={accentColor} />
+            <DataRow label="Destination" value={vessel.destination || "UNREPORTED"} />
+            <DataRow label="Last Signal" value={vessel.lastSeen || "06:00:00 UTC"} />
+            <DataRow label="Dimensions" value={`${lengthMeters}m × ${beamMeters}m`} borderBottom={false} />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: "8px 14px",
+          backgroundColor: T.bgHeader,
+          borderTop: `1px solid ${T.border}`,
+          display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: T.sky }} />
+            <span style={{ fontFamily: T.fontMono, fontSize: 10, color: T.sky, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Trajectory Active
             </span>
           </div>
-
-          <h3
-            style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#FFFFFF",
-              margin: 0,
-              lineHeight: 1.2,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-            title={vessel.name}
-          >
-            {vessel.name}
-          </h3>
-
-          <div style={{ fontSize: "9px", color: "#5A7A94", marginTop: "2px" }}>
-            {vessel.typeLabel} • {vessel.flag}
+          <div style={{ fontFamily: T.fontMono, fontSize: 10, color: T.midText }}>
+            {vessel.mmsi === "419000101" || vessel.mmsi === "419000202" ? "289 Waypoints" : `${vessel.trajectory?.length || 4} Waypoints`}
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "#5A7A94",
-            cursor: "pointer",
-            padding: "2px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "2px",
-          }}
-          title="Close panel"
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* ── Anomaly Banner (if dark or high-suspicion) ── */}
-      {isDark && vessel.suspiciousReason && (
-        <div
-          style={{
-            margin: "8px 10px 0 10px",
-            padding: "8px",
-            backgroundColor: "rgba(239, 68, 68, 0.12)",
-            border: "1px solid rgba(239, 68, 68, 0.35)",
-            borderRadius: "3px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#EF4444", fontSize: "9px", fontWeight: 700, marginBottom: "3px" }}>
-            <AlertTriangle size={11} />
-            <span>{vessel.threatTag || "ANOMALY DETECTED"}</span>
-          </div>
-          <div style={{ fontSize: "8.5px", color: "#FCA5A5", lineHeight: 1.35 }}>
-            {vessel.suspiciousReason}
-          </div>
-        </div>
-      )}
-
-      {/* ── Body ── */}
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        {/* Position Grid */}
-        <div>
-          <div style={{ fontSize: "8px", color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
-            LIVE POSITION
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "6px",
-              backgroundColor: "#111822",
-              padding: "6px 8px",
-              borderRadius: "3px",
-              border: "1px solid #1C2A38",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>LATITUDE</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#FFFFFF" }}>
-                {lat.toFixed(4)}° N
-              </span>
-            </div>
-            <div>
-              <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>LONGITUDE</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#FFFFFF" }}>
-                {lng.toFixed(4)}° E
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Movement / Speed / Heading */}
-        <div>
-          <div style={{ fontSize: "8px", color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
-            NAVIGATION & DYNAMICS
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "6px",
-              backgroundColor: "#111822",
-              padding: "6px 8px",
-              borderRadius: "3px",
-              border: "1px solid #1C2A38",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>SPEED (SOG)</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: isDark ? "#EF4444" : "#22D3EE" }}>
-                {speed.toFixed(1)} kn
-              </span>
-            </div>
-            <div>
-              <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>COURSE (COG)</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#C8D8E8" }}>
-                {course}°
-              </span>
-            </div>
-            <div>
-              <span style={{ fontSize: "7.5px", color: "#5A7A94", display: "block" }}>HEADING</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#C8D8E8" }}>
-                {heading}°
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Telemetry / Identity Breakdown */}
-        <div>
-          <div style={{ fontSize: "8px", color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
-            VOYAGE & IDENTIFICATION
-          </div>
-          <div
-            style={{
-              backgroundColor: "#111822",
-              padding: "6px 8px",
-              borderRadius: "3px",
-              border: "1px solid #1C2A38",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              fontSize: "9px",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>MMSI:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.mmsi || "N/A"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>CALL SIGN:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.callsign || "UNKNOWN"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>STATUS:</span>
-              <span style={{ color: isDark ? "#EF4444" : "#22D3EE", fontWeight: 600 }}>
-                {vessel.navStatus || (isDark ? "AIS Blackout" : "Underway")}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>DESTINATION:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600, maxWidth: "160px", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {vessel.destination || "UNREPORTED"}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>LAST SIGNAL:</span>
-              <span style={{ color: "#C8D8E8" }}>{vessel.lastSeen || "06:00:00 UTC"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>DIMENSIONS:</span>
-              <span style={{ color: "#C8D8E8" }}>
-                {lengthMeters}m × {beamMeters}m (d: {draughtMeters}m)
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Trajectory Status Bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "5px 8px",
-            backgroundColor: "rgba(34, 211, 238, 0.04)",
-            border: "1px dashed #1C2A38",
-            borderRadius: "3px",
-            fontSize: "8px",
-            color: "#22D3EE",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span
-              style={{
-                width: "4px",
-                height: "4px",
-                borderRadius: "50%",
-                backgroundColor: "#22D3EE",
-                display: "inline-block",
-              }}
-            />
-            <span>HISTORICAL TRAJECTORY ACTIVE</span>
-          </div>
-          <span style={{ color: "#5A7A94" }}>
-            {vessel.mmsi === "419000101" || vessel.mmsi === "419000202"
-              ? "289 AIS WAYPOINTS (5-MIN EPOCHS)"
-              : `${vessel.trajectory?.length || 4} WAYPOINTS`}
-          </span>
-        </div>
-      </div>
+      </Panel>
     </div>
   );
 };
+
+export default VesselInfoPanel;

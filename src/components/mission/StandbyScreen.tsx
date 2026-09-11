@@ -1,97 +1,89 @@
-import React, { useState } from "react";
-import { useMission } from "@/lib/mission/missionState";
-
-// Inject keyframes once
-const PULSE_KEYFRAMES = `
-@keyframes standby-dot-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
-}
-`;
-
-if (typeof document !== "undefined") {
-  const id = "__standby-pulse-kf__";
-  if (!document.getElementById(id)) {
-    const style = document.createElement("style");
-    style.id = id;
-    style.textContent = PULSE_KEYFRAMES;
-    document.head.appendChild(style);
-  }
-}
+import React, { useState } from 'react';
+import { useMission } from '@/lib/mission/missionState';
+import { T } from '@/components/ui/PanelKit';
 
 export const StandbyScreen: React.FC = () => {
   const { state, dispatch } = useMission();
-  const isStandby = state.currentStage === "STANDBY";
-
+  const isStandby = state.currentStage === 'STANDBY';
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
       style={{
-        position: "fixed",
+        position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        backgroundColor: "rgba(5, 7, 10, 0.92)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
+        backgroundColor: 'rgba(5, 8, 14, 0.96)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         opacity: isStandby ? 1 : 0,
-        pointerEvents: isStandby ? "auto" : "none",
-        transition: "opacity 0.5s ease",
+        pointerEvents: isStandby ? 'auto' : 'none',
+        transition: 'opacity 0.5s ease',
+        backgroundImage: 'radial-gradient(circle, rgba(56,189,248,0.04) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
       }}
     >
       {/* Top label */}
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           top: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
-          color: "#22D3EE",
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontFamily: T.fontMono,
+          fontSize: 11,
+          color: T.sky,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
+          opacity: 0.7,
         }}
       >
         SIH 26143 — MARITIME INTELLIGENCE PLATFORM
       </div>
 
-      {/* Center content */}
+      {/* Center card */}
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '40px 52px',
+          backgroundColor: 'rgba(12, 18, 32, 0.88)',
+          border: `1px solid ${T.border}`,
+          borderRadius: 3,
+          maxWidth: 520,
+          width: '90%',
         }}
       >
         {/* Incident badge */}
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: T.fontMono,
             fontSize: 11,
-            color: "#5A7A94",
-            border: "1px solid #1C2A38",
-            padding: "4px 10px",
+            color: T.midText,
+            border: `1px solid ${T.border}`,
+            padding: '4px 12px',
             borderRadius: 2,
-            letterSpacing: "0.08em",
+            letterSpacing: '0.08em',
+            marginBottom: 16,
           }}
         >
           INC-2026-MUM-001
         </div>
 
-        {/* Incident title */}
+        {/* Title */}
         <div
           style={{
-            fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            fontSize: 28,
+            fontFamily: `'Space Grotesk', 'Inter', sans-serif`,
+            fontSize: 26,
             fontWeight: 300,
-            color: "#E2E8F0",
-            letterSpacing: "-0.02em",
-            marginTop: 12,
-            textAlign: "center",
+            color: T.brightText,
+            letterSpacing: '-0.02em',
+            textAlign: 'center',
+            marginBottom: 10,
           }}
         >
           MUMBAI OFFSHORE CORRIDOR
@@ -100,117 +92,100 @@ export const StandbyScreen: React.FC = () => {
         {/* Subtitle */}
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: "#3A5268",
-            marginTop: 10,
-            textAlign: "center",
-            letterSpacing: "0.02em",
+            fontFamily: T.fontSans,
+            fontSize: 12,
+            color: T.midText,
+            textAlign: 'center',
+            lineHeight: 1.5,
+            marginBottom: 8,
           }}
         >
-          Sentinel-1A SAR Detection&nbsp; ·&nbsp; OpenDrift Backtrack&nbsp; ·&nbsp; AIS Attribution&nbsp; ·&nbsp; Containment Ops
+          Sentinel-1A SAR Detection · OpenDrift Backtrack · AIS Attribution · Containment Ops
         </div>
 
         {/* Coordinates */}
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: T.fontMono,
             fontSize: 11,
-            color: "#22D3EE",
-            marginTop: 8,
-            letterSpacing: "0.04em",
+            color: T.sky,
+            letterSpacing: '0.04em',
+            marginBottom: 28,
           }}
         >
-          Lat 19.35°N&nbsp;&nbsp;|&nbsp;&nbsp;Lon 71.85°E&nbsp;&nbsp;|&nbsp;&nbsp;Area 14.2 km²
+          19.35°N · 71.85°E · Area ~4.82 km²
         </div>
 
         {/* Divider */}
-        <div
-          style={{
-            width: 320,
-            height: 1,
-            backgroundColor: "#1C2A38",
-            margin: "24px 0",
-          }}
-        />
+        <div style={{ width: '100%', height: 1, backgroundColor: T.border, marginBottom: 28 }} />
 
-        {/* Start button */}
+        {/* CTA button */}
         <button
-          onClick={() => dispatch({ type: "INITIATE" })}
+          onClick={() => dispatch({ type: 'INITIATE' })}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            background: hovered ? "rgba(34,211,238,0.063)" : "#111822",
-            border: "1px solid #22D3EE",
-            color: "#22D3EE",
-            fontFamily: "'JetBrains Mono', monospace",
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            background: hovered ? 'rgba(56,189,248,0.08)' : T.bgElevated,
+            border: `1px solid ${T.sky}`,
+            color: T.sky,
+            fontFamily: T.fontMono,
             fontSize: 13,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            padding: "14px 32px",
-            cursor: "pointer",
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            padding: '14px 28px',
+            cursor: 'pointer',
             borderRadius: 2,
-            transition: "background 0.2s ease",
-            outline: "none",
+            transition: 'background 0.2s ease',
+            outline: 'none',
           }}
         >
-          {/* Pulsing cyan dot */}
-          <span
-            style={{
-              display: "inline-block",
-              width: 5,
-              height: 5,
-              borderRadius: "50%",
-              backgroundColor: "#22D3EE",
-              flexShrink: 0,
-              animation: "standby-dot-pulse 1.4s ease-in-out infinite",
-            }}
-          />
-          [ INITIATE SAR MISSION ANALYSIS ]
+          INITIATE SAR MISSION ANALYSIS
         </button>
       </div>
 
-      {/* Bottom left: version */}
+      {/* Bottom left */}
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           bottom: 18,
           left: 20,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 9,
-          color: "#3A5268",
-          letterSpacing: "0.06em",
+          fontFamily: T.fontMono,
+          fontSize: 10,
+          color: T.dimText,
+          letterSpacing: '0.06em',
         }}
       >
-        PyTorch U-Net · OpenDrift Physics · Explainable Attribution Engine
+        PyTorch U-Net · OpenDrift Physics · Explainable Attribution
       </div>
 
-      {/* Bottom right: ready status */}
+      {/* Bottom right */}
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           bottom: 18,
           right: 20,
-          display: "flex",
-          alignItems: "center",
+          display: 'flex',
+          alignItems: 'center',
           gap: 6,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 9,
-          color: "#5A7A94",
-          letterSpacing: "0.08em",
+          fontFamily: T.fontMono,
+          fontSize: 10,
+          color: T.midText,
+          letterSpacing: '0.08em',
         }}
       >
         <span
           style={{
             width: 6,
             height: 6,
-            borderRadius: "50%",
-            backgroundColor: "#22D3EE",
-            display: "inline-block",
-            animation: "standby-dot-pulse 2s ease-in-out infinite",
+            borderRadius: '50%',
+            backgroundColor: T.sky,
+            display: 'inline-block',
+            animation: 'standby-dot-pulse 2s ease-in-out infinite',
           }}
         />
         READY FOR MISSION

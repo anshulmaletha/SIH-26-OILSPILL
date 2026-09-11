@@ -1,7 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { LAYER_META, type LayerId, TRACK_COLOR_OPTIONS } from "@/lib/map/config";
 import type { VesselTrack } from "@/lib/contracts/p5";
 import { MapLegend } from "./MapLegend";
+import { Panel, PanelHeader, T } from "@/components/ui/PanelKit";
 
 const LAYER_TYPE_LABELS: Record<LayerId, string> = {
   "sar-raster":    "SAR",
@@ -24,46 +25,6 @@ export interface LayerPanelProps {
   onToggleFollowTrack?: ((enabled: boolean) => void) | undefined;
 }
 
-// ── Shared flat panel styles ───────────────────────────────────────────────────
-const panelStyle: React.CSSProperties = {
-  width: 220,
-  background: "#0D1117",
-  border: "1px solid #1C2A38",
-  borderRadius: "2px",
-  color: "#C8D8E8",
-  overflow: "hidden",
-  fontFamily: "'Inter', 'Space Grotesk', sans-serif",
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "6px 10px",
-  background: "#0A0E14",
-  borderBottom: "1px solid #1C2A38",
-};
-
-const sectionLabelStyle: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono', monospace",
-  fontSize: "8px",
-  color: "#3A5268",
-  textTransform: "uppercase" as const,
-  letterSpacing: "0.12em",
-  fontWeight: 700,
-};
-
-const collapseButtonStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  color: "#3A5268",
-  padding: "0 2px",
-  fontSize: "10px",
-  lineHeight: 1,
-};
-
-// ── 1. Layer Controls Card ─────────────────────────────────────────────────────
 export function LayerControlsCard({
   visibility,
   onToggle,
@@ -78,381 +39,203 @@ export function LayerControlsCard({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div style={panelStyle}>
-      <div style={headerStyle}>
-        <span style={sectionLabelStyle}>Layer Controls</span>
-        <button
-          type="button"
-          style={collapseButtonStyle}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? "▼" : "▲"}
-        </button>
-      </div>
-
-      {/* Body — smooth fade/slide transition */}
-      <div
-        style={{
-          maxHeight: isCollapsed ? 0 : 400,
-          overflow: "hidden",
-          opacity: isCollapsed ? 0 : 1,
-          transition: "max-height 220ms ease, opacity 180ms ease",
-        }}
-      >
-        <div style={{ padding: "8px 10px" }}>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {LAYER_META.map((meta) => {
-              const active = visibility[meta.id];
-              return (
-                <li key={meta.id} style={{ marginBottom: 4 }}>
-                  <button
-                    type="button"
-                    onClick={() => onToggle(meta.id)}
-                    aria-pressed={active}
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "5px 6px",
-                      background: active ? "#111822" : "transparent",
-                      border: `1px solid ${active ? "#1C2A38" : "transparent"}`,
-                      borderRadius: "2px",
-                      cursor: "pointer",
-                      opacity: active ? 1 : 0.45,
-                      transition: "opacity 200ms ease, background 200ms ease",
-                      textAlign: "left",
-                    }}
-                  >
-                    {/* Color dot */}
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        background: meta.color,
-                        flexShrink: 0,
-                        borderRadius: 0,
-                      }}
-                    />
-                    {/* Label */}
-                    <span
-                      style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: "11px",
-                        color: "#C8D8E8",
-                        flex: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {meta.label}
-                    </span>
-                    {/* Type tag */}
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: "7.5px",
-                        color: active ? "#22D3EE" : "#3A5268",
-                        letterSpacing: "0.06em",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {LAYER_TYPE_LABELS[meta.id]}
-                    </span>
-                    {/* Square checkbox-style toggle */}
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        border: `1px solid ${active ? "#22D3EE" : "#1C2A38"}`,
-                        background: active ? "#22D3EE22" : "transparent",
-                        flexShrink: 0,
-                        borderRadius: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background 200ms ease, border-color 200ms ease",
-                      }}
-                    >
-                      {active && (
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            background: "#22D3EE",
-                            borderRadius: 0,
-                          }}
-                        />
-                      )}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* SAR opacity slider */}
+    <Panel style={{ width: 260, marginBottom: 12 }}>
+      <PanelHeader
+        label="Map Layers"
+        color={T.dimText}
+        compact
+        right={
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{ background: 'none', border: 'none', color: T.dimText, cursor: 'pointer', fontSize: 10 }}
+          >
+            {isCollapsed ? "▼" : "▲"}
+          </button>
+        }
+      />
+      
+      {!isCollapsed && (
+        <div style={{ padding: "10px 14px", animation: "fadeIn 0.2s ease" }}>
+          {LAYER_META.map((meta) => {
+            const active = visibility[meta.id];
+            const metaColor = meta.color === '#22D3EE' ? T.sky : meta.color;
+            
+            return (
+              <div key={meta.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: metaColor, flexShrink: 0 }} />
+                  <span style={{ fontFamily: T.fontSans, fontSize: 12, color: active ? T.brightText : T.dimText, transition: "color 0.2s" }}>
+                    {meta.label}
+                  </span>
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontFamily: T.fontMono, fontSize: 9, color: active ? T.sky : T.dimText, textTransform: "uppercase" }}>
+                    {LAYER_TYPE_LABELS[meta.id]}
+                  </span>
+                  
+                  <label className="toggle-switch">
+                    <input type="checkbox" checked={active} onChange={() => onToggle(meta.id)} />
+                    <span className="toggle-track" />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+          
           {visibility["sar-raster"] && onChangeSarOpacity && (
-            <div
-              style={{
-                marginTop: 8,
-                padding: "7px 6px",
-                border: "1px solid #1C2A38",
-                borderRadius: "2px",
-                background: "#0A0E14",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 5,
-                }}
-              >
-                <span style={{ ...sectionLabelStyle, color: "#5A7A94" }}>SAR Opacity</span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "9px",
-                    color: "#22D3EE",
-                  }}
-                >
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontFamily: T.fontSans, fontSize: 11, color: T.midText }}>SAR Opacity</span>
+                <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.sky }}>
                   {Math.round(sarOpacity * 100)}%
                 </span>
               </div>
               <input
                 type="range"
                 className="scrubber"
-                min={10}
-                max={100}
-                step={5}
-                value={Math.round(sarOpacity * 100)}
-                style={{
-                  "--range-fill": `${Math.round(sarOpacity * 100)}%`,
-                } as React.CSSProperties}
-                onChange={(e) => onChangeSarOpacity(Number(e.target.value) / 100)}
+                min={0} max={1} step={0.05}
+                value={sarOpacity}
+                onChange={(e) => onChangeSarOpacity(parseFloat(e.target.value))}
+                style={{ "--range-fill": `${sarOpacity * 100}%` } as any}
               />
             </div>
           )}
         </div>
-      </div>
-    </div>
+      )}
+    </Panel>
   );
 }
 
-// ── 2. Track Selection Card ────────────────────────────────────────────────────
-export function TrackSelectionCard({
+export function VesselSelectionCard({
   vessels = [],
-  selectedTrackId = "all",
+  selectedTrackId,
   onSelectTrackId,
-  selectedTrackColorId = "cyan",
+  selectedTrackColorId,
   onSelectTrackColorId,
-  followTrack = false,
+  followTrack,
   onToggleFollowTrack,
 }: {
-  vessels?: VesselTrack[] | undefined;
-  selectedTrackId?: string | undefined;
-  onSelectTrackId?: ((id: string) => void) | undefined;
-  selectedTrackColorId?: string | undefined;
-  onSelectTrackColorId?: ((colorId: string) => void) | undefined;
-  followTrack?: boolean | undefined;
-  onToggleFollowTrack?: ((enabled: boolean) => void) | undefined;
+  vessels?: VesselTrack[];
+  selectedTrackId?: string;
+  onSelectTrackId?: (id: string) => void;
+  selectedTrackColorId?: string;
+  onSelectTrackColorId?: (colorId: string) => void;
+  followTrack?: boolean;
+  onToggleFollowTrack?: (enabled: boolean) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const aisVessels = vessels.filter((v) => !v.isDarkVessel);
+  if (!vessels.length) return null;
 
   return (
-    <div style={panelStyle}>
-      <div style={headerStyle}>
-        <span style={sectionLabelStyle}>Track Selection</span>
-        <button
-          type="button"
-          style={collapseButtonStyle}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? "▼" : "▲"}
-        </button>
-      </div>
+    <Panel style={{ width: 260, marginBottom: 12 }}>
+      <PanelHeader
+        label="Simulated Traffic"
+        color={T.dimText}
+        compact
+        right={
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{ background: 'none', border: 'none', color: T.dimText, cursor: 'pointer', fontSize: 10 }}
+          >
+            {isCollapsed ? "▼" : "▲"}
+          </button>
+        }
+      />
 
-      <div
-        style={{
-          maxHeight: isCollapsed ? 0 : 400,
-          overflow: "hidden",
-          opacity: isCollapsed ? 0 : 1,
-          transition: "max-height 220ms ease, opacity 180ms ease",
-        }}
-      >
-        <div style={{ padding: "8px 10px" }}>
-          {/* Vessel selector */}
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ ...sectionLabelStyle, color: "#5A7A94", marginBottom: 4 }}>
-              Active Path
-            </div>
-            <select
-              value={selectedTrackId}
-              onChange={(e) => onSelectTrackId?.(e.target.value)}
-              style={{
-                width: "100%",
-                background: "#0A0E14",
-                border: "1px solid #1C2A38",
-                borderRadius: "2px",
-                padding: "4px 6px",
-                fontSize: "11px",
-                fontFamily: "'Inter', sans-serif",
-                color: "#C8D8E8",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All Tracks ({aisVessels.length})</option>
-              {aisVessels.map((v) => (
-                <option key={v.vesselId} value={v.vesselId}>
-                  {v.vesselName}
-                </option>
+      {!isCollapsed && (
+        <div style={{ padding: "10px 14px", animation: "fadeIn 0.2s ease" }}>
+          <select
+            value={selectedTrackId ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (onSelectTrackId) onSelectTrackId(val === "" ? "" : val);
+            }}
+            style={{
+              width: "100%",
+              background: T.bgElevated,
+              border: `1px solid ${T.border}`,
+              color: T.brightText,
+              padding: "6px 8px",
+              fontFamily: T.fontSans,
+              fontSize: 11,
+              borderRadius: 2,
+              outline: "none",
+              marginBottom: 10,
+              cursor: "pointer",
+            }}
+          >
+            <option value="">-- ALL TARGETS --</option>
+            {vessels.map(v => (
+              <option key={v.id} value={v.id}>{v.name} ({v.typeLabel})</option>
+            ))}
+          </select>
+
+          {selectedTrackId && onSelectTrackColorId && TRACK_COLOR_OPTIONS && (
+            <div style={{ marginBottom: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {TRACK_COLOR_OPTIONS.map((tc) => (
+                <button
+                  key={tc.id}
+                  onClick={() => onSelectTrackColorId(tc.id)}
+                  style={{
+                    width: 14, height: 14, borderRadius: "50%",
+                    background: tc.color, border: "none", cursor: "pointer",
+                    boxShadow: selectedTrackColorId === tc.id ? `0 0 0 2px ${T.bgPanel}, 0 0 0 3px ${T.sky}` : "none",
+                  }}
+                  title={tc.label}
+                />
               ))}
-            </select>
-          </div>
-
-          {/* Path color picker — 4 cyan-family swatches */}
-          {onSelectTrackColorId && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ ...sectionLabelStyle, color: "#5A7A94", marginBottom: 5 }}>
-                Path Color
-              </div>
-              <div style={{ display: "flex", gap: 5 }}>
-                {TRACK_COLOR_OPTIONS.map((c) => {
-                  const isSelected = selectedTrackColorId === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => onSelectTrackColorId(c.id)}
-                      title={c.name}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        background: c.hex,
-                        border: isSelected ? "1.5px solid #E2E8F0" : "1px solid #1C2A38",
-                        borderRadius: 0,
-                        cursor: "pointer",
-                        padding: 0,
-                        outline: "none",
-                        opacity: isSelected ? 1 : 0.6,
-                        transition: "opacity 150ms, border-color 150ms",
-                      }}
-                    />
-                  );
-                })}
-              </div>
             </div>
           )}
 
-          {/* Follow track toggle */}
-          {onToggleFollowTrack && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingTop: 7,
-                borderTop: "1px solid #1C2A38",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: "11px",
-                    color: "#C8D8E8",
-                  }}
-                >
-                  Follow Track
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "8px",
-                    color: "#3A5268",
-                  }}
-                >
-                  Auto-center camera
-                </div>
-              </div>
-              {/* Square toggle */}
-              <button
-                type="button"
-                onClick={() => onToggleFollowTrack(!followTrack)}
-                style={{
-                  width: 28,
-                  height: 14,
-                  background: followTrack ? "#22D3EE22" : "transparent",
-                  border: `1px solid ${followTrack ? "#22D3EE" : "#1C2A38"}`,
-                  borderRadius: 0,
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "background 200ms, border-color 200ms",
-                  padding: 0,
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: followTrack ? 14 : 2,
-                    width: 8,
-                    height: 8,
-                    background: followTrack ? "#22D3EE" : "#3A5268",
-                    borderRadius: 0,
-                    transition: "left 200ms, background 200ms",
-                  }}
-                />
-              </button>
+          {selectedTrackId && onToggleFollowTrack && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontFamily: T.fontSans, fontSize: 11, color: T.midText }}>Lock Camera</span>
+              <label className="toggle-switch emerald">
+                <input type="checkbox" checked={followTrack ?? false} onChange={(e) => onToggleFollowTrack(e.target.checked)} />
+                <span className="toggle-track" />
+              </label>
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Combined Panel Stack ───────────────────────────────────────────────────────
-export function LayerPanel(props: LayerPanelProps) {
-  return (
-    <div
-      className="custom-scrollbar"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        maxHeight: "calc(100vh - 72px)",
-        overflowY: "auto",
-        paddingBottom: 16,
-        paddingRight: 2,
-      }}
-    >
-      <LayerControlsCard
-        visibility={props.visibility}
-        onToggle={props.onToggle}
-        sarOpacity={props.sarOpacity ?? 0.55}
-        onChangeSarOpacity={props.onChangeSarOpacity}
-      />
-
-      {props.visibility["ais-tracks"] && (
-        <TrackSelectionCard
-          vessels={props.vessels ?? []}
-          selectedTrackId={props.selectedTrackId ?? "all"}
-          onSelectTrackId={props.onSelectTrackId}
-          selectedTrackColorId={props.selectedTrackColorId ?? "cyan"}
-          onSelectTrackColorId={props.onSelectTrackColorId}
-          followTrack={props.followTrack ?? false}
-          onToggleFollowTrack={props.onToggleFollowTrack}
-        />
       )}
+    </Panel>
+  );
+}
 
-      <MapLegend visibility={props.visibility} />
+export function LayerPanel({
+  visibility,
+  onToggle,
+  sarOpacity,
+  onChangeSarOpacity,
+  vessels,
+  selectedTrackId,
+  onSelectTrackId,
+  selectedTrackColorId,
+  onSelectTrackColorId,
+  followTrack,
+  onToggleFollowTrack,
+}: LayerPanelProps) {
+  return (
+    <div style={{ position: "absolute", top: 80, left: 12, zIndex: 10, display: "flex", flexDirection: "column" }}>
+      <LayerControlsCard
+        visibility={visibility}
+        onToggle={onToggle}
+        sarOpacity={sarOpacity}
+        onChangeSarOpacity={onChangeSarOpacity}
+      />
+      <VesselSelectionCard
+        vessels={vessels}
+        selectedTrackId={selectedTrackId}
+        onSelectTrackId={onSelectTrackId}
+        selectedTrackColorId={selectedTrackColorId}
+        onSelectTrackColorId={onSelectTrackColorId}
+        followTrack={followTrack}
+        onToggleFollowTrack={onToggleFollowTrack}
+      />
+      <MapLegend />
     </div>
   );
 }
+
+export default LayerPanel;

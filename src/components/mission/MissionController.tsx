@@ -1,11 +1,9 @@
 /**
  * SIH 26143 — MissionController
  *
- * Master orchestrator for the 7-phase cinematic attribution experience.
- * - Wraps MapView (never unmounts it)
- * - Issues camera flyTo commands on stage transitions
- * - Renders phase-appropriate overlays on top of the map
- * - Manages layer opacity/visibility per stage
+ * Master orchestrator for the Maritime Intelligence Platform.
+ * Layout:
+ *   [NavySidebar (86px)] | [Map Viewport with Floating VesselsPanel & SlickPhysicsControl] | [Optional Details Drawer]
  */
 
 import { ClientOnly } from "@tanstack/react-router";
@@ -38,6 +36,13 @@ import {
   fetchAisTracks,
 } from "@/lib/api/client";
 
+// Layout components matching the uploaded reference UI
+import { NavySidebar, type NavTabId } from "@/components/layout/NavySidebar";
+import { VesselsFloatingPanel } from "@/components/layout/VesselsFloatingPanel";
+import { SlickPhysicsControl } from "@/components/map/SlickPhysicsControl";
+import { SuspiciousVesselTracker } from "@/components/dashboard/SuspiciousVesselTracker";
+import { DEFAULT_WIND, DEFAULT_CURRENT } from "@/lib/physics/slickPhysics";
+
 // Mission overlay components
 import { StandbyScreen } from "./StandbyScreen";
 import { SARPhaseOverlay } from "./SARPhaseOverlay";
@@ -49,7 +54,6 @@ import { ContainmentRoom } from "./ContainmentRoom";
 import { CaseFileOverlay } from "./CaseFileOverlay";
 import TelemetryTerminal from "./TelemetryTerminal";
 import MissionStatusBar from "./MissionStatusBar";
-
 
 const MapView = lazy(() => import("@/components/map/MapView"));
 
@@ -124,8 +128,6 @@ const STAGE_CAMERAS: Partial<Record<MissionStage, CameraConfig>> = {
 
 // ─── Layer visibility per stage ───────────────────────────────────────────────
 
-type LayerVisibilityMap = Record<LayerId, boolean>;
-
 function getLayerVisibility(stage: MissionStage): Record<LayerId, boolean> {
   const base = { ...DEFAULT_VISIBILITY };
 
@@ -180,6 +182,18 @@ function MissionControllerInner() {
   const [p4Data, setP4Data] = useState<P4Output>(() => getOfflineScenario(state.scenario).p4Data);
   const [p5Data, setP5Data] = useState<P5Output>(() => getOfflineScenario(state.scenario).p5Data);
 
+  const [activeNavTab, setActiveNavTab] = useState<NavTabId>('vessels');
+  const [showVesselsPanel, setShowVesselsPanel] = useState<boolean>(true);
+  const [showDetailsDrawer, setShowDetailsDrawer] = useState<boolean>(false);
+  const [selectedVessel, setSelectedVessel] = useState<any>(null);
+
+  // Dynamic physics & forcing state
+  const [customHour, setCustomHour] = useState<number>(0);
+  const [windSpeed, setWindSpeed] = useState<number>(DEFAULT_WIND.speedMs);
+  const [windHeading, setWindHeading] = useState<number>(DEFAULT_WIND.headingDeg);
+  const [currentSpeed, setCurrentSpeed] = useState<number>(DEFAULT_CURRENT.speedMs);
+  const [currentHeading, setCurrentHeading] = useState<number>(DEFAULT_CURRENT.headingDeg);
+
   useEffect(() => {
     // 1. Immediately sync baseline offline cache for the scenario
     const offline = getOfflineScenario(state.scenario);
@@ -222,15 +236,37 @@ function MissionControllerInner() {
     };
   }, [state.scenario]);
 
-  // Trigger camera flyTo on stage change
+  // Trigger camera flyTo & automatic time progression on stage change
   useEffect(() => {
+    // 1. Stage-driven relative hour progression (backtrack -> culprit lock -> forward containment forecast)
+    switch (currentStage) {
+      case "STANDBY":
+      case "SAR_ACQUISITION":
+      case "VALIDATION_AUDIT":
+      case "AIS_SWARM":
+        setCustomHour(0); // T0 SAR Detection
+        break;
+      case "BACKTRACK_CORRIDOR":
+        setCustomHour(-18); // Backtrack into past towards origin
+        break;
+      case "CULPRIT_LOCK":
+        setCustomHour(-9); // Suspect transponder blackout intersection
+        break;
+      case "CONTAINMENT_ROOM":
+        setCustomHour(12); // Forward forecast (+12h) for containment & boom ops
+        break;
+      case "CASE_FILE":
+        setCustomHour(24); // Complete forward forecast (+24h) case file
+        break;
+    }
+
+    // 2. Camera choreography flyTo
     if (prevStageRef.current === currentStage) return;
     prevStageRef.current = currentStage;
 
     const cam = STAGE_CAMERAS[currentStage];
     if (!cam || !mapRef.current) return;
 
-    // Small delay to let the map settle before flying
     const tid = setTimeout(() => {
       mapRef.current?.flyTo({
         center: cam.center,
@@ -252,11 +288,10 @@ function MissionControllerInner() {
   // Primary suspect from scored suspect list
   const primarySuspect = p3Data.suspects.find((s) => s.isPrimarySuspect)?.vesselId;
 
-  // In backtrack stage, only show candidates at full opacity; in culprit lock, isolate primary suspect
   const selectedTrackId =
     currentStage === "CULPRIT_LOCK"
       ? (primarySuspect ?? "none")
-      : "all";
+      : (selectedVessel?.id ?? "all");
 
   // Swarm vessels for full AIS maritime tracking & interactivity
   const swarmVessels = generateSwarmVessels().map((v) => {
@@ -270,18 +305,12 @@ function MissionControllerInner() {
   const swarmPhase =
     currentStage === "BACKTRACK_CORRIDOR" ? "backtrack" : "swarm";
 
-  // Relative hour for the map (backtrack shows T-12 at corridor midpoint)
-  const relativeHour =
-    currentStage === "BACKTRACK_CORRIDOR"
-      ? Math.round(-12 * Math.min(1, state.stageElapsedMs / 5000))
-      : currentStage === "CULPRIT_LOCK"
-        ? -9
-        : 0;
+  // Relative hour for the map (driven directly by custom physics control, strictly clamped [-24, 24])
+  const relativeHour = Math.max(-24, Math.min(24, customHour));
 
-  // Map ref callback so we can issue flyTo
+  // Map ref callback
   const handleMapReady = useCallback((map: MapLibreMap) => {
     mapRef.current = map;
-    // Initial fly on first mount
     const cam = STAGE_CAMERAS[currentStage] ?? STAGE_CAMERAS.STANDBY!;
     map.flyTo({
       center: cam.center,
@@ -293,6 +322,29 @@ function MissionControllerInner() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Handle vessel click from floating panel or map
+  const handleSelectVesselFromPanel = (vessel: any) => {
+    if (!vessel) return;
+    setSelectedVessel(vessel);
+    const pos =
+      vessel.position ||
+      (vessel.path && vessel.path[vessel.path.length - 1]) ||
+      (vessel.pings && vessel.pings[0]?.position);
+    if (mapRef.current && pos) {
+      mapRef.current.flyTo({
+        center: pos,
+        zoom: 11.5,
+        duration: 1500,
+        essential: true,
+      });
+    }
+  };
+
+  const handleOpenDetails = (vessel: any) => {
+    setSelectedVessel(vessel);
+    setShowDetailsDrawer(true);
+  };
+
   return (
     <div
       className="dark"
@@ -302,55 +354,147 @@ function MissionControllerInner() {
         width: "100vw",
         overflow: "hidden",
         userSelect: "none",
-        background: "#05070A",
-        color: "#C8D8E8",
+        background: "#080C14",
+        color: "#EDF2F7",
+        display: "flex",
+        flexDirection: "row",
       }}
     >
-      <h1 className="sr-only">SIH 26143 — Maritime Situation Dashboard</h1>
+      <h1 className="sr-only">Maritime Intelligence — Vessel Fleet & Oil Spill Detection</h1>
 
-      {/* ── Status bar (shown after initiation, replaces old header) ── */}
-      <MissionStatusBar />
+      {/* ── 1. LEFT ROYAL NAVY SIDEBAR (86px) ── */}
+      <NavySidebar
+        activeTab={activeNavTab}
+        onTabChange={(tab) => {
+          setActiveNavTab(tab);
+          if (tab === 'vessels') {
+            setShowVesselsPanel(true);
+          } else if (tab === 'map') {
+            setShowVesselsPanel(false);
+          }
+        }}
+      />
 
-      {/* ── Map + all overlays ── */}
-      <ClientOnly
-        fallback={
-          <MapLoadFallback />
-        }
+      {/* ── 2. CENTER MAP VIEWPORT ── */}
+      <main
+        style={{
+          flex: 1,
+          height: "100%",
+          position: "relative",
+          overflow: "hidden",
+          backgroundColor: "#06090E",
+        }}
       >
-        <Suspense fallback={<MapLoadFallback />}>
-          <MapView
-            visibility={visibility}
-            p1Data={p1Data}
-            p4Data={p4Data}
-            p5Data={p5Data}
-            relativeHour={relativeHour}
-            sarOpacity={sarOpacity}
-            selectedTrackId={selectedTrackId}
-            selectedTrackColor={[34, 211, 238]}
-            followTrack={false}
-            theme="dark"
-            primarySuspectVesselId={primarySuspect}
-            onSelectVessel={() => {}}
-            missionStage={currentStage}
+        {/* Floating White Vessels Card (matching reference image) */}
+        {showVesselsPanel && (
+          <VesselsFloatingPanel
             swarmVessels={swarmVessels}
-            swarmPhase={swarmPhase}
-            onMapReady={handleMapReady}
+            selectedVesselId={selectedVessel?.id}
+            onSelectVessel={handleSelectVesselFromPanel}
+            onOpenDetails={handleOpenDetails}
+            onClose={() => setShowVesselsPanel(false)}
           />
-        </Suspense>
+        )}
 
-        {/* ── Phase overlays ── */}
-        <StandbyScreen />
-        <SARPhaseOverlay />
-        <ValidationPhaseOverlay />
-        <AISSwarmOverlay />
-        <BacktrackOverlay />
-        <CulpritLockOverlay />
-        <ContainmentRoom />
-        <CaseFileOverlay p1Data={p1Data} p3Data={p3Data} />
+        {/* Quick button to restore Vessels Panel if closed */}
+        {!showVesselsPanel && (
+          <button
+            onClick={() => setShowVesselsPanel(true)}
+            style={{
+              position: 'absolute',
+              top: 20,
+              left: 20,
+              zIndex: 35,
+              backgroundColor: '#FFFFFF',
+              color: '#072454',
+              border: 'none',
+              borderRadius: 12,
+              padding: '10px 18px',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+            }}
+          >
+            🚢 Open Vessels List
+          </button>
+        )}
 
-        {/* ── Telemetry terminal (always visible after initiation) ── */}
-        <TelemetryTerminal />
-      </ClientOnly>
+        {/* Floating Dynamic Oil Slick Physics HUD */}
+        <SlickPhysicsControl
+          relativeHour={relativeHour}
+          onHourChange={(h) => setCustomHour(h)}
+          windSpeed={windSpeed}
+          onWindSpeedChange={(s) => setWindSpeed(s)}
+          windHeading={windHeading}
+          onWindHeadingChange={(hd) => setWindHeading(hd)}
+          currentSpeed={currentSpeed}
+          onCurrentSpeedChange={(cs) => setCurrentSpeed(cs)}
+          currentHeading={currentHeading}
+          onCurrentHeadingChange={(ch) => setCurrentHeading(ch)}
+        />
+
+        {/* Floating Mission Control HUD Status Bar */}
+        {state.initiated && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 25 }}>
+            <MissionStatusBar />
+          </div>
+        )}
+
+        {/* Mapbox / Deck.gl Viewport */}
+        <ClientOnly fallback={<MapLoadFallback />}>
+          <Suspense fallback={<MapLoadFallback />}>
+            <MapView
+              visibility={visibility}
+              p1Data={p1Data}
+              p4Data={p4Data}
+              p5Data={p5Data}
+              relativeHour={relativeHour}
+              windSpeedMs={windSpeed}
+              windHeadingDeg={windHeading}
+              currentSpeedMs={currentSpeed}
+              currentHeadingDeg={currentHeading}
+              sarOpacity={sarOpacity}
+              selectedTrackId={selectedTrackId}
+              selectedTrackColor={[56, 189, 248]}
+              followTrack={false}
+              theme="dark"
+              primarySuspectVesselId={primarySuspect}
+              onSelectVessel={handleSelectVesselFromPanel}
+              missionStage={currentStage}
+              swarmVessels={swarmVessels}
+              swarmPhase={swarmPhase}
+              onMapReady={handleMapReady}
+            />
+          </Suspense>
+
+          {/* ── Phase overlays ── */}
+          <StandbyScreen />
+          <SARPhaseOverlay />
+          <ValidationPhaseOverlay />
+          <AISSwarmOverlay />
+          <BacktrackOverlay />
+          <CulpritLockOverlay />
+          <ContainmentRoom />
+          <CaseFileOverlay />
+
+          {/* ── Telemetry terminal ── */}
+          <TelemetryTerminal />
+        </ClientOnly>
+      </main>
+
+      {/* ── 3. RIGHT DETAILS DRAWER (Optional on Details click) ── */}
+      {showDetailsDrawer && (
+        <SuspiciousVesselTracker
+          onSelectVesselOnMap={(coords) => {
+            if (mapRef.current) {
+              mapRef.current.flyTo({ center: coords, zoom: 11.5, duration: 1500, essential: true });
+            }
+          }}
+          onClose={() => setShowDetailsDrawer(false)}
+        />
+      )}
     </div>
   );
 }
@@ -366,8 +510,8 @@ function MapLoadFallback() {
         justifyContent: "center",
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: "11px",
-        color: "#3A5268",
-        background: "#05070A",
+        color: "#5C7A94",
+        background: "#080C14",
       }}
     >
       Initializing geospatial renderer…
@@ -384,3 +528,5 @@ export function MissionController() {
     </MissionProvider>
   );
 }
+
+export default MissionController;
