@@ -69,11 +69,18 @@ export function CulpritLockOverlay() {
   const primary = suspectsData?.ranked_suspects?.[0];
   const fb = primary?.feature_breakdown;
 
-  // Real computed values from scoring engine or fallback defaults
-  const totalScorePct = primary ? primary.total_score : 65.72;
-  const normalizedScore = primary ? primary.normalized_score : 0.6572;
+  // Real computed values from scoring engine or fallback defaults.
+  // Kerala's static case file uses a flatter schema (mmsi/final_score) than
+  // the live Mumbai scoring engine (vessel_id/total_score/normalized_score),
+  // so fall back across both shapes rather than assuming vessel_id exists.
+  const totalScorePct = primary ? (primary.total_score ?? primary.final_score ?? 0) : 65.72;
+  const normalizedScore = primary
+    ? (primary.normalized_score ?? (typeof primary.final_score === "number" ? primary.final_score / 100 : 0))
+    : 0.6572;
   const culpritName = primary ? primary.vessel_name : "IND_TANKER_412";
-  const culpritMmsi = primary ? primary.vessel_id.replace("MMSI_", "") : "419000101";
+  const culpritMmsi = primary
+    ? String(primary.vessel_id ?? primary.mmsi ?? "").replace("MMSI_", "")
+    : "419000101";
   const culpritFlag = primary ? primary.flag : "India (IND)";
 
   const factors: ScoreFactor[] = [
