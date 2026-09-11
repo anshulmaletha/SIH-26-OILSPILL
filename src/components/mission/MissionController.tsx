@@ -258,16 +258,13 @@ function MissionControllerInner() {
       ? (primarySuspect ?? "none")
       : "all";
 
-  // Swarm vessels for phase 3 & 4
-  const swarmVessels =
-    currentStage === "AIS_SWARM" || currentStage === "BACKTRACK_CORRIDOR"
-      ? generateSwarmVessels().map((v) => {
-          if (state.scenario === "no_candidates") {
-            return { ...v, isCandidate: false, suspicionLevel: "none" as const };
-          }
-          return v;
-        })
-      : [];
+  // Swarm vessels for full AIS maritime tracking & interactivity
+  const swarmVessels = generateSwarmVessels().map((v) => {
+    if (state.scenario === "no_candidates") {
+      return { ...v, isCandidate: false, suspicionLevel: "none" as const };
+    }
+    return v;
+  });
 
   // Determine the "swarm phase" for color assignment
   const swarmPhase =

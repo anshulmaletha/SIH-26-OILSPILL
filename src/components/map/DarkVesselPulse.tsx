@@ -6,21 +6,21 @@ interface DarkVesselPulseProps {
   position: [number, number];
   /** MapLibre map instance — used to project geo → screen coordinates */
   mapRef: React.RefObject<MapLibreMap | null>;
+  /** Optional custom label for the dark target */
+  label?: string;
+  /** Optional status text */
+  statusText?: string;
   /** Called when user clicks the pulsing marker */
   onClick?: () => void;
 }
 
-/**
- * DarkVesselPulse — CSS-animated pulsing red ring at a fixed geographic position.
- *
- * Renders as an absolute-positioned DOM element over the map canvas.
- * Uses MapLibre's `map.project()` to convert [lng, lat] → screen px.
- * Updates on every map move/zoom so the marker tracks the geo-point.
- *
- * Color: #EF4444 (alert red) — the ONE place red appears in the app.
- * No glow, no bloom — just concentric ring scale+fade animation.
- */
-export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulseProps) {
+export function DarkVesselPulse({
+  position,
+  mapRef,
+  label = "DARK VESSEL (CFAR)",
+  statusText = "AIS: BLACKOUT · NO SIGNAL",
+  onClick,
+}: DarkVesselPulseProps) {
   const [screenPos, setScreenPos] = useState<{ x: number; y: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -29,8 +29,15 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
     if (!map) return;
 
     const update = () => {
-      const pt = map.project(position as [number, number]);
-      setScreenPos({ x: pt.x, y: pt.y });
+      if (!map || !position || position.length < 2) return;
+      try {
+        const pt = map.project(position as [number, number]);
+        if (pt && typeof pt.x === "number" && typeof pt.y === "number" && !isNaN(pt.x) && !isNaN(pt.y)) {
+          setScreenPos({ x: pt.x, y: pt.y });
+        }
+      } catch {
+        // Map transform may not be fully initialized
+      }
     };
 
     // Initial position
@@ -53,7 +60,7 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
     };
   }, [position, mapRef]);
 
-  if (!screenPos) return null;
+  if (!screenPos || !position || position.length < 2) return null;
 
   return (
     <div
@@ -163,7 +170,7 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
               textTransform: "uppercase",
             }}
           >
-            DARK VESSEL (CFAR)
+            {label}
           </span>
         </div>
         <div
@@ -174,7 +181,9 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
             lineHeight: 1.3,
           }}
         >
-          {position[1].toFixed(4)}°N, {position[0].toFixed(4)}°E
+          {Array.isArray(position) && position.length >= 2 && typeof position[0] === "number" && typeof position[1] === "number"
+            ? `${position[1].toFixed(4)}°N, ${position[0].toFixed(4)}°E`
+            : "19.2800°N, 71.9000°E"}
         </div>
         <div
           style={{
@@ -184,7 +193,7 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
             letterSpacing: "0.04em",
           }}
         >
-          AIS: BLACKOUT · NO SIGNAL
+          {statusText}
         </div>
       </div>
     </div>

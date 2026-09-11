@@ -7,7 +7,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, PathLayer } from "@deck.gl/layers";
 
 import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
@@ -19,6 +19,7 @@ import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
 import { DEFAULT_P5_DATA, getVesselPositionsAtHour } from "@/lib/adapters/p5Adapter";
 import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
+import { VesselInfoPanel } from "./VesselInfoPanel";
 import type { MissionStage } from "@/lib/mission/missionState";
 import type { SwarmVessel } from "@/lib/mission/swarmData";
 import { swarmVesselColor } from "@/lib/mission/swarmData";
@@ -79,6 +80,7 @@ export default function MapView({
     ringK: number;
   } | null>(null);
   const [hexScreenPos, setHexScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedSwarmVessel, setSelectedSwarmVessel] = useState<SwarmVessel | null>(null);
 
   const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
 
@@ -106,7 +108,63 @@ export default function MapView({
     };
   }, [selectedHexCell]);
 
+  const handleSelectVessel = useCallback(
+    (vessel: any) => {
+      if (!vessel) return;
+      onSelectVessel?.(vessel);
+      const match = swarmVessels.find(
+        (sv) =>
+          sv.id === vessel.vesselId ||
+          sv.id === vessel.id ||
+          (vessel.mmsi && sv.mmsi === vessel.mmsi) ||
+          (vessel.vesselName && sv.name === vessel.vesselName)
+      );
+      if (match) {
+        setSelectedSwarmVessel(match);
+      } else {
+        const pathCoords = vessel.path || (vessel.pings?.map((p: any) => p.position)) || [];
+        const currentPos = (pathCoords[pathCoords.length - 1] || vessel.position || [71.9, 19.28]) as [number, number];
+        const heading = vessel.pings?.[0]?.headingDegrees ?? vessel.heading ?? 135;
+        const speed = vessel.pings?.[0]?.sogKnots ?? vessel.darkAnomaly?.estimatedTransitSpeedKnots ?? vessel.speedKnots ?? (vessel.isDarkVessel ? 0.0 : 14.0);
+
+        setSelectedSwarmVessel({
+          id: vessel.vesselId || vessel.id || `vessel-${Date.now()}`,
+          name: vessel.vesselName || vessel.name || "UNIDENTIFIED VESSEL",
+          mmsi: vessel.mmsi || "N/A (BLACKOUT)",
+          callsign: vessel.callsign || "UNKNOWN",
+          flag: vessel.flag || "Unknown",
+          vesselType: ((vessel.vesselType || "").toLowerCase().includes("tanker")
+            ? "tanker"
+            : (vessel.vesselType || "").toLowerCase().includes("container")
+            ? "container"
+            : "bulk") as any,
+          typeLabel: vessel.vesselType || "Commercial Vessel",
+          position: currentPos,
+          heading: heading,
+          course: heading,
+          speedKnots: speed,
+          navStatus: vessel.isDarkVessel ? "AIS Blackout / Radar Target" : (vessel.navStatus || "Underway using Engine"),
+          destination: vessel.destination || "UNREPORTED",
+          eta: vessel.eta || "2026-05-15 14:00 UTC",
+          lastSeen: vessel.isDarkVessel ? "BLACKOUT (CFAR-002)" : "06:00:00 UTC",
+          lengthMeters: vessel.lengthMeters || (vessel.isDarkVessel ? 175 : 200),
+          beamMeters: vessel.beamMeters || (vessel.isDarkVessel ? 28 : 32),
+          draughtMeters: vessel.draughtMeters || (vessel.isDarkVessel ? 9.8 : 10.5),
+          trajectory: pathCoords.length > 0 ? pathCoords : [currentPos],
+          isCandidate: !!vessel.isCandidate,
+          suspicionLevel: vessel.isDarkVessel ? "high" : vessel.isCandidate ? "medium" : "none",
+          isDarkVessel: !!vessel.isDarkVessel,
+          suspiciousReason: vessel.darkAnomaly?.notes || (vessel.isDarkVessel ? "Radar contact correlated with spill origin under AIS blackout." : undefined),
+          threatTag: vessel.isDarkVessel ? "AIS BLACKOUT · PRIMARY SUSPECT" : undefined,
+        });
+      }
+    },
+    [onSelectVessel, swarmVessels]
+  );
+
   const layers = useMemo(() => {
+    const extraLayers = [];
+
     const baseLayers = buildLayers({
       visibility,
       p1Data,
@@ -119,7 +177,7 @@ export default function MapView({
       followTrack,
       primarySuspectVesselId,
       onHover: (info) => setTooltip(info),
-      onSelectVessel,
+      onSelectVessel: (vessel) => handleSelectVessel(vessel),
       onClickHex: (cell, coord) => {
         let k = 0;
         try {
@@ -131,23 +189,175 @@ export default function MapView({
       },
     });
 
-    // Add synthetic swarm scatter layer for AIS_SWARM and BACKTRACK_CORRIDOR phases
-    if (swarmVessels.length > 0) {
-      const swarmLayer = new ScatterplotLayer({
+    // Add synthetic swarm scatter layer for all interactive vessels
+    if (swarmVessels && swarmVessels.length > 0) {
+      const swarmLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-swarm",
         data: swarmVessels,
-        getPosition: (d) => d.position,
-        getRadius: (d) => (d.isCandidate ? 900 : 600),
+        getPosition: (d) => d.position || [71.85, 19.35],
+        getRadius: (d) => (d.isDarkVessel ? 1200 : d.isCandidate ? 950 : 650),
         getFillColor: (d) => swarmVesselColor(d, swarmPhase),
         radiusUnits: "meters",
-        radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2,
-        pickable: false,
+        radiusMinPixels: (d) => (d.isDarkVessel ? 4 : swarmPhase === "backtrack" ? 3 : 2.5),
+        pickable: true,
         parameters: { depthTest: false },
+        updateTriggers: {
+          getFillColor: [swarmPhase, selectedSwarmVessel],
+          getRadius: [selectedSwarmVessel],
+        },
+        onHover: (info) => {
+          if (!info.object) {
+            if (tooltip?.type === "swarm-vessel") setTooltip(null);
+            return;
+          }
+          const v = info.object as SwarmVessel;
+          const pos = v.position || [71.85, 19.35];
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            type: "swarm-vessel",
+            title: v.name || "Vessel",
+            items: [
+              { label: "MMSI", value: v.mmsi || "—" },
+              { label: "Type", value: v.typeLabel || "Vessel" },
+              { label: "Speed", value: `${(v.speedKnots ?? 0).toFixed(1)} kn` },
+              { label: "Heading", value: `${v.heading ?? 0}°` },
+              { label: "Coord", value: `${(pos[1] ?? 19.35).toFixed(4)}°N, ${(pos[0] ?? 71.85).toFixed(4)}°E` },
+            ],
+          });
+        },
+        onClick: (info) => {
+          if (info.object) {
+            handleSelectVessel(info.object as SwarmVessel);
+          }
+        },
       });
-      return [...baseLayers, swarmLayer];
+      extraLayers.push(swarmLayer);
     }
 
-    return baseLayers;
+    // Add selected vessel trajectory, past waypoints & target highlight ring
+    if (selectedSwarmVessel) {
+      const isDarkTarget = selectedSwarmVessel.isDarkVessel || selectedSwarmVessel.suspicionLevel === "high";
+      const baseColor: [number, number, number] = isDarkTarget ? [239, 68, 68] : [34, 211, 238];
+
+      if (selectedSwarmVessel.trajectory && selectedSwarmVessel.trajectory.length > 1) {
+        // 1. Soft glow underlay for trajectory
+        const glowLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-trajectory-glow",
+          data: [{ path: selectedSwarmVessel.trajectory }],
+          getPath: (d) => d.path,
+          getColor: [...baseColor, 65],
+          getWidth: 7,
+          widthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getPath: [selectedSwarmVessel],
+            getColor: [selectedSwarmVessel],
+          },
+        });
+        extraLayers.push(glowLayer);
+
+        // 2. Crisp main trajectory line
+        const trajectoryLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-trajectory",
+          data: [{ path: selectedSwarmVessel.trajectory }],
+          getPath: (d) => d.path,
+          getColor: [...baseColor, 240],
+          getWidth: 2.5,
+          widthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getPath: [selectedSwarmVessel],
+            getColor: [selectedSwarmVessel],
+          },
+        });
+        extraLayers.push(trajectoryLayer);
+
+        // 3. Historical waypoint pings along the trajectory
+        const waypointData = (selectedSwarmVessel.trajectory || []).slice(0, -1).map((pt, idx, arr) => ({
+          position: pt,
+          index: idx,
+          total: arr.length,
+          timeLabel: `T-${(arr.length - idx) * 6}h Historical Ping`,
+        }));
+
+        const waypointsLayer = new ScatterplotLayer({
+          id: "selected-vessel-waypoints",
+          data: waypointData,
+          getPosition: (d) => d.position || [71.85, 19.35],
+          getRadius: 450,
+          radiusUnits: "meters",
+          radiusMinPixels: 3,
+          getFillColor: [...baseColor, 180],
+          getLineColor: [13, 17, 23, 255],
+          lineWidthMinPixels: 1,
+          stroked: true,
+          pickable: true,
+          onHover: (info) => {
+            if (!info.object) return;
+            const wp = info.object as typeof waypointData[0];
+            const pt = wp.position || [71.85, 19.35];
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              type: "vessel",
+              title: `${selectedSwarmVessel.name || "Target"} — ${wp.timeLabel}`,
+              items: [
+                { label: "Waypoint", value: `#${wp.index + 1} of ${wp.total + 1}` },
+                { label: "Position", value: `${(pt[1] ?? 19.35).toFixed(4)}°N, ${(pt[0] ?? 71.85).toFixed(4)}°E` },
+                { label: "Status", value: "Historical AIS Trail" },
+              ],
+            });
+          },
+        });
+        extraLayers.push(waypointsLayer);
+      }
+
+      // 4. Forward heading course vector (shows current travel direction)
+      if ((selectedSwarmVessel.speedKnots ?? 0) > 0.5 && selectedSwarmVessel.position) {
+        const [lng, lat] = selectedSwarmVessel.position;
+        const rad = ((selectedSwarmVessel.heading ?? 0) * Math.PI) / 180;
+        const cosLat = Math.cos((lat * Math.PI) / 180) || 1;
+        const vectorLen = 0.045 * ((selectedSwarmVessel.speedKnots ?? 12) / 12);
+        const forwardPos: [number, number] = [
+          lng + (Math.sin(rad) / cosLat) * vectorLen,
+          lat + Math.cos(rad) * vectorLen,
+        ];
+
+        const headingVectorLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-heading-vector",
+          data: [{ path: [[lng, lat], forwardPos] }],
+          getPath: (d) => d.path,
+          getColor: [...baseColor, 220],
+          getWidth: 2,
+          widthUnits: "pixels",
+          pickable: false,
+        });
+        extraLayers.push(headingVectorLayer);
+      }
+
+      // 5. High-visibility target ring marker
+      const ringLayer = new ScatterplotLayer<SwarmVessel>({
+        id: "selected-vessel-ring",
+        data: [selectedSwarmVessel],
+        getPosition: (d) => d.position || [71.85, 19.35],
+        getRadius: isDarkTarget ? 2200 : 1600,
+        radiusUnits: "meters",
+        radiusMinPixels: 9,
+        getFillColor: [0, 0, 0, 0],
+        getLineColor: isDarkTarget ? [239, 68, 68, 255] : [34, 211, 238, 255],
+        lineWidthMinPixels: 2.5,
+        stroked: true,
+        pickable: false,
+        updateTriggers: {
+          getPosition: [selectedSwarmVessel],
+          getLineColor: [selectedSwarmVessel],
+        },
+      });
+      extraLayers.push(ringLayer);
+    }
+
+    return [...baseLayers, ...extraLayers];
   }, [
     visibility,
     p1Data,
@@ -159,9 +369,10 @@ export default function MapView({
     selectedTrackColor,
     followTrack,
     primarySuspectVesselId,
-    onSelectVessel,
+    handleSelectVessel,
     swarmVessels,
     swarmPhase,
+    selectedSwarmVessel,
   ]);
 
   // Initialize Map
@@ -228,17 +439,21 @@ export default function MapView({
     }
   }, [followTrack, selectedTrackId, relativeHour, p5Data]);
 
-  // Collect dark vessel positions for CSS overlay
+  // Collect all 4 dark vessel positions & metadata for CSS pulse overlays
   const darkVesselPositions = useMemo(() => {
-    return p5Data.vessels
-      .filter((v) => v.isDarkVessel)
+    return (p5Data?.vessels || [])
+      .filter((v) => v && v.isDarkVessel)
       .map((v) => {
-        const ping = v.pings?.[0];
-        return ping
-          ? (ping.position as [number, number])
-          : (v.path?.[0] as [number, number] | undefined);
-      })
-      .filter((p): p is [number, number] => !!p);
+        const pos = (v.path?.[v.path.length - 1] || v.pings?.[0]?.position) as [number, number] | undefined;
+        return {
+          vessel: v,
+          position: (pos && pos.length >= 2 ? pos : [71.9, 19.28]) as [number, number],
+          label: v.vesselName || "DARK VESSEL",
+          statusText: v.darkAnomaly && typeof v.darkAnomaly.gapDurationHours === "number"
+            ? `GAP ${v.darkAnomaly.gapDurationHours.toFixed(1)}h · NO SIGNAL`
+            : "AIS: BLACKOUT · NO SIGNAL",
+        };
+      });
   }, [p5Data]);
 
   return (
@@ -247,19 +462,20 @@ export default function MapView({
       className="absolute inset-0"
       style={{ position: "absolute", inset: 0 }}
     >
-      {/* Dark vessel pulsing CSS rings — rendered over map canvas */}
-      {mapReady && darkVesselPositions.map((pos, i) => (
-        <DarkVesselPulse
-          key={i}
-          position={pos}
-          mapRef={mapRef}
-          onClick={() => {
-            // Focus the dark vessel on click
-            const dv = p5Data.vessels.find((v) => v.isDarkVessel);
-            if (dv && onSelectVessel) onSelectVessel(dv);
-          }}
-        />
-      ))}
+      {/* Dark vessel pulsing CSS rings — rendered for all suspicious targets */}
+      {mapReady &&
+        darkVesselPositions.map((dv, i) => (
+          <DarkVesselPulse
+            key={dv.vessel.vesselId || i}
+            position={dv.position}
+            label={dv.label}
+            statusText={dv.statusText}
+            mapRef={mapRef}
+            onClick={() => {
+              handleSelectVessel(dv.vessel);
+            }}
+          />
+        ))}
 
       {/* Docked H3 Cell Details Popover (Click Interactivity) */}
       {selectedHexCell && hexScreenPos && (
@@ -450,6 +666,12 @@ export default function MapView({
           </div>
         </div>
       )}
+
+      {/* Floating Interactive Vessel Information HUD Panel */}
+      <VesselInfoPanel
+        vessel={selectedSwarmVessel}
+        onClose={() => setSelectedSwarmVessel(null)}
+      />
     </div>
   );
 }
