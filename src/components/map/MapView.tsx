@@ -220,15 +220,35 @@ export default function MapView({
       extraLayers.push(swarmLayer);
     }
 
-    // Add selected vessel trajectory & target highlight ring
+    // Add selected vessel trajectory, past waypoints & target highlight ring
     if (selectedSwarmVessel) {
+      const isDarkTarget = selectedSwarmVessel.isDarkVessel || selectedSwarmVessel.suspicionLevel === "high";
+      const baseColor: [number, number, number] = isDarkTarget ? [239, 68, 68] : [34, 211, 238];
+
       if (selectedSwarmVessel.trajectory && selectedSwarmVessel.trajectory.length > 1) {
+        // 1. Soft glow underlay for trajectory
+        const glowLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-trajectory-glow",
+          data: [{ path: selectedSwarmVessel.trajectory }],
+          getPath: (d) => d.path,
+          getColor: [...baseColor, 65],
+          getWidth: 7,
+          widthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getPath: [selectedSwarmVessel],
+            getColor: [selectedSwarmVessel],
+          },
+        });
+        extraLayers.push(glowLayer);
+
+        // 2. Crisp main trajectory line
         const trajectoryLayer = new PathLayer<{ path: [number, number][] }>({
           id: "selected-vessel-trajectory",
           data: [{ path: selectedSwarmVessel.trajectory }],
           getPath: (d) => d.path,
-          getColor: selectedSwarmVessel.isDarkVessel ? [239, 68, 68, 240] : [34, 211, 238, 240],
-          getWidth: 3,
+          getColor: [...baseColor, 240],
+          getWidth: 2.5,
           widthUnits: "pixels",
           pickable: false,
           updateTriggers: {
@@ -237,17 +257,79 @@ export default function MapView({
           },
         });
         extraLayers.push(trajectoryLayer);
+
+        // 3. Historical waypoint pings along the trajectory
+        const waypointData = selectedSwarmVessel.trajectory.slice(0, -1).map((pt, idx, arr) => ({
+          position: pt,
+          index: idx,
+          total: arr.length,
+          timeLabel: `T-${(arr.length - idx) * 6}h Historical Ping`,
+        }));
+
+        const waypointsLayer = new ScatterplotLayer({
+          id: "selected-vessel-waypoints",
+          data: waypointData,
+          getPosition: (d) => d.position,
+          getRadius: 450,
+          radiusUnits: "meters",
+          radiusMinPixels: 3,
+          getFillColor: [...baseColor, 180],
+          getLineColor: [13, 17, 23, 255],
+          lineWidthMinPixels: 1,
+          stroked: true,
+          pickable: true,
+          onHover: (info) => {
+            if (!info.object) return;
+            const wp = info.object as typeof waypointData[0];
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              type: "vessel",
+              title: `${selectedSwarmVessel.name} — ${wp.timeLabel}`,
+              items: [
+                { label: "Waypoint", value: `#${wp.index + 1} of ${wp.total + 1}` },
+                { label: "Position", value: `${wp.position[1].toFixed(4)}°N, ${wp.position[0].toFixed(4)}°E` },
+                { label: "Status", value: "Historical AIS Trail" },
+              ],
+            });
+          },
+        });
+        extraLayers.push(waypointsLayer);
       }
 
+      // 4. Forward heading course vector (shows current travel direction)
+      if (selectedSwarmVessel.speedKnots > 0.5) {
+        const [lng, lat] = selectedSwarmVessel.position;
+        const rad = (selectedSwarmVessel.heading * Math.PI) / 180;
+        const cosLat = Math.cos((lat * Math.PI) / 180) || 1;
+        const vectorLen = 0.045 * (selectedSwarmVessel.speedKnots / 12);
+        const forwardPos: [number, number] = [
+          lng + (Math.sin(rad) / cosLat) * vectorLen,
+          lat + Math.cos(rad) * vectorLen,
+        ];
+
+        const headingVectorLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-heading-vector",
+          data: [{ path: [[lng, lat], forwardPos] }],
+          getPath: (d) => d.path,
+          getColor: [...baseColor, 220],
+          getWidth: 2,
+          widthUnits: "pixels",
+          pickable: false,
+        });
+        extraLayers.push(headingVectorLayer);
+      }
+
+      // 5. High-visibility target ring marker
       const ringLayer = new ScatterplotLayer<SwarmVessel>({
         id: "selected-vessel-ring",
         data: [selectedSwarmVessel],
         getPosition: (d) => d.position,
-        getRadius: selectedSwarmVessel.isDarkVessel ? 2200 : 1600,
+        getRadius: isDarkTarget ? 2200 : 1600,
         radiusUnits: "meters",
-        radiusMinPixels: 8,
+        radiusMinPixels: 9,
         getFillColor: [0, 0, 0, 0],
-        getLineColor: selectedSwarmVessel.isDarkVessel ? [239, 68, 68, 255] : [34, 211, 238, 255],
+        getLineColor: isDarkTarget ? [239, 68, 68, 255] : [34, 211, 238, 255],
         lineWidthMinPixels: 2.5,
         stroked: true,
         pickable: false,
