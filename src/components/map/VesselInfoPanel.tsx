@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   X,
   Navigation,
@@ -21,6 +21,16 @@ export interface VesselInfoPanelProps {
 }
 
 export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   if (!vessel) return null;
 
   const isDark = vessel.isDarkVessel || vessel.suspicionLevel === "high";
