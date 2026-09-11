@@ -1,4 +1,4 @@
-﻿import type { P5Output, VesselTrack, VesselPing } from "../contracts/p5";
+import type { P5Output, VesselTrack, VesselPing } from "../contracts/p5";
 import { AIS_TRACKS } from "../map/data/sampleData";
 
 export interface ActiveVesselPosition {
@@ -54,7 +54,7 @@ export const DEFAULT_P5_DATA: P5Output = {
       // From dark_vessel_output.json: cfar_detection_id CFAR_DARK_002, position [71.9, 19.28]
       vesselId: "dark-vessel-cfar-002",
       vesselName: "DARK VESSEL-01 (CFAR_DARK_002)",
-      mmsi: "N/A (BLACKOUT)",
+      mmsi: "N/A (RADAR CONTACT ONLY)",
       flag: "Unknown",
       vesselType: "Crude Tanker (SAR Target)",
       lengthMeters: 175,
@@ -64,15 +64,15 @@ export const DEFAULT_P5_DATA: P5Output = {
       isCandidate: true,
       isDarkVessel: true,
       darkAnomaly: {
-        gapStartTimestamp: "2026-05-14T18:00:00Z",
+        gapStartTimestamp: "2026-05-14T16:00:00Z",
         gapEndTimestamp: "2026-05-15T06:00:00Z",
-        gapDurationHours: 12.0,
+        gapDurationHours: 14.0,
         lastKnownPosition: [71.9, 19.28],
         reappearancePosition: [71.9, 19.28],
         estimatedTransitSpeedKnots: 0,
         spillCorridorIntersection: true,
         radarContactCorrelated: true,
-        notes: "12.0h continuous AIS blackout throughout observation window. Correlated with Sentinel-1A SAR radar target at plume origin.",
+        notes: "Rendezvous behavior with another dark contact & 14h continuous AIS blackout correlated with Sentinel-1A SAR detection at plume origin.",
       },
       path: [
         [71.55, 19.55],
@@ -81,14 +81,14 @@ export const DEFAULT_P5_DATA: P5Output = {
         [71.9, 19.28],
       ],
       pings: [
-        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [71.9, 19.28], sogKnots: 0, cogDegrees: 142, headingDegrees: 142, navStatus: "AIS Blackout" },
+        { timestamp: "2026-05-14T16:00:00Z", relativeHour: -14, position: [71.9, 19.28], sogKnots: 0, cogDegrees: 142, headingDegrees: 142, navStatus: "AIS Blackout" },
       ],
     },
     {
       // Dark vessel 2 — Northern Sector route deviation
       vesselId: "dark-vessel-north-003",
       vesselName: "DARK VESSEL-02 (NORTH SECTOR)",
-      mmsi: "N/A (SIGNAL LOST)",
+      mmsi: "N/A (RADAR CONTACT ONLY)",
       flag: "Panama (Suspected)",
       vesselType: "Chemical / Products Tanker",
       lengthMeters: 160,
@@ -98,15 +98,15 @@ export const DEFAULT_P5_DATA: P5Output = {
       isCandidate: true,
       isDarkVessel: true,
       darkAnomaly: {
-        gapStartTimestamp: "2026-05-14T23:30:00Z",
-        gapEndTimestamp: "2026-05-15T04:18:00Z",
-        gapDurationHours: 4.8,
+        gapStartTimestamp: "2026-05-15T02:00:00Z",
+        gapEndTimestamp: "2026-05-15T06:00:00Z",
+        gapDurationHours: 4.0,
         lastKnownPosition: [71.30, 20.35],
         reappearancePosition: [71.45, 19.95],
         estimatedTransitSpeedKnots: 5.4,
         spillCorridorIntersection: true,
         radarContactCorrelated: true,
-        notes: "Unreported 4.8h transponder shutdown with speed drop to 5.4 kn along northern feeder lane.",
+        notes: "Route deviation from historical corridor with 4h transponder shutdown along northern feeder lane.",
       },
       path: [
         [71.30, 20.35],
@@ -115,14 +115,14 @@ export const DEFAULT_P5_DATA: P5Output = {
         [71.45, 19.95],
       ],
       pings: [
-        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [71.45, 19.95], sogKnots: 5.4, cogDegrees: 198, headingDegrees: 198, navStatus: "Intermittent AIS" },
+        { timestamp: "2026-05-15T02:00:00Z", relativeHour: -4, position: [71.45, 19.95], sogKnots: 5.4, cogDegrees: 198, headingDegrees: 198, navStatus: "Intermittent AIS" },
       ],
     },
     {
       // Dark vessel 3 — Southern TSS separation corridor
       vesselId: "dark-vessel-south-004",
       vesselName: "DARK VESSEL-03 (SOUTH TSS)",
-      mmsi: "N/A (TRANSPONDER GAP)",
+      mmsi: "N/A (RADAR CONTACT ONLY)",
       flag: "Liberia (Suspected)",
       vesselType: "Heavy Bulk Carrier",
       lengthMeters: 225,
@@ -132,15 +132,15 @@ export const DEFAULT_P5_DATA: P5Output = {
       isCandidate: true,
       isDarkVessel: true,
       darkAnomaly: {
-        gapStartTimestamp: "2026-05-14T21:15:00Z",
-        gapEndTimestamp: "2026-05-15T03:45:00Z",
-        gapDurationHours: 6.5,
+        gapStartTimestamp: "2026-05-14T21:00:00Z",
+        gapEndTimestamp: "2026-05-15T06:00:00Z",
+        gapDurationHours: 9.0,
         lastKnownPosition: [72.70, 18.45],
         reappearancePosition: [72.25, 18.65],
         estimatedTransitSpeedKnots: 6.8,
         spillCorridorIntersection: false,
         radarContactCorrelated: true,
-        notes: "Abrupt nighttime 90° heading change and deliberate 6.5h AIS gap traversing outer TSS zone.",
+        notes: "Loitering pattern detected near shipping lane with nighttime 90° heading shift and 9h AIS blackout traversing outer TSS.",
       },
       path: [
         [72.70, 18.45],
@@ -149,14 +149,14 @@ export const DEFAULT_P5_DATA: P5Output = {
         [72.25, 18.65],
       ],
       pings: [
-        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [72.25, 18.65], sogKnots: 6.8, cogDegrees: 285, headingDegrees: 285, navStatus: "Abrupt Deviation" },
+        { timestamp: "2026-05-14T21:00:00Z", relativeHour: -9, position: [72.25, 18.65], sogKnots: 6.8, cogDegrees: 285, headingDegrees: 285, navStatus: "Abrupt Deviation" },
       ],
     },
     {
       // Dark vessel 4 — Western offshore boundary
       vesselId: "dark-vessel-west-005",
       vesselName: "DARK VESSEL-04 (WEST OFFSHORE)",
-      mmsi: "N/A (BLACKOUT)",
+      mmsi: "N/A (RADAR CONTACT ONLY)",
       flag: "Unknown",
       vesselType: "Product Tanker",
       lengthMeters: 180,
@@ -166,15 +166,15 @@ export const DEFAULT_P5_DATA: P5Output = {
       isCandidate: true,
       isDarkVessel: true,
       darkAnomaly: {
-        gapStartTimestamp: "2026-05-14T19:00:00Z",
-        gapEndTimestamp: "2026-05-15T03:30:00Z",
-        gapDurationHours: 8.5,
+        gapStartTimestamp: "2026-05-14T08:00:00Z",
+        gapEndTimestamp: "2026-05-15T06:00:00Z",
+        gapDurationHours: 22.0,
         lastKnownPosition: [70.70, 19.85],
         reappearancePosition: [70.95, 19.55],
         estimatedTransitSpeedKnots: 4.2,
         spillCorridorIntersection: true,
         radarContactCorrelated: true,
-        notes: "8.5h transponder blackout coinciding with backtracked drift corridor origin.",
+        notes: "AIS gap exceeds 6h threshold (22h total blackout) coinciding with backtracked drift corridor origin.",
       },
       path: [
         [70.70, 19.85],
@@ -183,7 +183,7 @@ export const DEFAULT_P5_DATA: P5Output = {
         [70.95, 19.55],
       ],
       pings: [
-        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [70.95, 19.55], sogKnots: 4.2, cogDegrees: 155, headingDegrees: 155, navStatus: "AIS Blackout" },
+        { timestamp: "2026-05-14T08:00:00Z", relativeHour: -22, position: [70.95, 19.55], sogKnots: 4.2, cogDegrees: 155, headingDegrees: 155, navStatus: "AIS Blackout" },
       ],
     },
     {

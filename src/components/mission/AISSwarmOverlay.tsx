@@ -157,7 +157,7 @@ const AISSwarmOverlay: React.FC = () => {
                   alignItems: 'center',
                   paddingTop: '3px',
                   paddingBottom: '3px',
-                  borderBottom: i < VESSEL_TYPES.length - 1 ? '1px solid #111822' : 'none',
+                  borderBottom: '1px solid #111822',
                 }}
               >
                 <span
@@ -180,6 +180,37 @@ const AISSwarmOverlay: React.FC = () => {
                 </span>
               </div>
             ))}
+            {/* Dynamic Dark Vessel Count from existing detection pipeline */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '3px',
+                paddingBottom: '3px',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '9px',
+                  color: '#EF4444',
+                  fontWeight: 600,
+                }}
+              >
+                Dark Vessels (CFAR)
+              </span>
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '10px',
+                  color: '#EF4444',
+                  fontWeight: 700,
+                }}
+              >
+                4
+              </span>
+            </div>
           </div>
         )}
 

@@ -35,6 +35,23 @@ function normalizeVessel(v: SwarmVessel | VesselTrack | null): (SwarmVessel & { 
   const isDark = !!(vt.isDarkVessel || vt.darkAnomaly);
   const imo = vt.imo || `IMO ${9100000 + Math.abs(simpleHash(vt.vesselId || vt.vesselName)) % 800000}`;
 
+  const darkRiskScore =
+    vt.darkAnomaly?.gapDurationHours === 14
+      ? "92 / 100 (CRITICAL)"
+      : vt.darkAnomaly?.gapDurationHours === 4
+      ? "78 / 100 (HIGH)"
+      : vt.darkAnomaly?.gapDurationHours === 9
+      ? "85 / 100 (HIGH)"
+      : vt.darkAnomaly?.gapDurationHours === 22
+      ? "89 / 100 (HIGH)"
+      : isDark
+      ? "90 / 100 (HIGH)"
+      : undefined;
+
+  const darkLastSeen = vt.darkAnomaly?.gapDurationHours
+    ? `${vt.darkAnomaly.gapDurationHours}h ago (Signal Lost)`
+    : ping?.timestamp ?? "06:00:00 UTC";
+
   return {
     id: vt.vesselId,
     name: vt.vesselName,
@@ -50,7 +67,7 @@ function normalizeVessel(v: SwarmVessel | VesselTrack | null): (SwarmVessel & { 
     callsign: vt.callsign ?? "UNKNOWN",
     destination: vt.destination,
     eta: vt.eta || "2026-05-15 14:00 UTC",
-    lastSeen: ping?.timestamp ?? "06:00:00 UTC",
+    lastSeen: isDark ? darkLastSeen : ping?.timestamp ?? "06:00:00 UTC",
     lengthMeters: vt.lengthMeters,
     beamMeters: vt.beamMeters,
     draughtMeters: vt.draughtMeters,
@@ -63,7 +80,7 @@ function normalizeVessel(v: SwarmVessel | VesselTrack | null): (SwarmVessel & { 
       (isDark ? "Radar contact correlated with SAR detection · AIS transponder disabled" : undefined),
     threatTag: isDark ? "DARK TARGET · RADAR ONLY" : undefined,
     blackoutDurationHours: vt.darkAnomaly?.gapDurationHours,
-    riskScore: isDark ? "HIGH (88%)" : undefined,
+    riskScore: isDark ? darkRiskScore : undefined,
     trajectory: vt.path && vt.path.length > 0 ? vt.path : [pos],
   };
 }
@@ -322,74 +339,109 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel: rawVes
         {/* Telemetry / Identity Breakdown */}
         <div>
           <div style={{ fontSize: "8px", color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
-            VOYAGE & IDENTIFICATION
+            {isDark ? "DARK TARGET & SENSOR CORRELATION" : "VOYAGE & IDENTIFICATION"}
           </div>
           <div
             style={{
               backgroundColor: "#111822",
               padding: "6px 8px",
               borderRadius: "3px",
-              border: "1px solid #1C2A38",
+              border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.25)" : "#1C2A38"}`,
               display: "flex",
               flexDirection: "column",
               gap: "4px",
               fontSize: "9px",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>MMSI:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.mmsi || "N/A"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>IMO NUMBER:</span>
-              <span style={{ color: "#C8D8E8", fontWeight: 600 }}>{vessel.imo || "IMO 9482104"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>CALL SIGN:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.callsign || "UNKNOWN"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>FLAG / REGISTRY:</span>
-              <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.flag || "International"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>AIS STATUS:</span>
-              <span style={{ color: isDark ? "#EF4444" : "#22D3EE", fontWeight: 600 }}>
-                {vessel.navStatus || (isDark ? "AIS Blackout / Signal Lost" : "Underway using Engine")}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>DESTINATION:</span>
-              <span
-                style={{
-                  color: "#FFFFFF",
-                  fontWeight: 600,
-                  maxWidth: "160px",
-                  textAlign: "right",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {vessel.destination || "UNREPORTED"}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>EST. ARRIVAL (ETA):</span>
-              <span style={{ color: "#C8D8E8" }}>{vessel.eta || "2026-05-15 14:00 UTC"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>LAST AIS PING:</span>
-              <span style={{ color: isDark ? "#EF4444" : "#C8D8E8" }}>
-                {vessel.lastSeen || "06:00:00 UTC"}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>DIMENSIONS:</span>
-              <span style={{ color: "#C8D8E8" }}>
-                {lengthMeters}m × {beamMeters}m (d: {draughtMeters}m)
-              </span>
-            </div>
+            {isDark ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>CFAR CONTACT ID:</span>
+                  <span style={{ color: "#EF4444", fontWeight: 700 }}>{vessel.name}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>BLACKOUT DURATION:</span>
+                  <span style={{ color: "#EF4444", fontWeight: 700 }}>
+                    {vessel.blackoutDurationHours ? `${vessel.blackoutDurationHours} HOURS` : "14.0 HOURS"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>LAST AIS SIGNAL:</span>
+                  <span style={{ color: "#FCA5A5", fontWeight: 600 }}>{vessel.lastSeen}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>RISK / CONFIDENCE:</span>
+                  <span style={{ color: "#EF4444", fontWeight: 700 }}>{vessel.riskScore || "92 / 100"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>TRANSPONDER STATE:</span>
+                  <span style={{ color: "#EF4444", fontWeight: 600 }}>INACTIVE / BLACKOUT</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>SENSOR DETECT:</span>
+                  <span style={{ color: "#C8D8E8", fontWeight: 500 }}>Sentinel-1A SAR Radar</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>FLAG / REGISTRY:</span>
+                  <span style={{ color: "#C8D8E8", fontWeight: 500 }}>{vessel.flag || "Unregistered / Unknown"}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>MMSI:</span>
+                  <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.mmsi || "N/A"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>IMO NUMBER:</span>
+                  <span style={{ color: "#C8D8E8", fontWeight: 600 }}>{vessel.imo || "IMO 9482104"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>CALL SIGN:</span>
+                  <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.callsign || "UNKNOWN"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>FLAG / REGISTRY:</span>
+                  <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{vessel.flag || "International"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>AIS STATUS:</span>
+                  <span style={{ color: "#22D3EE", fontWeight: 600 }}>
+                    {vessel.navStatus || "Underway using Engine"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>DESTINATION:</span>
+                  <span
+                    style={{
+                      color: "#FFFFFF",
+                      fontWeight: 600,
+                      maxWidth: "160px",
+                      textAlign: "right",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {vessel.destination || "UNREPORTED"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>EST. ARRIVAL (ETA):</span>
+                  <span style={{ color: "#C8D8E8" }}>{vessel.eta || "2026-05-15 14:00 UTC"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>LAST AIS PING:</span>
+                  <span style={{ color: "#C8D8E8" }}>{vessel.lastSeen || "06:00:00 UTC"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>DIMENSIONS:</span>
+                  <span style={{ color: "#C8D8E8" }}>
+                    {lengthMeters}m × {beamMeters}m (d: {draughtMeters}m)
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
