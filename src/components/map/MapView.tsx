@@ -21,11 +21,10 @@ import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import type { MissionStage } from "@/lib/mission/missionState";
-import { type SwarmVessel, swarmVesselColor } from "@/lib/mission/swarmData";
+import { type SwarmVessel } from "@/lib/mission/swarmData";
 import {
   getMasterShipAtlasDataUri,
   SHIP_ICON_MAPPING,
-  SHIP_ICON_SIZE,
 } from "@/lib/map/ShipIcon";
 
 export interface MapViewProps {
@@ -76,8 +75,11 @@ export default function MapView({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
+  const rafRef = useRef<number | null>(null);
   const [tooltip, setTooltip] = useState<MapTooltipInfo | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState<number>(INITIAL_VIEW_STATE.zoom);
+  const [mapViewportKey, setMapViewportKey] = useState<number>(0);
   const [selectedHexCell, setSelectedHexCell] = useState<{
     cell: H3CellDensity;
     coordinate: [number, number];
@@ -126,6 +128,63 @@ export default function MapView({
     };
   }, [selectedHexCell]);
 
+  // Safety-filtered vessels: accounts for icon size, rotation diagonal, and viewport bounds
+  // Prevents any normal vessel from appearing partially cut off at canvas edges
+  const visibleSwarmVessels = useMemo(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!map || !container || !mapReady) {
+      return swarmVessels;
+    }
+
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+    const currentZ = map.getZoom();
+
+    // Safety margin in pixels from all 4 boundaries (accounts for dot radius + outline)
+    const MARGIN_PX = 14;
+
+    return (swarmVessels || []).filter((v) => {
+      // Dark vessels & candidates always pass so critical alerts are never hidden
+      if (v.isDarkVessel || v.isCandidate || v.suspicionLevel === "high") {
+        return true;
+      }
+
+      // Check zoom LOD threshold
+      const minZ = v.minZoom ?? 0;
+      if (currentZ < minZ) return false;
+
+      // Viewport bounds projection check with safety margin
+      try {
+        if (!v.position || typeof v.position[0] !== "number" || typeof v.position[1] !== "number") {
+          return false;
+        }
+        const pt = map.project(v.position);
+        if (!pt || typeof pt.x !== "number" || typeof pt.y !== "number" || isNaN(pt.x) || isNaN(pt.y)) {
+          return false;
+        }
+
+        // Must be completely inside the padded safe area of the map viewport
+        return (
+          pt.x >= MARGIN_PX &&
+          pt.x <= width - MARGIN_PX &&
+          pt.y >= MARGIN_PX &&
+          pt.y <= height - MARGIN_PX
+        );
+      } catch {
+        return false;
+      }
+    });
+  }, [swarmVessels, mapViewportKey, currentZoom, mapReady]);
+
+  // Dynamic icon sizing: scaled for visual comfort and zero visual clutter
+  const dynamicIconSize = useMemo(() => {
+    if (currentZoom >= 10.5) return 28;
+    if (currentZoom >= 9.0) return 26;
+    if (currentZoom >= 7.0) return 23;
+    return 18;
+  }, [currentZoom]);
+
   const layers = useMemo(() => {
     const baseLayers = buildLayers({
       visibility,
@@ -153,41 +212,60 @@ export default function MapView({
 
     const extraLayers: (ScatterplotLayer | PathLayer | IconLayer<SwarmVessel>)[] = [];
 
-    // Add synthetic swarm ship icons for maritime traffic (interactive ship-shaped markers)
-    if (swarmVessels.length > 0) {
-      const shipAtlas = getMasterShipAtlasDataUri();
+    // Separate normal vessels (rendered as subtle blue dots) from dark vessels (ship-shaped icons)
+    const normalVessels = visibleSwarmVessels.filter((d) => !d.isDarkVessel);
+    const darkVesselsInSwarm = visibleSwarmVessels.filter((d) => d.isDarkVessel);
 
-      const swarmLayer = new IconLayer<SwarmVessel>({
-        id: "mission-swarm-ships",
-        data: swarmVessels,
+    // 1. Normal vessel dots (ScatterplotLayer) - small, clean, subtle blue dots
+    if (normalVessels.length > 0) {
+      const normalDotsLayer = new ScatterplotLayer<SwarmVessel>({
+        id: "mission-swarm-dots",
+        data: normalVessels,
         getPosition: (d: SwarmVessel) => d.position,
-        getIcon: (d: SwarmVessel) => {
-          if (d.isDarkVessel || d.suspicionLevel === "high") return "ship-red";
-          if (d.isCandidate || d.suspicionLevel === "moderate") return "ship-amber";
-          if (swarmPhase === "backtrack" && !d.isCandidate) return "ship-teal";
-          if (d.vesselType === "tanker") return "ship-tanker";
-          if (d.vesselType === "bulk") return "ship-bulk";
-          if (d.vesselType === "container") return "ship-container";
-          if (d.vesselType === "misc") return "ship-other";
-          return "ship-cyan";
-        },
-        getSize: (d: SwarmVessel) => {
+        getRadius: (d: SwarmVessel) => {
           const isSelected =
             selectedVessel &&
             (("id" in selectedVessel && selectedVessel.id === d.id) ||
               ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
-          if (isSelected) return SHIP_ICON_SIZE * 1.35;
-          if (d.isDarkVessel) return SHIP_ICON_SIZE * 1.25;
-          if (d.isCandidate) return SHIP_ICON_SIZE * 1.15;
-          if (d.vesselType === "tanker" || d.vesselType === "bulk") return SHIP_ICON_SIZE * 1.08;
-          if (d.vesselType === "container") return SHIP_ICON_SIZE;
-          return SHIP_ICON_SIZE * 0.92;
+          if (isSelected) return 6.5;
+          if (d.isCandidate) return 5.0;
+          return 3.8;
         },
-        getAngle: (d: SwarmVessel) => -(d.heading ?? d.course ?? 0),
-        iconAtlas: shipAtlas,
-        iconMapping: SHIP_ICON_MAPPING,
-        sizeUnits: "pixels",
+        radiusUnits: "pixels",
+        radiusMinPixels: 3,
+        radiusMaxPixels: 8,
+        getFillColor: (d: SwarmVessel) => {
+          const isSelected =
+            selectedVessel &&
+            (("id" in selectedVessel && selectedVessel.id === d.id) ||
+              ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
+          if (isSelected) return [255, 255, 255, 255];
+          if (d.isCandidate || d.suspicionLevel === "moderate") return [245, 158, 11, 230];
+          if (swarmPhase === "backtrack" && !d.isCandidate) return [90, 122, 148, 70];
+
+          if (d.vesselType === "tanker") return [56, 189, 248, 205];
+          if (d.vesselType === "bulk") return [20, 184, 166, 205];
+          if (d.vesselType === "container") return [96, 165, 250, 205];
+          if (d.vesselType === "misc") return [148, 163, 184, 180];
+          return [34, 211, 238, 200];
+        },
+        getLineColor: (d: SwarmVessel) => {
+          const isSelected =
+            selectedVessel &&
+            (("id" in selectedVessel && selectedVessel.id === d.id) ||
+              ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
+          if (isSelected) return [34, 211, 238, 255];
+          return [10, 15, 26, 220];
+        },
+        lineWidthMinPixels: 1,
+        stroked: true,
+        filled: true,
         pickable: true,
+        updateTriggers: {
+          getRadius: [selectedVessel],
+          getFillColor: [swarmPhase, selectedVessel],
+          getLineColor: [selectedVessel],
+        },
         onClick: (info) => {
           if (info.object) {
             handleSelectVessel(info.object as SwarmVessel);
@@ -199,23 +277,76 @@ export default function MapView({
             return;
           }
           const v = info.object as SwarmVessel;
-          const isDark = !!(v.isDarkVessel || v.suspicionLevel === "high");
           setTooltip({
             x: info.x,
             y: info.y,
-            type: isDark ? "dark-vessel" : "vessel",
+            type: "vessel",
             title: v.name,
             items: [
               { label: "MMSI", value: v.mmsi || "—" },
               { label: "Type", value: v.typeLabel || "Vessel" },
               { label: "Speed", value: `${(v.speedKnots ?? 0).toFixed(1)} kn` },
               { label: "Heading", value: `${(v.heading ?? 0).toFixed(0)}°` },
-              { label: "Status", value: isDark ? "BLACKOUT / ANOMALY" : (v.navStatus || "Underway") },
+              { label: "Status", value: v.navStatus || "Underway" },
             ],
           });
         },
       });
-      extraLayers.push(swarmLayer);
+      extraLayers.push(normalDotsLayer);
+    }
+
+    // 2. Dark Vessel Ship Markers (IconLayer) - PROMINENT RED SHIP SILHOUETTES
+    if (darkVesselsInSwarm.length > 0) {
+      const shipAtlas = getMasterShipAtlasDataUri();
+
+      const darkVesselsLayer = new IconLayer<SwarmVessel>({
+        id: "mission-dark-vessel-ships",
+        data: darkVesselsInSwarm,
+        getPosition: (d: SwarmVessel) => d.position,
+        getIcon: () => "ship-red",
+        getSize: (d: SwarmVessel) => {
+          const isSelected =
+            selectedVessel &&
+            (("id" in selectedVessel && selectedVessel.id === d.id) ||
+              ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
+          return isSelected ? dynamicIconSize * 1.5 : dynamicIconSize * 1.3;
+        },
+        getAngle: (d: SwarmVessel) => -(d.heading ?? d.course ?? 0),
+        iconAtlas: shipAtlas,
+        iconMapping: SHIP_ICON_MAPPING,
+        sizeUnits: "pixels",
+        pickable: true,
+        updateTriggers: {
+          getSize: [dynamicIconSize, selectedVessel],
+        },
+        onClick: (info) => {
+          if (info.object) {
+            handleSelectVessel(info.object as SwarmVessel);
+          }
+        },
+        onHover: (info) => {
+          if (!info.object) {
+            setTooltip(null);
+            return;
+          }
+          const v = info.object as SwarmVessel;
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            type: "dark-vessel",
+            title: v.name,
+            items: [
+              { label: "MMSI", value: v.mmsi || "—" },
+              { label: "Type", value: v.typeLabel || "Dark Target" },
+              { label: "Speed", value: `${(v.speedKnots ?? 0).toFixed(1)} kn` },
+              { label: "Heading", value: `${(v.heading ?? 0).toFixed(0)}°` },
+              { label: "Status", value: "BLACKOUT / SAR RADAR TARGET" },
+              { label: "Threat", value: v.threatTag || "CRITICAL PROBABILITY" },
+            ],
+          });
+        },
+      });
+      extraLayers.push(darkVesselsLayer);
     }
 
     // Selected Vessel Trajectory, Waypoints, Heading Vector, and Target Ring
@@ -360,7 +491,8 @@ export default function MapView({
     followTrack,
     primarySuspectVesselId,
     handleSelectVessel,
-    swarmVessels,
+    visibleSwarmVessels,
+    dynamicIconSize,
     swarmPhase,
     selectedVessel,
   ]);
@@ -380,6 +512,13 @@ export default function MapView({
     map.addControl(new NavigationControl(), "top-right");
     map.addControl(new ScaleControl(), "bottom-right");
 
+    const updateViewport = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setMapViewportKey((k) => k + 1);
+      });
+    };
+
     map.on("load", () => {
       if (overlayRef.current) return;
       const overlay = new MapboxOverlay({
@@ -396,8 +535,21 @@ export default function MapView({
       overlayRef.current = overlay;
       map.addControl(overlay as unknown as IControl);
       setMapReady(true);
+      setCurrentZoom(map.getZoom());
+      updateViewport();
       onMapReady?.(map);
     });
+
+    map.on("move", updateViewport);
+    map.on("zoom", () => {
+      if (map) {
+        setCurrentZoom(map.getZoom());
+      }
+      updateViewport();
+    });
+    map.on("rotate", updateViewport);
+    map.on("pitch", updateViewport);
+    map.on("resize", updateViewport);
 
     map.on("click", (e) => {
       const features = map.queryRenderedFeatures(e.point);
@@ -414,6 +566,7 @@ export default function MapView({
       mapRef.current = null;
       overlayRef.current = null;
       setMapReady(false);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

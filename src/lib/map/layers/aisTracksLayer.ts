@@ -162,44 +162,49 @@ export function createAisTrackLayers({
     },
   });
 
-  // ── 3. Directional Chevron Ship Icons (IconLayer) ──────────────────────────
-  const shipIconAtlas = getMasterShipAtlasDataUri();
-
-  const shipIcons = new IconLayer<ActiveVesselPosition>({
-    id: `${LAYER_IDS.aisTracks}-icons`,
+  // ── 3. Normal AIS Vessels: Subtle Clean Blue Dots (ScatterplotLayer) ──────
+  const aisDots = new ScatterplotLayer<ActiveVesselPosition>({
+    id: `${LAYER_IDS.aisTracks}-dots`,
     visible,
     data: aisPositions,
     getPosition: (d) => d.currentPosition,
-    getIcon: (d) => {
-      if (d.vessel.isCandidate) return "ship-amber";
-      const typeLower = (d.vessel.vesselType || "").toLowerCase();
-      if (typeLower.includes("tanker")) return "ship-tanker";
-      if (typeLower.includes("bulk")) return "ship-bulk";
-      if (typeLower.includes("container")) return "ship-container";
-      if (typeLower.includes("tug") || typeLower.includes("osv") || typeLower.includes("support") || typeLower.includes("service")) return "ship-other";
-      return "ship-cyan";
-    },
-    getSize: (d) => {
+    getRadius: (d) => {
       const isThisSelected = d.vessel.vesselId === selectedTrackId;
-      if (isThisSelected) return SHIP_ICON_SIZE * 1.35;
-      const typeLower = (d.vessel.vesselType || "").toLowerCase();
-      if (typeLower.includes("tanker") || typeLower.includes("bulk")) return SHIP_ICON_SIZE * 1.08;
-      if (typeLower.includes("container")) return SHIP_ICON_SIZE;
-      return SHIP_ICON_SIZE * 0.92;
+      if (isThisSelected) return 6.5;
+      if (d.vessel.isCandidate) return 5.0;
+      return 4.0;
     },
-    getAngle: (d) => -(d.heading ?? 0),   // deck.gl angles: CCW; heading is CW from north
-    iconAtlas: shipIconAtlas,
-    iconMapping: SHIP_ICON_MAPPING,
-    sizeUnits: "pixels",
+    radiusUnits: "pixels",
+    radiusMinPixels: 3,
+    radiusMaxPixels: 8,
+    getFillColor: (d) => {
+      const isThisSelected = d.vessel.vesselId === selectedTrackId;
+      if (isThisSelected) return [255, 255, 255, 255];
+      if (d.vessel.isCandidate) return [245, 158, 11, 230];
+      const typeLower = (d.vessel.vesselType || "").toLowerCase();
+      if (typeLower.includes("tanker")) return [56, 189, 248, 205];
+      if (typeLower.includes("bulk")) return [20, 184, 166, 205];
+      if (typeLower.includes("container")) return [96, 165, 250, 205];
+      if (typeLower.includes("tug") || typeLower.includes("osv") || typeLower.includes("support")) return [148, 163, 184, 180];
+      return [34, 211, 238, 200];
+    },
+    getLineColor: (d) => {
+      const isThisSelected = d.vessel.vesselId === selectedTrackId;
+      if (isThisSelected) return [34, 211, 238, 255];
+      return [10, 15, 26, 220];
+    },
+    lineWidthMinPixels: 1,
+    stroked: true,
+    filled: true,
     pickable: true,
     transitions: {
       getPosition: 250,
-      getAngle: 250,
     },
     updateTriggers: {
       getPosition: [activePositions],
-      getAngle: [activePositions],
-      getSize: [selectedTrackId],
+      getRadius: [selectedTrackId],
+      getFillColor: [selectedTrackId, selectedTrackColor, activePositions],
+      getLineColor: [selectedTrackId],
     },
     onHover: (info) => {
       if (!onHover) return;
@@ -285,5 +290,5 @@ export function createAisTrackLayers({
     },
   });
 
-  return [tracks, motionTrailLayer, ...haloLayers, shipIcons, darkVesselLayer];
+  return [tracks, motionTrailLayer, ...haloLayers, aisDots, darkVesselLayer];
 }

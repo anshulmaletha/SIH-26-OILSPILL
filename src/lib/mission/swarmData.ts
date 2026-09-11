@@ -1,7 +1,7 @@
 /**
  * SIH 26143 — Synthetic AIS Vessel Swarm & Maritime Intelligence Data
  *
- * Generates ~412 geo-aligned realistic synthetic vessel tracks and live telemetry
+ * Generates calibrated realistic synthetic vessel tracks and live telemetry
  * across the Mumbai offshore maritime corridor (INC-2026-MUM-001).
  *
  * Provides rich, deterministic, realistic vessel metadata:
@@ -10,6 +10,7 @@
  * - Navigational Status, Destination, ETA, Dimensions (Length, Beam, Draught)
  * - Historical trajectory waypoints leading up to current position
  * - Suspicious / Dark vessel anomaly classifications
+ * - Viewport boundary safety & Zoom-responsive LOD density tiers
  */
 
 export interface SwarmVessel {
@@ -48,6 +49,8 @@ export interface SwarmVessel {
   blackoutDurationHours?: number;
   /** Risk or confidence score */
   riskScore?: string | number;
+  /** Minimum zoom level at which this vessel is revealed (LOD filtering) */
+  minZoom?: number;
 }
 
 // ─── Seeded pseudo-random (LCG) for deterministic output ─────────────────────
@@ -126,7 +129,8 @@ const NAV_STATUSES = [
   "Moored / Awaiting Berth",
 ];
 
-// ─── Shipping lane clusters ───────────────────────────────────────────────────
+// ─── Calibrated Primary Clusters (230 base normal vessels) ───────────────────
+// Provides a natural, corridor-clustered maritime traffic density of ~200–220 fully visible normal vessels at default zoom
 
 const CLUSTERS: Array<{
   centerLng: number;
@@ -138,20 +142,43 @@ const CLUSTERS: Array<{
   typeLabel: string;
   defaultCog: number;
   speedRange: [number, number];
+  baseMinZoom?: number;
 }> = [
-  // Main Arabian Sea–Mumbai shipping corridor (heavily trafficked)
-  { centerLng: 72.10, centerLat: 19.00, spreadLng: 0.80, spreadLat: 0.55, count: 90, type: "container", typeLabel: "Container Ship", defaultCog: 78, speedRange: [15.5, 21.0] },
-  { centerLng: 71.60, centerLat: 19.40, spreadLng: 0.70, spreadLat: 0.60, count: 75, type: "tanker", typeLabel: "Crude Oil Tanker", defaultCog: 135, speedRange: [11.2, 14.8] },
-  // JNPT / Nhava Sheva approach lane
-  { centerLng: 72.85, centerLat: 18.92, spreadLng: 0.30, spreadLat: 0.25, count: 45, type: "container", typeLabel: "Container Ship", defaultCog: 92, speedRange: [8.0, 14.0] },
-  // Western offshore: VLCC anchorage zone
-  { centerLng: 71.20, centerLat: 19.70, spreadLng: 0.55, spreadLat: 0.45, count: 55, type: "tanker", typeLabel: "VLCC / Product Tanker", defaultCog: 160, speedRange: [0.2, 4.5] },
-  // Southern transit: bulk carriers heading NW
-  { centerLng: 72.40, centerLat: 18.30, spreadLng: 0.60, spreadLat: 0.40, count: 50, type: "bulk", typeLabel: "Bulk Carrier", defaultCog: 310, speedRange: [10.5, 14.2] },
-  // Northern approach: Kandla/Gujarat traffic
-  { centerLng: 71.80, centerLat: 20.50, spreadLng: 0.70, spreadLat: 0.50, count: 40, type: "bulk", typeLabel: "Bulk Carrier", defaultCog: 185, speedRange: [11.0, 15.0] },
-  // Scattered misc vessels (fishing, service, tug)
-  { centerLng: 72.50, centerLat: 19.60, spreadLng: 1.00, spreadLat: 0.80, count: 57, type: "misc", typeLabel: "Offshore Support / Tug", defaultCog: 240, speedRange: [6.0, 11.5] },
+  // 1. Central Arabian Sea Traffic Separation Scheme (TSS) & Approach Channel (Main container line)
+  { centerLng: 72.15, centerLat: 19.05, spreadLng: 0.48, spreadLat: 0.24, count: 54, type: "container", typeLabel: "Container Ship", defaultCog: 78, speedRange: [16.0, 21.5], baseMinZoom: 0 },
+  // 2. North-West Crude Tanker Trunk Line (Gulf to Mumbai / Hazira)
+  { centerLng: 71.55, centerLat: 19.45, spreadLng: 0.42, spreadLat: 0.30, count: 46, type: "tanker", typeLabel: "Crude Oil Tanker", defaultCog: 135, speedRange: [11.5, 14.8], baseMinZoom: 0 },
+  // 3. Nhava Sheva / JNPT Port Approach & Waiting Roads
+  { centerLng: 72.82, centerLat: 18.94, spreadLng: 0.16, spreadLat: 0.15, count: 28, type: "container", typeLabel: "Container Ship", defaultCog: 92, speedRange: [6.0, 12.0], baseMinZoom: 0 },
+  // 4. Bombay High / Western Offshore VLCC Anchorage Zone
+  { centerLng: 71.25, centerLat: 19.68, spreadLng: 0.30, spreadLat: 0.22, count: 34, type: "tanker", typeLabel: "VLCC / Product Tanker", defaultCog: 150, speedRange: [0.2, 3.5], baseMinZoom: 0 },
+  // 5. Southern Coastal Transit (Goa / Cochin to Mumbai bulk traffic)
+  { centerLng: 72.45, centerLat: 18.42, spreadLng: 0.35, spreadLat: 0.22, count: 28, type: "bulk", typeLabel: "Bulk Carrier", defaultCog: 315, speedRange: [10.5, 14.2], baseMinZoom: 0 },
+  // 6. Northern Feeder Lane (Gulf of Khambhat / Hazira)
+  { centerLng: 71.75, centerLat: 20.25, spreadLng: 0.38, spreadLat: 0.25, count: 22, type: "bulk", typeLabel: "Bulk Carrier", defaultCog: 185, speedRange: [11.0, 15.0], baseMinZoom: 0 },
+  // 7. Coastal Support / OSV / Tug vessels near offshore installations
+  { centerLng: 72.48, centerLat: 19.55, spreadLng: 0.48, spreadLat: 0.35, count: 18, type: "misc", typeLabel: "Offshore Support / Tug", defaultCog: 240, speedRange: [6.0, 11.0], baseMinZoom: 0 },
+];
+
+// High-zoom detail vessels (revealed when zooming in closer for deep port/field inspection)
+const DETAIL_CLUSTERS: Array<{
+  centerLng: number;
+  centerLat: number;
+  spreadLng: number;
+  spreadLat: number;
+  count: number;
+  type: SwarmVessel["vesselType"];
+  typeLabel: string;
+  defaultCog: number;
+  speedRange: [number, number];
+  baseMinZoom: number;
+}> = [
+  // High-zoom inner harbor service craft near JNPT
+  { centerLng: 72.90, centerLat: 18.96, spreadLng: 0.10, spreadLat: 0.10, count: 30, type: "misc", typeLabel: "Harbor Tug / Pilot", defaultCog: 85, speedRange: [4.0, 9.0], baseMinZoom: 9.0 },
+  // High-zoom offshore field supply vessels around Bombay High
+  { centerLng: 71.30, centerLat: 19.72, spreadLng: 0.18, spreadLat: 0.18, count: 35, type: "misc", typeLabel: "Offshore Supply Vessel", defaultCog: 180, speedRange: [5.0, 10.5], baseMinZoom: 9.0 },
+  // High-zoom local coastal feeder traffic
+  { centerLng: 72.65, centerLat: 19.20, spreadLng: 0.25, spreadLat: 0.25, count: 35, type: "container", typeLabel: "Feeder Container", defaultCog: 110, speedRange: [12.0, 16.0], baseMinZoom: 9.0 },
 ];
 
 // ─── Candidate & Suspicious Vessels ──────────────────────────────────────────
@@ -180,6 +207,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     suspicionLevel: "high",
     suspiciousReason: "Primary suspect: 14.2 → 4.1 kn speed drop at T-12h inside backtracked spill corridor",
     threatTag: "CRITICAL PROBABILITY (0.912)",
+    minZoom: 0,
     trajectory: [
       [70.80, 20.10],
       [70.95, 19.92],
@@ -213,6 +241,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     riskScore: "92 / 100 (CRITICAL)",
     suspiciousReason: "Rendezvous behavior with another dark contact & 14h continuous AIS blackout correlated with Sentinel-1A SAR detection at plume origin.",
     threatTag: "CFAR RADAR TARGET · 14h BLACKOUT",
+    minZoom: 0,
     trajectory: [
       [71.55, 19.55],
       [71.72, 19.42],
@@ -246,6 +275,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     riskScore: "78 / 100 (HIGH)",
     suspiciousReason: "Route deviation from historical corridor with 4h transponder shutdown along northern feeder lane.",
     threatTag: "ROUTE DEVIATION · 4h BLACKOUT",
+    minZoom: 0,
     trajectory: [
       [71.30, 20.35],
       [71.38, 20.15],
@@ -279,6 +309,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     riskScore: "85 / 100 (HIGH)",
     suspiciousReason: "Loitering pattern detected near shipping lane with nighttime 90° heading shift and 9h AIS blackout traversing outer TSS.",
     threatTag: "LOITERING DETECTED · 9h BLACKOUT",
+    minZoom: 0,
     trajectory: [
       [72.70, 18.45],
       [72.52, 18.52],
@@ -312,6 +343,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     riskScore: "89 / 100 (HIGH)",
     suspiciousReason: "AIS gap exceeds 6h threshold (22h total blackout) coinciding with backtracked drift corridor origin.",
     threatTag: "CORRIDOR ORIGIN · 22h BLACKOUT",
+    minZoom: 0,
     trajectory: [
       [70.70, 19.85],
       [70.82, 19.72],
@@ -342,6 +374,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     suspicionLevel: "moderate",
     suspiciousReason: "Moderate correlation: Transited outer corridor boundary at T-10h with normal speed profile",
     threatTag: "MODERATE PROXIMITY (0.540)",
+    minZoom: 0,
     trajectory: [
       [71.15, 19.85],
       [71.28, 19.72],
@@ -372,6 +405,7 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     suspicionLevel: "low",
     suspiciousReason: "Cleared candidate: Transited south of corridor at high continuous transit speed (18.7 kn)",
     threatTag: "CLEARED CANDIDATE (0.184)",
+    minZoom: 0,
     trajectory: [
       [70.60, 18.30],
       [71.30, 18.33],
@@ -393,9 +427,11 @@ export function generateSwarmVessels(): SwarmVessel[] {
   const vessels: SwarmVessel[] = [];
   let idCounter = 0;
 
-  for (const cluster of CLUSTERS) {
+  const allClusters = [...CLUSTERS, ...DETAIL_CLUSTERS];
+
+  for (const cluster of allClusters) {
     for (let i = 0; i < cluster.count; i++) {
-      // Box-Muller for Gaussian spread
+      // Box-Muller for realistic Gaussian cluster distribution
       const u = Math.max(1e-6, rand());
       const v = rand();
       const z1 = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
@@ -433,7 +469,7 @@ export function generateSwarmVessels(): SwarmVessel[] {
         (cluster.speedRange[0] + rand() * (cluster.speedRange[1] - cluster.speedRange[0])).toFixed(1)
       );
 
-      const headingOffset = (rand() - 0.5) * 20;
+      const headingOffset = (rand() - 0.5) * 16;
       const heading = Math.round((cluster.defaultCog + headingOffset + 360) % 360);
       const course = Math.round((heading + (rand() - 0.5) * 4 + 360) % 360);
 
@@ -472,6 +508,8 @@ export function generateSwarmVessels(): SwarmVessel[] {
         [clampedLng, clampedLat],
       ];
 
+      const minZoom = cluster.baseMinZoom ?? 0;
+
       vessels.push({
         id: `swarm-${String(++idCounter).padStart(3, "0")}`,
         name,
@@ -494,10 +532,12 @@ export function generateSwarmVessels(): SwarmVessel[] {
         trajectory,
         isCandidate: false,
         suspicionLevel: "none",
+        minZoom,
       });
     }
   }
 
+  // Always append the candidate & dark vessels
   vessels.push(...CANDIDATE_VESSELS);
 
   _swarm = vessels;
@@ -529,7 +569,6 @@ export function swarmVesselColor(
   }
 
   if (phase === "swarm") {
-    // All normal vessels: vibrant cyan dots
     return [34, 211, 238, 175];
   }
 
