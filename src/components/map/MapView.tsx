@@ -7,7 +7,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, PathLayer } from "@deck.gl/layers";
 
 import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
@@ -19,6 +19,7 @@ import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
 import { DEFAULT_P5_DATA, getVesselPositionsAtHour } from "@/lib/adapters/p5Adapter";
 import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
+import { VesselInfoPanel } from "./VesselInfoPanel";
 import type { MissionStage } from "@/lib/mission/missionState";
 import type { SwarmVessel } from "@/lib/mission/swarmData";
 import { swarmVesselColor } from "@/lib/mission/swarmData";
@@ -79,6 +80,7 @@ export default function MapView({
     ringK: number;
   } | null>(null);
   const [hexScreenPos, setHexScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedSwarmVessel, setSelectedSwarmVessel] = useState<SwarmVessel | null>(null);
 
   const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
 
@@ -107,6 +109,8 @@ export default function MapView({
   }, [selectedHexCell]);
 
   const layers = useMemo(() => {
+    const extraLayers = [];
+
     const baseLayers = buildLayers({
       visibility,
       p1Data,
@@ -119,7 +123,46 @@ export default function MapView({
       followTrack,
       primarySuspectVesselId,
       onHover: (info) => setTooltip(info),
-      onSelectVessel,
+      onSelectVessel: (vessel) => {
+        onSelectVessel?.(vessel);
+        const match = swarmVessels.find(
+          (sv) => sv.mmsi === vessel.mmsi || sv.name === vessel.vesselName || sv.id === vessel.vesselId
+        );
+        if (match) {
+          setSelectedSwarmVessel(match);
+        } else {
+          setSelectedSwarmVessel({
+            id: vessel.vesselId,
+            name: vessel.vesselName,
+            mmsi: vessel.mmsi || "N/A",
+            callsign: vessel.callsign || "N/A",
+            flag: vessel.flag,
+            vesselType: (vessel.vesselType.toLowerCase().includes("tanker")
+              ? "tanker"
+              : vessel.vesselType.toLowerCase().includes("container")
+              ? "container"
+              : "bulk") as any,
+            typeLabel: vessel.vesselType,
+            position: vessel.path[vessel.path.length - 1] || [71.2, 19.65],
+            heading: 135,
+            course: 135,
+            speedKnots: 14.0,
+            navStatus: vessel.isDarkVessel ? "AIS Blackout" : "Underway using Engine",
+            destination: vessel.destination || "MUMBAI",
+            eta: vessel.eta || "2026-05-15 14:00 UTC",
+            lastSeen: "06:00:00 UTC",
+            lengthMeters: vessel.lengthMeters || 200,
+            beamMeters: vessel.beamMeters || 32,
+            draughtMeters: vessel.draughtMeters || 10.5,
+            trajectory: vessel.path || [],
+            isCandidate: vessel.isCandidate,
+            suspicionLevel: vessel.isCandidate ? "high" : "none",
+            isDarkVessel: vessel.isDarkVessel,
+            suspiciousReason: vessel.darkAnomaly?.notes,
+            threatTag: vessel.isDarkVessel ? "AIS BLACKOUT" : undefined,
+          });
+        }
+      },
       onClickHex: (cell, coord) => {
         let k = 0;
         try {
@@ -131,23 +174,92 @@ export default function MapView({
       },
     });
 
-    // Add synthetic swarm scatter layer for AIS_SWARM and BACKTRACK_CORRIDOR phases
+    // Add synthetic swarm scatter layer for all interactive vessels
     if (swarmVessels.length > 0) {
-      const swarmLayer = new ScatterplotLayer({
+      const swarmLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-swarm",
         data: swarmVessels,
         getPosition: (d) => d.position,
-        getRadius: (d) => (d.isCandidate ? 900 : 600),
+        getRadius: (d) => (d.isDarkVessel ? 1200 : d.isCandidate ? 950 : 650),
         getFillColor: (d) => swarmVesselColor(d, swarmPhase),
         radiusUnits: "meters",
-        radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2,
-        pickable: false,
+        radiusMinPixels: (d) => (d.isDarkVessel ? 4 : swarmPhase === "backtrack" ? 3 : 2.5),
+        pickable: true,
         parameters: { depthTest: false },
+        updateTriggers: {
+          getFillColor: [swarmPhase, selectedSwarmVessel],
+          getRadius: [selectedSwarmVessel],
+        },
+        onHover: (info) => {
+          if (!info.object) {
+            if (tooltip?.type === "swarm-vessel") setTooltip(null);
+            return;
+          }
+          const v = info.object as SwarmVessel;
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            type: "swarm-vessel",
+            title: v.name,
+            items: [
+              { label: "MMSI", value: v.mmsi || "—" },
+              { label: "Type", value: v.typeLabel },
+              { label: "Speed", value: `${v.speedKnots.toFixed(1)} kn` },
+              { label: "Heading", value: `${v.heading}°` },
+              { label: "Coord", value: `${v.position[1].toFixed(4)}°N, ${v.position[0].toFixed(4)}°E` },
+            ],
+          });
+        },
+        onClick: (info) => {
+          if (info.object) {
+            const v = info.object as SwarmVessel;
+            setSelectedSwarmVessel(v);
+          }
+        },
       });
-      return [...baseLayers, swarmLayer];
+      extraLayers.push(swarmLayer);
     }
 
-    return baseLayers;
+    // Add selected vessel trajectory & target highlight ring
+    if (selectedSwarmVessel) {
+      if (selectedSwarmVessel.trajectory && selectedSwarmVessel.trajectory.length > 1) {
+        const trajectoryLayer = new PathLayer<{ path: [number, number][] }>({
+          id: "selected-vessel-trajectory",
+          data: [{ path: selectedSwarmVessel.trajectory }],
+          getPath: (d) => d.path,
+          getColor: selectedSwarmVessel.isDarkVessel ? [239, 68, 68, 240] : [34, 211, 238, 240],
+          getWidth: 3,
+          widthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getPath: [selectedSwarmVessel],
+            getColor: [selectedSwarmVessel],
+          },
+        });
+        extraLayers.push(trajectoryLayer);
+      }
+
+      const ringLayer = new ScatterplotLayer<SwarmVessel>({
+        id: "selected-vessel-ring",
+        data: [selectedSwarmVessel],
+        getPosition: (d) => d.position,
+        getRadius: selectedSwarmVessel.isDarkVessel ? 2200 : 1600,
+        radiusUnits: "meters",
+        radiusMinPixels: 8,
+        getFillColor: [0, 0, 0, 0],
+        getLineColor: selectedSwarmVessel.isDarkVessel ? [239, 68, 68, 255] : [34, 211, 238, 255],
+        lineWidthMinPixels: 2.5,
+        stroked: true,
+        pickable: false,
+        updateTriggers: {
+          getPosition: [selectedSwarmVessel],
+          getLineColor: [selectedSwarmVessel],
+        },
+      });
+      extraLayers.push(ringLayer);
+    }
+
+    return [...baseLayers, ...extraLayers];
   }, [
     visibility,
     p1Data,
@@ -162,6 +274,8 @@ export default function MapView({
     onSelectVessel,
     swarmVessels,
     swarmPhase,
+    selectedSwarmVessel,
+    tooltip?.type,
   ]);
 
   // Initialize Map
@@ -450,6 +564,12 @@ export default function MapView({
           </div>
         </div>
       )}
+
+      {/* Floating Interactive Vessel Information HUD Panel */}
+      <VesselInfoPanel
+        vessel={selectedSwarmVessel}
+        onClose={() => setSelectedSwarmVessel(null)}
+      />
     </div>
   );
 }

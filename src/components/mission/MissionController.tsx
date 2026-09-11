@@ -201,11 +201,8 @@ function MissionControllerInner() {
 
   const primarySuspect = p3Data.suspects[0]?.vesselId;
 
-  // Swarm vessels for phase 3 & 4
-  const swarmVessels =
-    currentStage === "AIS_SWARM" || currentStage === "BACKTRACK_CORRIDOR"
-      ? generateSwarmVessels()
-      : [];
+  // Swarm vessels for full AIS maritime tracking & interactivity
+  const swarmVessels = generateSwarmVessels();
 
   // Determine the "swarm phase" for color assignment
   const swarmPhase =
