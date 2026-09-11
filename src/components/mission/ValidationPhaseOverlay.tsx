@@ -270,7 +270,7 @@ export const ValidationPhaseOverlay: React.FC = () => {
             result={
               lf
                 ? `${lf.wind_speed_ms.toFixed(1)} m/s — ${windPassed ? "Above 2.0 m/s operational floor (Valid SAR)" : "Below 2.0 m/s calm threshold (Look-alike alert)"}`
-                : "6.4 m/s WSW — Above 2.0 m/s operational floor"
+                : "3.8 m/s — Above 2.0 m/s operational floor (Valid SAR)"
             }
             resultColor={windPassed ? "#22D3EE" : "#EF4444"}
             showProgressBar

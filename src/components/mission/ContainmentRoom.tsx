@@ -17,23 +17,23 @@ interface DriftProjection {
 }
 
 const DRIFT_PROJECTIONS: DriftProjection[] = [
-  { hour: 0,  lat: 19.35, lng: 71.85, areaKm2: 14.2,  label: "T+0h  · Detected position" },
-  { hour: 6,  lat: 19.18, lng: 72.05, areaKm2: 18.4,  label: "T+6h  · Active drift" },
-  { hour: 12, lat: 19.05, lng: 72.22, areaKm2: 28.1,  label: "T+12h · Expanding plume" },
-  { hour: 24, lat: 18.90, lng: 72.50, areaKm2: 44.8,  label: "T+24h · Coastal approach" },
-  { hour: 48, lat: 18.75, lng: 72.75, areaKm2: 72.3,  label: "T+48h · Mangrove threat" },
+  { hour: 0,  lat: 19.350, lng: 71.853, areaKm2: 4.82, label: "T+0h  · Initial Detection (19.35°N, 71.85°E)" },
+  { hour: 6,  lat: 19.340, lng: 71.881, areaKm2: 5.4,  label: "T+6h  · OpenDrift Forward (19.34°N, 71.88°E)" },
+  { hour: 12, lat: 19.336, lng: 71.917, areaKm2: 6.8,  label: "T+12h · Advection Plume (19.34°N, 71.92°E)" },
+  { hour: 18, lat: 19.323, lng: 71.949, areaKm2: 8.5,  label: "T+18h · Dispersion Plume (19.32°N, 71.95°E)" },
+  { hour: 24, lat: 19.324, lng: 71.950, areaKm2: 10.2, label: "T+24h · Coastal Approach (19.32°N, 71.95°E)" },
 ];
 
-const BOOM_SECTORS = [
-  { id: "A", name: "Dharamtar Inlet", status: "RECOMMENDED", color: "#10B981" },
-  { id: "B", name: "Alibag Coastal", status: "STANDBY", color: "#F59E0B" },
-  { id: "C", name: "Elephanta Channel", status: "PLANNED", color: "#5A7A94" },
+const OPERATIONAL_SECTORS = [
+  { id: "A", name: "Offshore Advection Axis (71.85°–71.95°E)", status: "ACTIVE PLUME", color: "#10B981" },
+  { id: "B", name: "Outer Anchorage Buffer (~45 km offshore)", status: "INTERCEPT LINE", color: "#F59E0B" },
+  { id: "C", name: "Mumbai Coastal Approach Corridor", status: "MONITORING", color: "#5A7A94" },
 ];
 
-const SKIMMER_ZONES = [
-  { id: "Z1", name: "Primary Recovery", lat: "19.10°N", lng: "72.20°E", rate: "180 t/day" },
-  { id: "Z2", name: "Secondary Zone", lat: "18.95°N", lng: "72.40°E", rate: "120 t/day" },
-  { id: "Z3", name: "Coastal Buffer", lat: "18.85°N", lng: "72.60°E", rate: "80 t/day" },
+const RECOVERY_ZONES = [
+  { id: "Z1", name: "Primary Plume Centroid", lat: "19.34°N", lng: "71.88°E", rate: "OpenDrift Particle Core" },
+  { id: "Z2", name: "Downwind Dispersion Zone", lat: "19.33°N", lng: "71.92°E", rate: "ERA5 Wind Drift Axis" },
+  { id: "Z3", name: "Coastal Defense Perimeter", lat: "19.32°N", lng: "71.95°E", rate: "T+24h Intercept Line" },
 ];
 
 export function ContainmentRoom() {
@@ -43,14 +43,14 @@ export function ContainmentRoom() {
 
   const elapsed = state.stageElapsedMs;
 
-  // Forward clock progress: T+0 to T+48 shown over 30s interaction time
-  const forwardHours = Math.min(48, Math.round((elapsed / 30000) * 48));
+  // Forward clock progress: T+0 to T+24 shown over 20s
+  const forwardHours = Math.min(24, Math.round((elapsed / 20000) * 24));
   const currentDrift = DRIFT_PROJECTIONS.reduce((prev, curr) =>
     Math.abs(curr.hour - forwardHours) < Math.abs(prev.hour - forwardHours) ? curr : prev
   );
 
-  // Containment efficiency (improves as booms are "deployed")
-  const containEff = Math.min(67, Math.round(elapsed / 450));
+  // Response readiness indicator
+  const responseProgress = Math.min(100, Math.round(elapsed / 200));
 
   return (
     <>
@@ -62,7 +62,7 @@ export function ContainmentRoom() {
           right: 0,
           bottom: 0,
           zIndex: 25,
-          width: 340,
+          width: 350,
           background: "#080B0F",
           borderLeft: "1px solid #1C3830",
           display: "flex",
@@ -91,7 +91,7 @@ export function ContainmentRoom() {
                   letterSpacing: "0.12em",
                 }}
               >
-                ■ RESPONSE OPERATIONS
+                ■ SPILL RESPONSE SIMULATION
               </div>
               <div
                 style={{
@@ -101,7 +101,7 @@ export function ContainmentRoom() {
                   marginTop: 2,
                 }}
               >
-                INCIDENT RESPONSE &amp; CONTAINMENT CENTRE
+                OpenDrift Forward Advection (ERA5 Atmospheric Forcing)
               </div>
             </div>
             <button
@@ -224,7 +224,7 @@ export function ContainmentRoom() {
             ))}
           </section>
 
-          {/* Containment gauge */}
+          {/* Advection & response metrics */}
           <section>
             <div
               style={{
@@ -236,21 +236,21 @@ export function ContainmentRoom() {
                 marginBottom: 6,
               }}
             >
-              CONTAINMENT EFFICIENCY
+              ADVECTION & BUFFER DYNAMICS
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: 700,
-                  color: containEff > 50 ? "#10B981" : "#F59E0B",
+                  color: "#10B981",
                 }}
               >
-                {containEff}%
+                ~0.45 km/h
               </span>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#2D6A5A" }}>
-                at T+24h with boom deployment
+                Eastward drift velocity (ERA5 3.8 m/s wind)
               </span>
             </div>
             <div style={{ height: 4, background: "#1C3830", marginTop: 6, position: "relative" }}>
@@ -260,15 +260,15 @@ export function ContainmentRoom() {
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  background: containEff > 50 ? "#10B981" : "#F59E0B",
-                  width: `${containEff}%`,
+                  background: "#10B981",
+                  width: `${responseProgress}%`,
                   transition: "width 0.3s linear",
                 }}
               />
             </div>
           </section>
 
-          {/* Boom barriers */}
+          {/* Operational sectors */}
           <section>
             <div
               style={{
@@ -280,11 +280,11 @@ export function ContainmentRoom() {
                 marginBottom: 6,
               }}
             >
-              BOOM BARRIER DEPLOYMENT
+              OPERATIONAL RESPONSE SECTORS
             </div>
-            {BOOM_SECTORS.map((boom) => (
+            {OPERATIONAL_SECTORS.map((sector) => (
               <div
-                key={boom.id}
+                key={sector.id}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -303,7 +303,7 @@ export function ContainmentRoom() {
                       color: "#5A7A94",
                     }}
                   >
-                    Sector {boom.id}:
+                    Sector {sector.id}:
                   </span>
                   <span
                     style={{
@@ -313,25 +313,25 @@ export function ContainmentRoom() {
                       marginLeft: 6,
                     }}
                   >
-                    {boom.name}
+                    {sector.name}
                   </span>
                 </div>
                 <span
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
                     fontSize: 8,
-                    color: boom.color,
+                    color: sector.color,
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                   }}
                 >
-                  {boom.status}
+                  {sector.status}
                 </span>
               </div>
             ))}
           </section>
 
-          {/* Skimmer zones */}
+          {/* Intercept zones */}
           <section>
             <div
               style={{
@@ -343,9 +343,9 @@ export function ContainmentRoom() {
                 marginBottom: 6,
               }}
             >
-              SKIMMER DEPLOYMENT ZONES
+              PHYSICAL INTERCEPT &amp; MONITORING ZONES
             </div>
-            {SKIMMER_ZONES.map((z) => (
+            {RECOVERY_ZONES.map((z) => (
               <div
                 key={z.id}
                 style={{
@@ -377,8 +377,8 @@ export function ContainmentRoom() {
             ))}
           </section>
 
-          {/* Coastal impact warning */}
-          {forwardHours >= 24 && (
+          {/* Coastal proximity advisory */}
+          {forwardHours >= 18 && (
             <div
               style={{
                 padding: "8px 10px",
@@ -394,7 +394,7 @@ export function ContainmentRoom() {
                   fontWeight: 700,
                 }}
               >
-                ⚠ COASTAL IMPACT WARNING
+                ℹ COASTAL PROXIMITY ADVISORY
               </div>
               <div
                 style={{
@@ -402,11 +402,14 @@ export function ContainmentRoom() {
                   fontSize: 8,
                   color: "#8A6A2A",
                   marginTop: 4,
+                  lineHeight: 1.4,
                 }}
               >
-                Mangrove ecosystem threatened at T+31h.
+                At T+24h, advection centroid reaches [19.324°N, 71.950°E].
                 <br />
-                Priority: Dharamtar inlet boom deployment.
+                Estimated shore distance: ~45 km to Mumbai coastline.
+                <br />
+                Clear window for maritime containment operations.
               </div>
             </div>
           )}

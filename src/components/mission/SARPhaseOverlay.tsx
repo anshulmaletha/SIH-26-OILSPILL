@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useMission } from "@/lib/mission/missionState";
 
 // Inject keyframes once
@@ -264,10 +264,10 @@ export const SARPhaseOverlay: React.FC = () => {
             ANOMALY DETECTED
           </div>
           <div style={{ fontSize: 9, color: "#C8D8E8", lineHeight: 1.7 }}>
-            <div>Lat 19.35°N&nbsp;&nbsp;Lon 71.85°E</div>
-            <div>σ° = -18.6 dB&nbsp;&nbsp;|&nbsp;&nbsp;Area: 14.2 km²</div>
-            <div>Confidence: 94%</div>
-            <div style={{ color: "#F59E0B", marginTop: 2 }}>
+            <div>Centroid: 19.350°N  71.853°E</div>
+            <div>σ° = -18.6 dB (VV)&nbsp;&nbsp;|&nbsp;&nbsp;Area: 4.82 km²</div>
+            <div>Model Confidence: 94.0%</div>
+            <div style={{ color: "#22D3EE", marginTop: 2 }}>
               Classification: CRUDE PETROLEUM SLICK
             </div>
           </div>

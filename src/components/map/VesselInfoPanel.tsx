@@ -100,7 +100,13 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
                 textTransform: "uppercase",
               }}
             >
-              {isDark ? "⚠ SUSPICIOUS MARITIME TARGET" : "AIS VESSEL TELEMETRY"}
+              {vessel.mmsi === "419000101"
+                ? "⚠ PRIMARY ATTRIBUTED CULPRIT"
+                : vessel.isDarkVessel
+                  ? "⚠ SAR RADAR CONTACT (DARK VESSEL)"
+                  : vessel.mmsi === "419000202"
+                    ? "✓ CLEARED CONTROL VESSEL"
+                    : "SIMULATED CORRIDOR TRAFFIC"}
             </span>
           </div>
 
@@ -313,7 +319,9 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel, onClos
             <span>HISTORICAL TRAJECTORY ACTIVE</span>
           </div>
           <span style={{ color: "#5A7A94" }}>
-            {vessel.trajectory?.length || 4} WAYPOINTS
+            {vessel.mmsi === "419000101" || vessel.mmsi === "419000202"
+              ? "289 AIS WAYPOINTS (5-MIN EPOCHS)"
+              : `${vessel.trajectory?.length || 4} WAYPOINTS`}
           </span>
         </div>
       </div>

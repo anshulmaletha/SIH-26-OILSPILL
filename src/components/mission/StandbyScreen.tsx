@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useMission } from "@/lib/mission/missionState";
 
 // Inject keyframes once
@@ -185,7 +185,7 @@ export const StandbyScreen: React.FC = () => {
           letterSpacing: "0.06em",
         }}
       >
-        v2.4 XGBoost-Ensemble
+        PyTorch U-Net · OpenDrift Physics · Explainable Attribution Engine
       </div>
 
       {/* Bottom right: ready status */}

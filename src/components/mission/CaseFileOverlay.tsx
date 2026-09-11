@@ -55,7 +55,7 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
   const evidenceItems: EvidenceItem[] = [
     { label: "SAR Scene ID", value: sceneId, verified: true },
     { label: "Detection Time", value: acqTime, verified: true },
-    { label: "Slick Area", value: `${slickArea} km² (multi-polygon)`, verified: true },
+    { label: "Slick Area", value: `${slickArea} km² (vectorized polygon)`, verified: true },
     { label: "Backscatter σ°", value: "-18.6 dB (VV polarization)", verified: true },
     { label: "Physical Filter", value: "Gate A (Wind) + Gate B (Damping) + Gate C (Shape) Passed", verified: true },
     { label: "AIS Gap Record", value: isNullResult ? "None — All vessels maintained continuous broadcast" : "MMSI 419000101 · 2026-05-14 18:30–21:54Z · 3.4h", verified: true },
@@ -64,11 +64,11 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
       label: "Attribution Score",
       value: isNullResult
         ? "0.0% — Judicial Restraint (No candidate identified)"
-        : `${((primary?.overallScore ?? 0.6572) * 100).toFixed(1)}% (Weighted Rule-Based Attribution Model)`,
+        : `${((primary?.overallScore ?? 0.6572) * 100).toFixed(1)}% (Explainable Linear Model)`,
       verified: true,
     },
     { label: "Jurisdiction", value: "IMO MARPOL 73/78 Annex I · Arabian Sea PSSA", verified: true },
-    { label: "SHA-256 Hash", value: `${realHash.slice(0, 32)}…`, verified: true },
+    { label: "SHA-256 Seal", value: `${realHash.slice(0, 32)}…`, verified: true },
   ];
 
   // Reveal evidence items progressively

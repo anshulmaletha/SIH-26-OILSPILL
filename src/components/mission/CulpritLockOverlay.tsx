@@ -90,10 +90,10 @@ export function CulpritLockOverlay() {
       key: "head",
       label: "Heading Alignment (w=0.25)",
       shortLabel: "w2 · S_head",
-      value: fb ? fb.heading_alignment_score : 0.9444,
-      displayPct: `${((fb ? fb.heading_alignment_score : 0.9444) * 100).toFixed(1)}%`,
+      value: fb ? fb.heading_alignment_score : 1.0,
+      displayPct: `${((fb ? fb.heading_alignment_score : 1.0) * 100).toFixed(1)}%`,
       color: "#22D3EE",
-      note: "Alignment with SAR slick orientation axis",
+      note: "Alignment with SAR slick orientation axis (135°)",
     },
     {
       key: "speed",
@@ -102,7 +102,7 @@ export function CulpritLockOverlay() {
       value: fb ? fb.speed_anomaly_score : 1.0,
       displayPct: `${((fb ? fb.speed_anomaly_score : 1.0) * 100).toFixed(1)}%`,
       color: "#22D3EE",
-      note: "Speed drop to 4.1 kts detected during transit",
+      note: "Speed drop from 14.2 to 3.8 kts during corridor transit",
     },
     {
       key: "gap",
