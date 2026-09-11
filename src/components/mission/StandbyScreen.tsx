@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useMission } from "@/lib/mission/missionState";
 
 // Inject keyframes once
@@ -22,7 +22,6 @@ if (typeof document !== "undefined") {
 export const StandbyScreen: React.FC = () => {
   const { state, dispatch } = useMission();
   const isStandby = state.currentStage === "STANDBY";
-
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -31,27 +30,27 @@ export const StandbyScreen: React.FC = () => {
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        backgroundColor: "rgba(5, 7, 10, 0.92)",
+        background: "radial-gradient(ellipse at center, rgba(5, 7, 10, 0.40) 0%, rgba(5, 7, 10, 0.78) 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         opacity: isStandby ? 1 : 0,
         pointerEvents: isStandby ? "auto" : "none",
-        transition: "opacity 0.5s ease",
+        transition: "opacity 0.4s ease",
       }}
     >
-      {/* Top label */}
+      {/* Top classification header */}
       <div
         style={{
           position: "absolute",
-          top: 20,
+          top: 24,
           left: "50%",
           transform: "translateX(-50%)",
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: 10,
           color: "#22D3EE",
-          letterSpacing: "0.15em",
+          letterSpacing: "0.16em",
           textTransform: "uppercase",
           whiteSpace: "nowrap",
         }}
@@ -65,18 +64,23 @@ export const StandbyScreen: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          maxWidth: "600px",
+          width: "90vw",
+          padding: "0 20px",
         }}
       >
         {/* Incident badge */}
         <div
           style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
+            fontSize: 10,
             color: "#5A7A94",
             border: "1px solid #1C2A38",
-            padding: "4px 10px",
+            background: "rgba(10, 14, 20, 0.8)",
+            padding: "4px 12px",
             borderRadius: 2,
             letterSpacing: "0.08em",
+            textTransform: "uppercase",
           }}
         >
           INC-2026-MUM-001
@@ -86,12 +90,13 @@ export const StandbyScreen: React.FC = () => {
         <div
           style={{
             fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            fontSize: 28,
-            fontWeight: 300,
+            fontSize: 32,
+            fontWeight: 700,
             color: "#E2E8F0",
             letterSpacing: "-0.02em",
-            marginTop: 12,
+            marginTop: 14,
             textAlign: "center",
+            textShadow: "0 2px 12px rgba(0,0,0,0.8)",
           }}
         >
           MUMBAI OFFSHORE CORRIDOR
@@ -102,13 +107,14 @@ export const StandbyScreen: React.FC = () => {
           style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 11,
-            color: "#3A5268",
+            color: "#88A2BC",
             marginTop: 10,
             textAlign: "center",
             letterSpacing: "0.02em",
+            lineHeight: 1.5,
           }}
         >
-          Sentinel-1A SAR Detection&nbsp; ·&nbsp; OpenDrift Backtrack&nbsp; ·&nbsp; AIS Attribution&nbsp; ·&nbsp; Containment Ops
+          Sentinel-1A SAR Detection · OpenDrift Backtrack · AIS Attribution · Containment Ops
         </div>
 
         {/* Coordinates */}
@@ -127,7 +133,7 @@ export const StandbyScreen: React.FC = () => {
         {/* Divider */}
         <div
           style={{
-            width: 320,
+            width: 280,
             height: 1,
             backgroundColor: "#1C2A38",
             margin: "24px 0",
@@ -136,6 +142,7 @@ export const StandbyScreen: React.FC = () => {
 
         {/* Start button */}
         <button
+          type="button"
           onClick={() => dispatch({ type: "INITIATE" })}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -143,26 +150,27 @@ export const StandbyScreen: React.FC = () => {
             display: "flex",
             alignItems: "center",
             gap: 12,
-            background: hovered ? "rgba(34,211,238,0.063)" : "#111822",
+            background: hovered ? "rgba(34, 211, 238, 0.15)" : "rgba(17, 24, 34, 0.9)",
             border: "1px solid #22D3EE",
             color: "#22D3EE",
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 13,
+            fontSize: 12,
+            fontWeight: 700,
             textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            padding: "14px 32px",
+            letterSpacing: "0.14em",
+            padding: "14px 28px",
             cursor: "pointer",
             borderRadius: 2,
-            transition: "background 0.2s ease",
+            boxShadow: hovered ? "0 0 20px rgba(34,211,238,0.25)" : "0 4px 16px rgba(0,0,0,0.6)",
+            transition: "all 0.2s ease",
             outline: "none",
           }}
         >
-          {/* Pulsing cyan dot */}
           <span
             style={{
               display: "inline-block",
-              width: 5,
-              height: 5,
+              width: 6,
+              height: 6,
               borderRadius: "50%",
               backgroundColor: "#22D3EE",
               flexShrink: 0,
@@ -177,11 +185,11 @@ export const StandbyScreen: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          bottom: 18,
-          left: 20,
+          bottom: 20,
+          left: 24,
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: 9,
-          color: "#3A5268",
+          color: "#5A7A94",
           letterSpacing: "0.06em",
         }}
       >
@@ -192,8 +200,8 @@ export const StandbyScreen: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          bottom: 18,
-          right: 20,
+          bottom: 20,
+          right: 24,
           display: "flex",
           alignItems: "center",
           gap: 6,

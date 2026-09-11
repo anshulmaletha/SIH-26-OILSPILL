@@ -1,12 +1,14 @@
-/**
- * Phase 6: CONTAINMENT_ROOM
- *
- * A side panel (right edge) that slides in over the map, keeping the map
- * fully visible with forward drift rendered on it.
- * Distinct cyan/emerald tactical color scheme for "response operations" mode.
- */
-
+﻿import React from "react";
 import { useMission } from "@/lib/mission/missionState";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { PanelSection } from "@/components/ui/panel-system/PanelSection";
+import { MetricRow } from "@/components/ui/panel-system/MetricRow";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
+import { ConfidenceIndicator } from "@/components/ui/panel-system/ConfidenceIndicator";
+import { AlertCard } from "@/components/ui/panel-system/AlertCard";
+import { PanelFooter } from "@/components/ui/panel-system/PanelFooter";
+import { CollapsibleSection } from "@/components/ui/panel-system/CollapsibleSection";
 
 interface DriftProjection {
   hour: number;
@@ -24,10 +26,10 @@ const DRIFT_PROJECTIONS: DriftProjection[] = [
   { hour: 48, lat: 18.75, lng: 72.75, areaKm2: 72.3,  label: "T+48h · Mangrove threat" },
 ];
 
-const BOOM_SECTORS = [
-  { id: "A", name: "Dharamtar Inlet", status: "RECOMMENDED", color: "#10B981" },
-  { id: "B", name: "Alibag Coastal", status: "STANDBY", color: "#F59E0B" },
-  { id: "C", name: "Elephanta Channel", status: "PLANNED", color: "#5A7A94" },
+const BOOM_SECTORS: { id: string; name: string; status: string; variant: "emerald" | "amber" | "dim" }[] = [
+  { id: "A", name: "Dharamtar Inlet", status: "RECOMMENDED", variant: "emerald" },
+  { id: "B", name: "Alibag Coastal", status: "STANDBY", variant: "amber" },
+  { id: "C", name: "Elephanta Channel", status: "PLANNED", variant: "dim" },
 ];
 
 const SKIMMER_ZONES = [
@@ -36,382 +38,195 @@ const SKIMMER_ZONES = [
   { id: "Z3", name: "Coastal Buffer", lat: "18.85°N", lng: "72.60°E", rate: "80 t/day" },
 ];
 
-export function ContainmentRoom() {
+export const ContainmentRoom: React.FC = () => {
   const { state, dispatch } = useMission();
 
   if (state.currentStage !== "CONTAINMENT_ROOM") return null;
 
   const elapsed = state.stageElapsedMs;
 
-  // Forward clock progress: T+0 to T+48 shown over 30s interaction time
   const forwardHours = Math.min(48, Math.round((elapsed / 30000) * 48));
   const currentDrift = DRIFT_PROJECTIONS.reduce((prev, curr) =>
     Math.abs(curr.hour - forwardHours) < Math.abs(prev.hour - forwardHours) ? curr : prev
   );
 
-  // Containment efficiency (improves as booms are "deployed")
   const containEff = Math.min(67, Math.round(elapsed / 450));
 
   return (
-    <>
-      {/* ── Side panel (right edge) ── */}
-      <div
+    <div
+      style={{
+        position: "absolute",
+        top: 52,
+        right: 0,
+        bottom: 0,
+        zIndex: 25,
+        width: 360,
+        pointerEvents: "auto",
+      }}
+    >
+      <OperationsPanel
+        variant="drawer"
+        borderLeftAccent
+        accentColor="emerald"
         style={{
-          position: "absolute",
-          top: 52,
-          right: 0,
-          bottom: 0,
-          zIndex: 25,
-          width: 340,
-          background: "#080B0F",
-          borderLeft: "1px solid #1C3830",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
+          height: "100%",
+          borderRadius: 0,
+          borderTop: "none",
+          borderRight: "none",
+          borderBottom: "none",
+          backgroundColor: "#080B0F",
         }}
       >
-        {/* Panel header — distinct teal/emerald for "response mode" */}
-        <div
-          style={{
-            padding: "12px 14px",
-            borderBottom: "1px solid #1C3830",
-            background: "#0A1A14",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "#10B981",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                }}
-              >
-                ■ RESPONSE OPERATIONS
-              </div>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 8,
-                  color: "#2D6A5A",
-                  marginTop: 2,
-                }}
-              >
-                INCIDENT RESPONSE &amp; CONTAINMENT CENTRE
-              </div>
-            </div>
+        <PanelHeader
+          category="06 · RESPONSE"
+          title="INCIDENT CONTAINMENT"
+          statusText="ACTIVE OPS"
+          statusVariant="emerald"
+          action={
             <button
               type="button"
               onClick={() => dispatch({ type: "NEXT_STAGE" })}
-              style={{
-                background: "transparent",
-                border: "1px solid #1C3830",
-                color: "#5A7A94",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                padding: "4px 8px",
-                cursor: "pointer",
-              }}
-              title="Proceed to Case File"
+              className="px-2 py-1 rounded-xs bg-[#10B981]/15 border border-[#10B981]/40 text-[#10B981] hover:bg-[#10B981]/25 text-[8.5px] font-mono font-bold tracking-wider cursor-pointer uppercase transition-all"
             >
               CASE FILE →
             </button>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Scrollable content */}
+        {/* Scrollable body */}
         <div
+          className="custom-scrollbar"
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "10px 14px",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
           }}
-          className="custom-scrollbar"
         >
-          {/* Forward drift clock */}
-          <section>
+          {/* ── PRIMARY METRIC BLOCK ── */}
+          <div
+            style={{
+              padding: "14px",
+              borderBottom: "1px solid #1C2A38",
+            }}
+          >
+            {/* Current drift hour — big number */}
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                marginBottom: 6,
+                fontSize: 30,
+                fontWeight: 800,
+                color: "#10B981",
+                lineHeight: 1,
+                marginBottom: 4,
               }}
             >
-              FORWARD DRIFT TIMELINE
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 8,
-                marginBottom: 6,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 26,
-                  fontWeight: 700,
-                  color: "#10B981",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                T+{forwardHours}h
-              </span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#2D6A5A" }}>
-                {currentDrift.areaKm2} km²
-              </span>
+              T+{forwardHours}h
             </div>
 
-            {/* Timeline bar */}
-            <div style={{ height: 2, background: "#1C3830", marginBottom: 6, position: "relative" }}>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  background: "#10B981",
-                  width: `${(forwardHours / 48) * 100}%`,
-                  transition: "width 0.5s linear",
-                }}
-              />
-            </div>
-
-            {/* Drift checkpoints */}
-            {DRIFT_PROJECTIONS.map((p) => (
-              <div
-                key={p.hour}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "4px 8px",
-                  marginBottom: 2,
-                  background: forwardHours >= p.hour ? "#10B98108" : "transparent",
-                  border: `1px solid ${forwardHours >= p.hour ? "#10B98120" : "#1C3830"}`,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 9,
-                    color: forwardHours >= p.hour ? "#10B981" : "#2D6A5A",
-                  }}
-                >
-                  {p.label}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 9,
-                    color: p.hour >= 48 ? "#F59E0B" : "#5A7A94",
-                  }}
-                >
-                  {p.areaKm2} km²
-                </span>
-              </div>
-            ))}
-          </section>
-
-          {/* Containment gauge */}
-          <section>
+            {/* Current drift step label */}
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                fontSize: 9,
+                color: "#5A7A94",
                 marginBottom: 6,
               }}
             >
-              CONTAINMENT EFFICIENCY
+              {currentDrift.label}
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: containEff > 50 ? "#10B981" : "#F59E0B",
-                }}
-              >
-                {containEff}%
-              </span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#2D6A5A" }}>
-                at T+24h with boom deployment
-              </span>
-            </div>
-            <div style={{ height: 4, background: "#1C3830", marginTop: 6, position: "relative" }}>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  background: containEff > 50 ? "#10B981" : "#F59E0B",
-                  width: `${containEff}%`,
-                  transition: "width 0.3s linear",
-                }}
-              />
-            </div>
-          </section>
 
-          {/* Boom barriers */}
-          <section>
+            {/* Plume area */}
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                marginBottom: 6,
+                fontSize: 11,
+                color: "#E2E8F0",
+                marginBottom: 8,
               }}
             >
-              BOOM BARRIER DEPLOYMENT
+              Plume Area:{" "}
+              <strong style={{ color: "#E2E8F0" }}>{currentDrift.areaKm2} km²</strong>
             </div>
-            {BOOM_SECTORS.map((boom) => (
-              <div
-                key={boom.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "6px 8px",
-                  marginBottom: 4,
-                  border: "1px solid #1C3830",
-                  background: "#0A1A14",
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 9,
-                      color: "#5A7A94",
-                    }}
-                  >
-                    Sector {boom.id}:
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: 10,
-                      color: "#C8D8E8",
-                      marginLeft: 6,
-                    }}
-                  >
-                    {boom.name}
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: boom.color,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {boom.status}
-                </span>
-              </div>
-            ))}
-          </section>
 
-          {/* Skimmer zones */}
-          <section>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                marginBottom: 6,
-              }}
-            >
-              SKIMMER DEPLOYMENT ZONES
-            </div>
-            {SKIMMER_ZONES.map((z) => (
-              <div
-                key={z.id}
-                style={{
-                  padding: "6px 8px",
-                  marginBottom: 4,
-                  border: "1px solid #1C3830",
-                  background: "#0A1A14",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: "#C8D8E8" }}>
-                    {z.name}
-                  </span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#10B981" }}>
-                    {z.rate}
-                  </span>
-                </div>
+            {/* Progress bar */}
+            <ConfidenceIndicator
+              value={(forwardHours / 48) * 100}
+              showPercent={false}
+              color="emerald"
+              height={3}
+            />
+          </div>
+
+          {/* ── CONTAINMENT ASSETS (Boom sectors) ── */}
+          <PanelSection title="CONTAINMENT ASSETS">
+            <div className="flex flex-col gap-1.5">
+              {BOOM_SECTORS.map((boom) => (
                 <div
-                  style={{
-                    marginTop: 2,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: "#2D6A5A",
-                  }}
+                  key={boom.id}
+                  className="flex items-center justify-between p-2 rounded-xs bg-[#0A0E14] border border-[#1C2A38]"
                 >
-                  {z.lat}  {z.lng}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono font-bold text-[#22D3EE]">
+                      Sector {boom.id}
+                    </span>
+                    <span className="text-[10px] text-[#E2E8F0] font-medium">{boom.name}</span>
+                  </div>
+                  <StatusBadge label={boom.status} variant={boom.variant} size="sm" />
                 </div>
-              </div>
-            ))}
-          </section>
+              ))}
+            </div>
+          </PanelSection>
 
-          {/* Coastal impact warning */}
-          {forwardHours >= 24 && (
-            <div
-              style={{
-                padding: "8px 10px",
-                border: "1px solid #F59E0B30",
-                background: "#F59E0B08",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 9,
-                  color: "#F59E0B",
-                  fontWeight: 700,
-                }}
-              >
-                ⚠ COASTAL IMPACT WARNING
-              </div>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 8,
-                  color: "#8A6A2A",
-                  marginTop: 4,
-                }}
-              >
-                Mangrove ecosystem threatened at T+31h.
-                <br />
-                Priority: Dharamtar inlet boom deployment.
-              </div>
+          {/* ── ECOLOGICAL ALERT (appears at T+18h) ── */}
+          {forwardHours >= 18 && (
+            <div className="p-3">
+              <AlertCard
+                severity="warning"
+                category="Ecological Risk Alert"
+                title="Mangrove Zone Impact Threat"
+                description="Projected shoreline contact near Dharamtar inlet at T+31h. Prioritize boom placement to protect coastal wetlands."
+              />
             </div>
           )}
+
+          {/* ── SKIMMER SUMMARY ROW ── */}
+          <div style={{ padding: "8px 14px", borderTop: "1px solid #1C2A38" }}>
+            <MetricRow
+              label="Skimmer Capacity"
+              value="380 t/day"
+              unit="3 units active"
+              color="emerald"
+            />
+          </div>
+
+          {/* ── SKIMMER ZONE DETAILS (collapsible) ── */}
+          <CollapsibleSection label="Skimmer Zone Details">
+            <div className="flex flex-col gap-1.5">
+              {SKIMMER_ZONES.map((z) => (
+                <div
+                  key={z.id}
+                  className="flex items-center justify-between p-2 rounded-xs bg-[#0A0E14] border border-[#1C2A38]"
+                >
+                  <div>
+                    <span className="text-[10px] text-[#E2E8F0] font-semibold block">{z.name}</span>
+                    <span className="text-[8px] font-mono text-[#5A7A94]">
+                      {z.lat} · {z.lng}
+                    </span>
+                  </div>
+                  <span className="text-[9.5px] font-mono font-bold text-[#10B981]">{z.rate}</span>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
         </div>
-      </div>
-    </>
+
+        <PanelFooter
+          note="Incident Command System (ICS) · DG Shipping Response Level 2"
+        />
+      </OperationsPanel>
+    </div>
   );
-}
+};
+
+export default ContainmentRoom;

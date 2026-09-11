@@ -215,6 +215,13 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     };
   }, [state.initiated]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__missionDispatch = dispatch;
+      (window as any).__missionState = state;
+    }
+  }, [state, dispatch]);
+
   const duration = STAGE_DURATIONS_MS[state.currentStage];
   const stageProgress = duration > 0 ? Math.min(1, state.stageElapsedMs / duration) : 0;
 

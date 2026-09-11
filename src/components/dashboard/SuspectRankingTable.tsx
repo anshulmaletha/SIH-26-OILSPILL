@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import type { P3Output, RankedSuspect } from "@/lib/contracts/p3";
+import type { P3Output } from "@/lib/contracts/p3";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
+import { ConfidenceIndicator } from "@/components/ui/panel-system/ConfidenceIndicator";
 
 export interface SuspectRankingTableProps {
   p3Data?: P3Output | undefined;
@@ -8,110 +12,6 @@ export interface SuspectRankingTableProps {
   onSelectVessel?: ((vesselId: string) => void) | undefined;
   onSetExpandedVessel?: ((vesselId: string | null) => void) | undefined;
   isLoading?: boolean | undefined;
-}
-
-// Rank badge — #1 gets cyan (primary), others amber (caution) or neutral
-function RankBadge({ rank }: { rank: number }) {
-  const color =
-    rank === 1 ? "#22D3EE" :
-    rank === 2 ? "#F59E0B" :   // amber = caution rank
-    "#5A7A94";
-  const bg =
-    rank === 1 ? "#22D3EE18" :
-    rank === 2 ? "#F59E0B14" :
-    "#5A7A9414";
-
-  return (
-    <span
-      style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: "9px",
-        color,
-        background: bg,
-        border: `1px solid ${color}55`,
-        padding: "1px 5px",
-        borderRadius: 0,
-        fontWeight: 700,
-        flexShrink: 0,
-      }}
-    >
-      #{rank}
-    </span>
-  );
-}
-
-// Animated score bar that fills from 0 → value on mount/expand
-function ScoreBar({
-  value,
-  label,
-  animate,
-}: {
-  value: number;
-  label: string;
-  animate: boolean;
-}) {
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    if (animate) {
-      // Tiny delay so transition is visible
-      const t = setTimeout(() => setWidth(value * 100), 30);
-      return () => clearTimeout(t);
-    } else {
-      setWidth(0);
-      return undefined;
-    }
-  }, [animate, value]);
-
-  return (
-    <div style={{ marginBottom: 4 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 2,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: "9px",
-            color: "#5A7A94",
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: "9px",
-            color: "#C8D8E8",
-            fontWeight: 600,
-          }}
-        >
-          {Math.round(value * 100)}%
-        </span>
-      </div>
-      <div
-        style={{
-          height: 2,
-          background: "#1C2A38",
-          borderRadius: 0,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${width}%`,
-            background: "#22D3EE",
-            borderRadius: 0,
-            transition: "width 500ms cubic-bezier(0.4,0,0.2,1)",
-          }}
-        />
-      </div>
-    </div>
-  );
 }
 
 export function SuspectRankingTable({
@@ -136,387 +36,164 @@ export function SuspectRankingTable({
   }, [selectedVesselId]);
 
   return (
-    <div
-      style={{
-        width: 280,
-        background: "#0D1117",
-        border: "1px solid #1C2A38",
-        borderRadius: "2px",
-        color: "#C8D8E8",
-        fontFamily: "'Inter', sans-serif",
-        overflow: "hidden",
-      }}
+    <OperationsPanel
+      variant="side"
+      borderLeftAccent
+      accentColor="cyan"
+      className="w-[300px]"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "6px 10px",
-          background: "#0A0E14",
-          borderBottom: "1px solid #1C2A38",
-        }}
-      >
-        <div>
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "8px",
-              color: "#3A5268",
-              textTransform: "uppercase" as const,
-              letterSpacing: "0.12em",
-              fontWeight: 700,
-            }}
-          >
-            Suspect Ranking
-          </span>
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "8px",
-              color: "#22D3EE",
-              marginLeft: 6,
-            }}
-          >
-            {suspects.length} evaluated
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#3A5268",
-            padding: "0 2px",
-            fontSize: "10px",
-          }}
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? "▼" : "▲"}
-        </button>
-      </div>
+      <PanelHeader
+        category="ATTRIBUTION"
+        title="SUSPECT RANKING"
+        statusText={`${suspects.length} EVALUATED`}
+        statusVariant="cyan"
+        onCollapse={() => setIsCollapsed(!isCollapsed)}
+        isCollapsed={isCollapsed}
+      />
 
-      {/* Body */}
-      <div
-        style={{
-          maxHeight: isCollapsed ? 0 : 420,
-          overflow: "hidden",
-          transition: "max-height 220ms ease",
-        }}
-      >
+      {!isCollapsed && (
         <div
           className="custom-scrollbar"
           style={{
             padding: "8px",
-            maxHeight: 420,
+            maxHeight: "440px",
             overflowY: "auto",
           }}
         >
           {isLoading ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "24px 0",
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  border: "1.5px solid #22D3EE",
-                  borderTop: "1.5px solid transparent",
-                  borderRadius: "50%",
-                  animation: "spin 0.8s linear infinite",
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "10px",
-                  color: "#3A5268",
-                }}
-              >
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <div className="w-5 h-5 border-2 border-[#22D3EE] border-t-transparent rounded-full animate-spin" />
+              <span className="font-mono text-[10px] text-[#5A7A94]">
                 Evaluating corridor overlap…
               </span>
             </div>
           ) : suspects.length === 0 ? (
-            /* No-candidate state */
-            <div
-              style={{
-                border: "1px solid #F59E0B44",
-                background: "#F59E0B0A",
-                padding: "12px",
-                borderRadius: "2px",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "8px",
-                  color: "#F59E0B",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: 6,
-                }}
-              >
-                Null Result · 0 Corridor Overlaps
+            <div className="p-3 border border-[#F59E0B]/30 bg-[#F59E0B]/[0.05] rounded-xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-mono text-[8px] font-bold text-[#F59E0B] uppercase tracking-wider">
+                  NULL RESULT · ZERO OVERLAP
+                </span>
+                <StatusBadge label="CLEARED" variant="emerald" size="sm" />
               </div>
-              <div
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "11px",
-                  color: "#C8D8E8",
-                  fontWeight: 600,
-                  marginBottom: 4,
-                }}
-              >
-                No Suspect Identified
-              </div>
-              <p
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "10px",
-                  color: "#5A7A94",
-                  lineHeight: 1.5,
-                  margin: 0,
-                }}
-              >
+              <p className="font-sans text-[10px] text-[#5A7A94] leading-relaxed m-0">
                 All monitored AIS trajectories cleared — separation &gt;14.8 nm from backtracked origin.
               </p>
             </div>
           ) : (
-            <ul ref={listRef} style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            <ul ref={listRef} className="list-none m-0 p-0 flex flex-col gap-1.5">
               {suspects.map((suspect) => {
                 const isSelected = selectedVesselId === suspect.vesselId;
                 const isExpanded = expandedVesselId === suspect.vesselId;
                 const scorePercent = Math.round(suspect.overallScore * 100);
+                const rankVariant = suspect.rank === 1 ? "red" : suspect.rank === 2 ? "amber" : "dim";
 
                 return (
                   <li
                     key={suspect.vesselId}
                     data-vessel-id={suspect.vesselId}
+                    className="rounded-xs border border-[#1C2A38] bg-[#0A0E14] overflow-hidden transition-all"
                     style={{
-                      marginBottom: 5,
-                      border: `1px solid ${isSelected ? "#22D3EE" : "#1C2A38"}`,
-                      background: isSelected ? "#22D3EE0A" : "#0A0E14",
-                      borderRadius: "2px",
-                      overflow: "hidden",
-                      transition: "border-color 200ms, background 200ms",
+                      borderColor: isSelected ? "#22D3EE" : "#1C2A38",
+                      borderLeft: `3px solid ${suspect.rank === 1 ? "#EF4444" : suspect.rank === 2 ? "#F59E0B" : "#5A7A94"}`,
                     }}
                   >
-                    {/* Main row — click to select vessel */}
+                    {/* Header line */}
                     <div
                       onClick={() => onSelectVessel?.(suspect.vesselId)}
-                      style={{
-                        padding: "8px 8px 6px",
-                        cursor: "pointer",
-                      }}
+                      className="p-2.5 cursor-pointer hover:bg-[#111822]/40 transition-colors"
                     >
-                      {/* Name + rank + score */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          gap: 6,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <RankBadge rank={suspect.rank} />
-                        <span
-                          style={{
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: "11px",
-                            color: "#E2E8F0",
-                            fontWeight: 600,
-                            flex: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {suspect.vesselName}
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: "11px",
-                            color: "#22D3EE",
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <StatusBadge label={`#${suspect.rank}`} variant={rankVariant} size="sm" />
+                          <span className="text-[11px] font-semibold text-[#E2E8F0] truncate font-sans">
+                            {suspect.vesselName}
+                          </span>
+                        </div>
+                        <span className="font-mono text-[11px] font-bold text-[#22D3EE] flex-shrink-0">
                           {scorePercent}%
                         </span>
                       </div>
 
-                      {/* MMSI only (no flag/type per spec — those go in the export) */}
-                      <div
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: "9px",
-                          color: "#3A5268",
-                          marginBottom: 5,
-                        }}
-                      >
-                        {suspect.mmsi ? `MMSI ${suspect.mmsi}` : "SAR-only · No MMSI"}
+                      <div className="font-mono text-[8.5px] text-[#5A7A94] mb-2">
+                        {suspect.mmsi ? `MMSI: ${suspect.mmsi}` : "SAR CFAR Target · No Broadcasted AIS"}
                       </div>
 
-                      {/* Score bar */}
-                      <div
-                        style={{
-                          height: 2,
-                          background: "#1C2A38",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${scorePercent}%`,
-                            background: "#22D3EE",
-                            transition: "width 400ms ease",
-                          }}
-                        />
-                      </div>
+                      <ConfidenceIndicator
+                        value={scorePercent}
+                        showPercent={false}
+                        color={suspect.rank === 1 ? "red" : "cyan"}
+                        height={2}
+                      />
 
-                      {/* Dark vessel anomaly tag — amber (caution) */}
                       {suspect.isDarkVessel && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            marginTop: 5,
-                            padding: "3px 6px",
-                            background: "#F59E0B10",
-                            border: "1px solid #F59E0B44",
-                            borderRadius: "2px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontFamily: "'JetBrains Mono', monospace",
-                              fontSize: "8px",
-                              color: "#F59E0B",
-                              textTransform: "uppercase" as const,
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            ⚠ AIS Transponder Gap Anomaly
+                        <div className="mt-2 p-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xs flex items-center gap-1.5">
+                          <span className="text-[#F59E0B] text-[8px] font-mono font-bold uppercase tracking-wider">
+                            ⚠ AIS Transponder Blackout Anomaly
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Expand/collapse toggle */}
-                    <div
-                      style={{
-                        borderTop: "1px solid #1C2A38",
-                        padding: "4px 8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background: "#0D1117",
-                      }}
-                    >
+                    {/* Features breakdown toggle */}
+                    <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#0D1117] border-t border-[#1C2A38]">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSetExpandedVessel?.(isExpanded ? null : suspect.vesselId);
                         }}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: "8.5px",
-                          color: "#22D3EE",
-                          padding: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          textTransform: "uppercase" as const,
-                          letterSpacing: "0.06em",
-                        }}
+                        className="text-[8.5px] font-mono uppercase tracking-wider text-[#22D3EE] hover:underline bg-transparent border-none p-0 cursor-pointer"
                       >
-                        {isExpanded ? "▲ Hide Scores" : "▼ Feature Scores"}
+                        {isExpanded ? "▲ HIDE FEATURE SCORES" : "▼ VIEW FEATURE SCORES"}
                       </button>
-                      <span
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: "8px",
-                          color: "#3A5268",
-                        }}
-                      >
+                      <span className="text-[8px] font-mono text-[#5A7A94]">
                         Conf {(suspect.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
 
-                    {/* Accordion — feature score breakdown, animated bars */}
-                    <div
-                      style={{
-                        maxHeight: isExpanded ? 200 : 0,
-                        overflow: "hidden",
-                        transition: "max-height 300ms cubic-bezier(0.4,0,0.2,1)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "8px 8px 6px",
-                          borderTop: "1px solid #1C2A38",
-                          background: "#080C12",
-                        }}
-                      >
-                        <ScoreBar
-                          label="Corridor Overlap"
-                          value={suspect.featureScores.trajectoryIntersection}
-                          animate={isExpanded}
+                    {/* Feature score bars */}
+                    {isExpanded && (
+                      <div className="p-2.5 bg-[#080C12] border-t border-[#1C2A38] flex flex-col gap-2">
+                        <ConfidenceIndicator
+                          label="Corridor Geometric Overlap"
+                          value={suspect.featureScores.trajectoryIntersection * 100}
+                          color="cyan"
+                          height={2}
                         />
-                        <ScoreBar
-                          label="Temporal Match"
-                          value={suspect.featureScores.temporalProximity}
-                          animate={isExpanded}
+                        <ConfidenceIndicator
+                          label="Temporal Proximity Match"
+                          value={suspect.featureScores.temporalProximity * 100}
+                          color="cyan"
+                          height={2}
                         />
-                        <ScoreBar
-                          label="Speed Anomaly"
-                          value={suspect.featureScores.speedAnomaly}
-                          animate={isExpanded}
+                        <ConfidenceIndicator
+                          label="Speed Drop Anomaly"
+                          value={suspect.featureScores.speedAnomaly * 100}
+                          color="amber"
+                          height={2}
                         />
-                        <ScoreBar
-                          label="AIS Gap Score"
-                          value={suspect.featureScores.aisGapScore}
-                          animate={isExpanded}
+                        <ConfidenceIndicator
+                          label="AIS Gap Blackout Score"
+                          value={suspect.featureScores.aisGapScore * 100}
+                          color="amber"
+                          height={2}
                         />
-                        <div
-                          style={{
-                            borderTop: "1px solid #1C2A38",
-                            paddingTop: 5,
-                            marginTop: 5,
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: "9px",
-                            color: "#5A7A94",
-                            lineHeight: 1.5,
-                          }}
-                        >
+
+                        <div className="pt-2 border-t border-[#1C2A38] text-[8.5px] font-sans text-[#5A7A94] leading-relaxed">
+                          <strong className="text-[#C8D8E8] font-mono block mb-0.5">RECOMMENDATION:</strong>
                           {suspect.recommendation}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
           )}
         </div>
-      </div>
-    </div>
+      )}
+    </OperationsPanel>
   );
 }
+
+export default SuspectRankingTable;

@@ -1,10 +1,11 @@
-/**
- * Phase 5: CULPRIT_LOCK
- * Multi-factor attribution scoring HUD and final culprit identification.
- * Camera is locked onto the primary suspect vessel.
- */
-
+import React from "react";
 import { useMission } from "@/lib/mission/missionState";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { MetricRow } from "@/components/ui/panel-system/MetricRow";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
+import { ConfidenceIndicator } from "@/components/ui/panel-system/ConfidenceIndicator";
+import { CollapsibleSection } from "@/components/ui/panel-system/CollapsibleSection";
 
 interface ScoreFactor {
   key: string;
@@ -12,7 +13,7 @@ interface ScoreFactor {
   shortLabel: string;
   value: number; // 0-1
   displayPct: string;
-  color: string;
+  color: "cyan" | "emerald" | "amber" | "red";
   note: string;
 }
 
@@ -23,17 +24,17 @@ const SCORE_FACTORS: ScoreFactor[] = [
     shortLabel: "S_time",
     value: 0.9444,
     displayPct: "94.4%",
-    color: "#22D3EE",
-    note: "T-9h speed anomaly within corridor",
+    color: "cyan",
+    note: "T-9h speed drop within spill temporal window",
   },
   {
     key: "dist",
     label: "Corridor Geometric Intersection",
     shortLabel: "S_dist",
     value: 1.0,
-    displayPct: "100%",
-    color: "#22D3EE",
-    note: "H3 k=0 cell overlap confirmed",
+    displayPct: "100.0%",
+    color: "cyan",
+    note: "H3 k=0 cell corridor overlap confirmed",
   },
   {
     key: "type",
@@ -41,17 +42,17 @@ const SCORE_FACTORS: ScoreFactor[] = [
     shortLabel: "S_type",
     value: 0.95,
     displayPct: "95.0%",
-    color: "#22D3EE",
-    note: "Crude oil tanker — high prior probability",
+    color: "cyan",
+    note: "Crude oil tanker -- highest prior probability",
   },
   {
     key: "dark",
-    label: "AIS Gap Anomaly",
+    label: "AIS Transponder Gap Anomaly",
     shortLabel: "P_dark",
     value: 0.25,
-    displayPct: "+25%",
-    color: "#F59E0B",
-    note: "3.4h blackout over discharge origin",
+    displayPct: "+25.0%",
+    color: "amber",
+    note: "3.4h transponder blackout over origin corridor",
   },
 ];
 
@@ -60,55 +61,41 @@ const CULPRIT_NAME = "MT IND_TANKER_412";
 const CULPRIT_IMO = "9384124";
 const CULPRIT_MMSI = "419000101";
 
-function ScoreBar({ value, color, delay }: { value: number; color: string; delay: number }) {
-  return (
-    <div
-      style={{
-        height: 2,
-        background: "#1C2A38",
-        marginTop: 4,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: color,
-          transformOrigin: "left center",
-          transform: `scaleX(${value})`,
-          transition: `transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
-        }}
-      />
-    </div>
-  );
-}
+// Keep these constants available for downstream consumers (Case File etc.)
+export { CULPRIT_NAME, CULPRIT_IMO, CULPRIT_MMSI, FINAL_SCORE, SCORE_FACTORS };
 
-export function CulpritLockOverlay() {
+const WHY_ITEMS = [
+  "Temporal match · 3.4h AIS gap at spill time",
+  "Corridor intersection confirmed",
+  "Crude tanker — highest risk profile",
+  "AIS blackout over origin point",
+];
+
+export const CulpritLockOverlay: React.FC = () => {
   const { state } = useMission();
 
   if (state.currentStage !== "CULPRIT_LOCK") return null;
 
   const elapsed = state.stageElapsedMs;
 
-  // Reveal each factor row sequentially
-  const factorRevealMs = [0, 1200, 2400, 3600];
+  const factorRevealMs = [0, 1000, 2000, 3000];
   const visibleFactors = SCORE_FACTORS.filter((_, i) => elapsed > (factorRevealMs[i] ?? 9999));
 
-  // Final score rolls up from 0 to 91.2 after all factors shown (4800ms)
-  const scoreRevealProgress = Math.min(1, Math.max(0, (elapsed - 5000) / 800));
+  const scoreRevealProgress = Math.min(1, Math.max(0, (elapsed - 4200) / 800));
   const displayScore = (FINAL_SCORE * scoreRevealProgress * 100).toFixed(1);
-
-  // Culprit badge appears after score fully revealed (5800ms)
-  const showCulprit = elapsed > 5800;
-
-  // Targeting reticle pulses from the start
-  const reticleOpacity = Math.min(1, elapsed / 500);
+  const showCulprit = elapsed > 5000;
+  const reticleOpacity = Math.min(1, elapsed / 400);
 
   return (
-    <>
-      {/* ── Targeting reticle (centered, overlaying map) ── */}
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 20,
+      }}
+    >
+      {/* ── 1. TARGETING RETICLE OVER PRIMARY SUSPECT ───────── */}
       <div
         style={{
           position: "absolute",
@@ -148,257 +135,183 @@ export function CulpritLockOverlay() {
             animation: "culprit-ring-pulse 1.5s ease-in-out 0.3s infinite",
           }}
         />
-        {/* Crosshair lines */}
+
+        {/* Crosshair SVG */}
         <svg width="100" height="100" viewBox="0 0 100 100" style={{ position: "relative" }}>
-          {/* Top tick */}
           <line x1="50" y1="2" x2="50" y2="18" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Bottom tick */}
           <line x1="50" y1="82" x2="50" y2="98" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Left tick */}
           <line x1="2" y1="50" x2="18" y2="50" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Right tick */}
           <line x1="82" y1="50" x2="98" y2="50" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Center dot */}
           <circle cx="50" cy="50" r="3" fill="#EF4444" />
         </svg>
+
+        <div
+          style={{
+            position: "absolute",
+            top: 104,
+            left: "50%",
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <StatusBadge label="TARGET LOCKED" variant="red" pulse />
+        </div>
       </div>
 
-      {/* ── Attribution scoring panel — right side ── */}
+      {/* ── 2. RIGHT SIDE: ATTRIBUTION SCORING PANEL ────────── */}
       <div
         style={{
           position: "absolute",
-          top: 80,
-          right: 12,
-          zIndex: 20,
-          width: 300,
-          background: "#0D1117",
-          border: "1px solid #1C2A38",
+          top: 64,
+          right: 14,
+          width: 310,
+          maxHeight: "calc(100vh - 200px)",
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: "auto",
         }}
       >
-        {/* Panel header */}
-        <div
-          style={{
-            padding: "8px 12px",
-            borderBottom: "1px solid #1C2A38",
-            background: "#111822",
-          }}
+        <OperationsPanel
+          variant="side"
+          borderLeftAccent
+          accentColor="red"
+          style={{ maxHeight: "100%", overflowY: "auto" }}
         >
+          <PanelHeader
+            category="05 · ATTRIBUTION"
+            title="CULPRIT IDENTIFIED"
+            statusText={showCulprit ? "TARGET LOCKED" : "EVALUATING"}
+            statusVariant={showCulprit ? "red" : "amber"}
+          />
+
+          {/* ── PRIMARY METRIC BLOCK ── */}
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: "#22D3EE",
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
+              padding: "14px",
+              borderBottom: "1px solid #1C2A38",
             }}
           >
-            ATTRIBUTION SCORING
-          </div>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8,
-              color: "#5A7A94",
-              marginTop: 2,
-            }}
-          >
-            XGBoost Ensemble v2.4  ·  MMSI 419000101
-          </div>
-        </div>
-
-        {/* Score factors */}
-        <div style={{ padding: "8px 12px" }}>
-          {SCORE_FACTORS.map((factor, i) => {
-            const isVisible = visibleFactors.includes(factor);
-            const animDelay = (factorRevealMs[i] ?? 0) + 400;
-
-            return (
-              <div
-                key={factor.key}
-                style={{
-                  marginBottom: 10,
-                  opacity: isVisible ? 1 : 0,
-                  transition: "opacity 0.4s ease",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 9,
-                      color: "#5A7A94",
-                    }}
-                  >
-                    {factor.shortLabel}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: factor.color,
-                    }}
-                  >
-                    {factor.displayPct}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 9,
-                    color: "#3A5268",
-                    marginTop: 1,
-                    marginBottom: 3,
-                  }}
-                >
-                  {factor.label}
-                </div>
-                <ScoreBar
-                  value={isVisible ? (factor.key === "dark" ? 0.25 : factor.value) : 0}
-                  color={factor.color}
-                  delay={animDelay}
-                />
-                <div
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: factor.key === "dark" ? "#F59E0B" : "#3A5268",
-                    marginTop: 3,
-                  }}
-                >
-                  {factor.note}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Divider */}
-        <div style={{ height: 1, background: "#1C2A38", mx: 12 }} />
-
-        {/* Final score */}
-        <div
-          style={{
-            padding: "10px 12px",
-            borderTop: "1px solid #1C2A38",
-            background: "#111822",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#5A7A94",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              ATTRIBUTION SCORE
-            </span>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 26,
-                fontWeight: 800,
-                color: "#E2E8F0",
-                letterSpacing: "-0.02em",
-                transition: "color 0.3s",
-              }}
-            >
-              {displayScore}%
-            </span>
-          </div>
-          <div
-            style={{
-              height: 3,
-              background: "#1C2A38",
-              marginTop: 6,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: scoreRevealProgress > 0.5 ? "#EF4444" : "#22D3EE",
-                transformOrigin: "left center",
-                transform: `scaleX(${FINAL_SCORE * scoreRevealProgress})`,
-                transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Culprit identification badge */}
-        {showCulprit && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderTop: "1px solid #EF444430",
-              background: "#EF444408",
-            }}
-          >
+            {/* Vessel name */}
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#EF4444",
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                marginBottom: 6,
-              }}
-            >
-              ▶ CULPRIT IDENTIFIED
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
                 fontWeight: 700,
                 color: "#E2E8F0",
-                letterSpacing: "-0.01em",
+                marginBottom: 6,
               }}
             >
-              {CULPRIT_NAME}
+              {showCulprit ? CULPRIT_NAME : "···"}
             </div>
+
+            {/* Big score number */}
             <div
               style={{
-                marginTop: 4,
-                display: "flex",
-                gap: 8,
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#5A7A94",
+                fontSize: 34,
+                fontWeight: 800,
+                color: "#EF4444",
+                lineHeight: 1,
+                marginBottom: 4,
               }}
             >
-              <span>IMO: {CULPRIT_IMO}</span>
-              <span style={{ color: "#3A5268" }}>·</span>
-              <span>MMSI: {CULPRIT_MMSI}</span>
+              {displayScore}%
             </div>
+
+            {/* Label */}
             <div
               style={{
-                marginTop: 6,
-                padding: "4px 8px",
-                background: "#EF444415",
-                border: "1px solid #EF444430",
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 8,
-                color: "#F87171",
+                color: "#5A7A94",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
               }}
             >
-              Confidence: {(FINAL_SCORE * 100).toFixed(1)}%  ·  Score: 0.912 / 1.000
+              ATTRIBUTION CONFIDENCE
             </div>
           </div>
-        )}
+
+          {/* ── WHY THIS VESSEL? CHECKLIST ── */}
+          {showCulprit && (
+            <div
+              style={{
+                padding: "10px 14px",
+                borderBottom: "1px solid #1C2A38",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 8,
+                  color: "#5A7A94",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: 8,
+                }}
+              >
+                WHY THIS VESSEL?
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {WHY_ITEMS.map((item) => (
+                  <div
+                    key={item}
+                    style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "flex-start" }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 11,
+                        color: "#10B981",
+                        lineHeight: 1.2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ✓
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 10,
+                        color: "#C8D8E8",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── SCORE BREAKDOWN (collapsible) ── */}
+          <CollapsibleSection label="Score Breakdown">
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {visibleFactors.map((factor) => (
+                <MetricRow
+                  key={factor.key}
+                  label={factor.label}
+                  value={factor.displayPct}
+                  color={factor.color}
+                />
+              ))}
+            </div>
+
+            {/* Overall score bar */}
+            <div style={{ marginTop: 10 }}>
+              <ConfidenceIndicator
+                value={FINAL_SCORE * scoreRevealProgress * 100}
+                showPercent={false}
+                color={scoreRevealProgress > 0.5 ? "red" : "cyan"}
+                height={4}
+              />
+            </div>
+          </CollapsibleSection>
+        </OperationsPanel>
       </div>
-    </>
+    </div>
   );
-}
+};
+
+export default CulpritLockOverlay;

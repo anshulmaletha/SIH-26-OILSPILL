@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Download, FileText, CheckCircle2, Loader2, FileJson } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { P1Output } from "@/lib/contracts/p1";
 import type { P3Output } from "@/lib/contracts/p3";
 import type { P4Output } from "@/lib/contracts/p4";
 import type { P5Output } from "@/lib/contracts/p5";
 import { compileCaseFile, triggerCaseFileDownload } from "@/lib/adapters/exportAdapter";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
 
 export interface CaseFileExportButtonProps {
   p1Data: P1Output;
@@ -49,19 +49,18 @@ export function CaseFileExportButton({
   };
 
   return (
-    <div className="relative inline-block text-left">
-      <Button
-        variant={variant === "header" ? "default" : "outline"}
-        size="sm"
+    <div className="relative inline-block text-left select-none">
+      <button
+        type="button"
         disabled={isExporting}
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`h-8 gap-1.5 rounded-lg text-xs font-bold shadow-md cursor-pointer transition-all ${
-          exportSuccess
-            ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-            : variant === "header"
-            ? "bg-cyan-600 hover:bg-cyan-500 text-white"
-            : "border-border bg-card hover:bg-accent text-foreground"
-        }`}
+        className="h-8 px-3 gap-1.5 rounded-xs text-[10.5px] font-mono font-bold tracking-wider uppercase cursor-pointer transition-all inline-flex items-center justify-center border"
+        style={{
+          background: exportSuccess ? "rgba(16, 185, 129, 0.2)" : "#111822",
+          borderColor: exportSuccess ? "#10B981" : "#22D3EE",
+          color: exportSuccess ? "#10B981" : "#22D3EE",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+        }}
         title="Download forensic case-file dossier"
       >
         {isExporting ? (
@@ -71,7 +70,7 @@ export function CaseFileExportButton({
           </>
         ) : exportSuccess ? (
           <>
-            <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
             <span>Dossier Exported</span>
           </>
         ) : (
@@ -80,40 +79,54 @@ export function CaseFileExportButton({
             <span>Export Case-File</span>
           </>
         )}
-      </Button>
+      </button>
 
-      {/* Export Format Dropdown */}
+      {/* Export Format Dropdown Modal / Popup */}
       {showDropdown && (
-        <div className="absolute right-0 mt-1.5 w-48 rounded-xl border border-border/80 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60 mb-1">
-            Choose Dossier Format
-          </div>
-
-          <button
-            type="button"
-            onClick={() => handleExport("json")}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-accent cursor-pointer"
+        <div className="absolute right-0 mt-1.5 w-52 z-50">
+          <OperationsPanel
+            variant="compact"
+            borderLeftAccent
+            accentColor="cyan"
+            showCornerBrackets
+            glow
+            style={{
+              padding: "6px",
+              backgroundColor: "#0D1117",
+            }}
           >
-            <FileJson className="h-4 w-4 text-cyan-400" />
-            <div>
-              <span>JSON Case-File</span>
-              <span className="block text-[9px] font-normal text-muted-foreground">Full structured pipeline payload</span>
+            <div className="px-2 py-1 text-[8px] font-mono font-bold uppercase tracking-wider text-[#5A7A94] border-b border-[#1C2A38] mb-1">
+              Select Dossier Format
             </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => handleExport("txt")}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-accent cursor-pointer"
-          >
-            <FileText className="h-4 w-4 text-emerald-400" />
-            <div>
-              <span>Investigation Brief</span>
-              <span className="block text-[9px] font-normal text-muted-foreground">Human-readable audit text file</span>
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleExport("json")}
+              className="flex w-full items-center gap-2 rounded-xs px-2 py-1.5 text-left text-[11px] font-mono text-[#E2E8F0] hover:bg-[#111822] cursor-pointer transition-colors"
+            >
+              <FileJson className="h-4 w-4 text-[#22D3EE] flex-shrink-0" />
+              <div>
+                <span className="font-semibold block">JSON Data Payload</span>
+                <span className="block text-[8px] text-[#5A7A94]">Full pipeline telemetry schema</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExport("txt")}
+              className="flex w-full items-center gap-2 rounded-xs px-2 py-1.5 text-left text-[11px] font-mono text-[#E2E8F0] hover:bg-[#111822] cursor-pointer transition-colors"
+            >
+              <FileText className="h-4 w-4 text-[#10B981] flex-shrink-0" />
+              <div>
+                <span className="font-semibold block">Forensic Brief (.txt)</span>
+                <span className="block text-[8px] text-[#5A7A94]">Official Coast Guard submission</span>
+              </div>
+            </button>
+          </OperationsPanel>
         </div>
       )}
     </div>
   );
 }
+
+export default CaseFileExportButton;

@@ -22,6 +22,7 @@ import { DarkVesselPulse } from "./DarkVesselPulse";
 import type { MissionStage } from "@/lib/mission/missionState";
 import type { SwarmVessel } from "@/lib/mission/swarmData";
 import { swarmVesselColor } from "@/lib/mission/swarmData";
+import { OperationsPanel, PanelHeader, MetricRow, StatusBadge, CollapsibleSection } from "@/components/ui/panel-system";
 
 export interface MapViewProps {
   visibility: Record<LayerId, boolean>;
@@ -143,6 +144,10 @@ export default function MapView({
         radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2,
         pickable: false,
         parameters: { depthTest: false },
+        updateTriggers: {
+          getFillColor: [swarmPhase],
+          radiusMinPixels: [swarmPhase],
+        },
       });
       return [...baseLayers, swarmLayer];
     }
@@ -176,7 +181,7 @@ export default function MapView({
       pitch: INITIAL_VIEW_STATE.pitch,
       bearing: INITIAL_VIEW_STATE.bearing,
     });
-    map.addControl(new NavigationControl(), "top-right");
+    map.addControl(new NavigationControl(), "bottom-right");
     map.addControl(new ScaleControl(), "bottom-right");
 
     map.on("load", () => {
@@ -266,135 +271,93 @@ export default function MapView({
         <div
           style={{
             position: "absolute",
-            left: hexScreenPos.x + 16,
-            top: hexScreenPos.y - 30,
+            left: Math.max(300, Math.min(typeof window !== "undefined" ? window.innerWidth - 560 : 700, hexScreenPos.x + 16)),
+            top: Math.max(70, Math.min(typeof window !== "undefined" ? window.innerHeight - 320 : 500, hexScreenPos.y - 30)),
             zIndex: 35,
-            width: "215px",
-            background: "#0D1117",
-            border: "1px solid #1C2A38",
-            borderLeft: "2px solid #22D3EE",
-            borderRadius: "2px",
-            padding: "8px 10px",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.65)",
-            fontFamily: "'JetBrains Mono', monospace",
+            width: "240px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid #1C2A38",
-              paddingBottom: "4px",
-              marginBottom: "6px",
-            }}
+          <OperationsPanel
+            variant="compact"
+            borderLeftAccent
+            accentColor={selectedHexCell.cell.riskLevel === "critical" ? "red" : "cyan"}
+            className="w-[230px]"
           >
-            <span
-              style={{
-                fontSize: "9px",
-                fontWeight: 700,
-                color: "#22D3EE",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-              }}
-            >
-              H3 Cell Details
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedHexCell(null)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#5A7A94",
-                cursor: "pointer",
-                padding: "0 2px",
-                fontSize: "12px",
-                lineHeight: 1,
-              }}
-              title="Close popover"
-            >
-              ×
-            </button>
-          </div>
+            <PanelHeader
+              category="SPATIAL"
+              title="H3 CELL"
+              statusText={selectedHexCell.cell.riskLevel.toUpperCase()}
+              statusVariant={selectedHexCell.cell.riskLevel === "critical" ? "red" : "cyan"}
+              onClose={() => setSelectedHexCell(null)}
+            />
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "9px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Hex ID</span>
-              <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{selectedHexCell.cell.h3Index}</span>
+            <div className="p-2.5 flex flex-col gap-1.5">
+              <div className="font-mono text-[9px] text-[#22D3EE] bg-[#111822] px-2 py-1 rounded border border-[#1C2A38] break-all">
+                {selectedHexCell.cell.h3Index}
+              </div>
+              <MetricRow
+                label="Oil Probability"
+                value={`${(selectedHexCell.cell.density * 100).toFixed(0)}%`}
+                highlight
+                color={selectedHexCell.cell.density > 0.6 ? "red" : "cyan"}
+              />
+              <MetricRow
+                label="Particle Count"
+                value={selectedHexCell.cell.particleCount}
+              />
+              <MetricRow
+                label="Risk"
+                value={selectedHexCell.cell.riskLevel.toUpperCase()}
+                color={selectedHexCell.cell.riskLevel === "critical" ? "red" : "amber"}
+              />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Particle Count</span>
-              <span style={{ color: "#C8D8E8" }}>{selectedHexCell.cell.particleCount}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Ring (k)</span>
-              <span style={{ color: selectedHexCell.ringK === 0 ? "#22D3EE" : "#C8D8E8", fontWeight: 700 }}>
-                k = {selectedHexCell.ringK}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Weight / Density</span>
-              <span style={{ color: "#22D3EE", fontWeight: 700 }}>
-                {selectedHexCell.cell.density.toFixed(2)} ({(selectedHexCell.cell.density * 100).toFixed(0)}%)
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Risk Level</span>
-              <span
-                style={{
-                  color: selectedHexCell.cell.riskLevel === "critical" || selectedHexCell.cell.riskLevel === "high"
-                    ? "#F59E0B"
-                    : "#5A7A94",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                }}
-              >
-                {selectedHexCell.cell.riskLevel}
-              </span>
-            </div>
-          </div>
+
+            <CollapsibleSection label="Details">
+              <div className="flex flex-col gap-1 pt-1">
+                <MetricRow
+                  label="Ring Distance"
+                  value={`k = ${selectedHexCell.ringK}`}
+                  color={selectedHexCell.ringK === 0 ? "cyan" : "dim"}
+                />
+                <MetricRow
+                  label="Density Index"
+                  value={selectedHexCell.cell.density.toFixed(3)}
+                  mono
+                />
+              </div>
+            </CollapsibleSection>
+          </OperationsPanel>
         </div>
       )}
 
-      {/* Compact docked hover tooltip card — styled like reference card */}
+      {/* Compact docked hover tooltip card — styled with OperationsPanel */}
       {tooltip && (
         <div
           className="pointer-events-none absolute z-30"
           style={{
-            left: tooltip.x + 14,
-            top: tooltip.y + 14,
-            width: "210px",
+            left: (typeof window !== "undefined" && tooltip.x > window.innerWidth - 350)
+              ? tooltip.x - 235
+              : Math.max(300, tooltip.x + 14),
+            top: Math.max(70, Math.min(typeof window !== "undefined" ? window.innerHeight - 150 : 600, tooltip.y + 14)),
+            width: "220px",
           }}
         >
-          <div
+          <OperationsPanel
+            variant="compact"
+            borderLeftAccent
+            accentColor={tooltip.type === "dark-vessel" ? "red" : "cyan"}
             style={{
-              background: "#0D1117",
-              border: "1px solid #1C2A38",
-              borderLeft: `2px solid ${tooltip.type === "dark-vessel" ? "#EF4444" : "#22D3EE"}`,
-              borderRadius: "2px",
-              padding: "6px 9px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
-              fontFamily: "'JetBrains Mono', monospace",
+              padding: "6px 8px",
             }}
           >
             {/* Title row */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                gap: "8px",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: "3px",
-                marginBottom: "4px",
-              }}
-            >
+            <div className="flex items-baseline justify-between gap-2 border-b border-[#1C2A38] pb-1.5 mb-1.5">
               <span
                 style={{
-                  fontSize: "10px",
-                  color: tooltip.type === "dark-vessel" ? "#EF4444" : "#22D3EE",
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: "10.5px",
                   fontWeight: 700,
+                  color: tooltip.type === "dark-vessel" ? "#EF4444" : "#22D3EE",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -402,42 +365,26 @@ export default function MapView({
               >
                 {tooltip.title}
               </span>
-              <span
-                style={{
-                  fontSize: "7.5px",
-                  color: tooltip.type === "dark-vessel" ? "#EF4444" : "#5A7A94",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  flexShrink: 0,
-                }}
-              >
-                {tooltip.type}
-              </span>
+              <StatusBadge
+                label={tooltip.type}
+                variant={tooltip.type === "dark-vessel" ? "red" : "cyan"}
+                size="sm"
+              />
             </div>
 
-            {/* Data rows — monospace, tight line spacing */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            {/* Data rows */}
+            <div className="flex flex-col gap-0.5">
               {tooltip.items.map((item, idx) => (
                 <div
                   key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "8px",
-                    lineHeight: 1.25,
-                  }}
+                  className="flex items-center justify-between gap-2 text-[8.5px] leading-tight"
                 >
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      color: "#5A7A94",
-                    }}
-                  >
+                  <span style={{ color: "#5A7A94", fontFamily: "'Inter', sans-serif" }}>
                     {item.label}
                   </span>
                   <span
                     style={{
-                      fontSize: "9px",
+                      fontFamily: "'JetBrains Mono', monospace",
                       color: "#C8D8E8",
                       fontWeight: 500,
                     }}
@@ -447,7 +394,7 @@ export default function MapView({
                 </div>
               ))}
             </div>
-          </div>
+          </OperationsPanel>
         </div>
       )}
     </div>

@@ -68,6 +68,21 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Maritime Tactical Theme Tokens */
+  --color-surface-base: #06090E;
+  --color-surface-panel: #0A0E14;
+  --color-surface-elevated: #111822;
+  --color-surface-drawer: #080B0F;
+  --color-border-tactical: #1C2A38;
+  --color-border-tactical-accent: #2A3F54;
+  --color-accent-cyan: #22D3EE;
+  --color-accent-emerald: #10B981;
+  --color-accent-amber: #F59E0B;
+  --color-accent-red: #EF4444;
+  --color-text-primary: #E2E8F0;
+  --color-text-muted: #88A2BC;
+  --color-text-dim: #4B637B;
 }
 
 /* Light mode fallback (spec mandates dark; kept minimal) */
@@ -247,8 +262,12 @@
 }
 
 .maplibregl-ctrl-bottom-right {
-  bottom: 12px !important;
-  right: 12px !important;
+  bottom: 14px !important;
+  right: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 6px !important;
 }
 
 /* Flat MapLibre control style — no glassmorphism */

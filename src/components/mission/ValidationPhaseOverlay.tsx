@@ -1,165 +1,85 @@
-﻿import React from "react";
+import React from "react";
 import { useMission } from "@/lib/mission/missionState";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { PanelSection } from "@/components/ui/panel-system/PanelSection";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
+import { ConfidenceIndicator } from "@/components/ui/panel-system/ConfidenceIndicator";
 
-// Inject keyframes once
-const VAL_KEYFRAMES = `
-@keyframes val-dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.85); }
-}
-@keyframes val-bar-flash {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
-}
-`;
-
-if (typeof document !== "undefined") {
-  const id = "__val-phase-kf__";
-  if (!document.getElementById(id)) {
-    const style = document.createElement("style");
-    style.id = id;
-    style.textContent = VAL_KEYFRAMES;
-    document.head.appendChild(style);
-  }
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────
 type CheckStatus = "pending" | "active" | "complete";
 
-// ── Helper: status dot ─────────────────────────────────────────────────────
-const StatusDot: React.FC<{ status: CheckStatus }> = ({ status }) => {
-  const bg =
-    status === "complete" ? "#22D3EE" : status === "active" ? "#F59E0B" : "#1C2A38";
-
-  return (
-    <div
-      style={{
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        backgroundColor: bg,
-        flexShrink: 0,
-        animation:
-          status === "active" ? "val-dot-pulse 0.9s ease-in-out infinite" : undefined,
-      }}
-    />
-  );
-};
-
-// ── Check row ─────────────────────────────────────────────────────────────
-interface CheckRowProps {
+interface CheckItemProps {
   status: CheckStatus;
-  label: string;
+  title: string;
   result: string;
-  resultColor?: string;
-  showProgressBar?: boolean;
+  subtext?: string;
+  showProgress?: boolean;
 }
 
-const CheckRow: React.FC<CheckRowProps> = ({
+const CheckItem: React.FC<CheckItemProps> = ({
   status,
-  label,
+  title,
   result,
-  resultColor = "#22D3EE",
-  showProgressBar = false,
-}) => (
-  <div style={{ padding: "8px 12px", borderBottom: "1px solid #1C2A38" }}>
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <div style={{ paddingTop: 2 }}>
-        <StatusDot status={status} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
+  subtext,
+  showProgress = false,
+}) => {
+  const badgeMap = {
+    pending: <StatusBadge label="PENDING" variant="dim" size="sm" />,
+    active: <StatusBadge label="EVALUATING" variant="amber" pulse size="sm" />,
+    complete: <StatusBadge label="PASSED" variant="emerald" size="sm" />,
+  };
+
+  return (
+    <div className="flex flex-col py-2 border-b border-[#111822] last:border-b-0">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span
           style={{
             fontFamily: "'Inter', sans-serif",
-            fontSize: 10,
+            fontSize: "10px",
             color: "#C8D8E8",
-            lineHeight: 1.4,
+            fontWeight: 500,
           }}
         >
-          {label}
-        </div>
-        {status !== "pending" && (
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: status === "complete" ? resultColor : "#5A7A94",
-              marginTop: 3,
-              lineHeight: 1.4,
-            }}
-          >
-            {result}
-          </div>
-        )}
+          {title}
+        </span>
+        {badgeMap[status]}
       </div>
-    </div>
 
-    {/* Active progress bar */}
-    {showProgressBar && status === "active" && (
-      <div
-        style={{
-          marginTop: 6,
-          height: 2,
-          backgroundColor: "#1C2A38",
-          borderRadius: 0,
-          overflow: "hidden",
-        }}
-      >
+      {status !== "pending" && (
         <div
           style={{
-            height: "100%",
-            width: "60%",
-            backgroundColor: "#F59E0B",
-            animation: "val-bar-flash 0.7s ease-in-out infinite",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "9px",
+            color: status === "complete" ? "#22D3EE" : "#5A7A94",
+            lineHeight: 1.3,
           }}
-        />
-      </div>
-    )}
-  </div>
-);
+        >
+          {result}
+        </div>
+      )}
 
-// ── Corner bracket (decorative) ────────────────────────────────────────────
-const CornerBracket: React.FC<{ position: "tl" | "tr" | "bl" | "br" }> = ({
-  position,
-}) => {
-  const size = 8;
-  const thickness = 1;
-  const color = "#22D3EE";
-  const base: React.CSSProperties = { position: "absolute", width: size, height: size };
+      {subtext && (
+        <div
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "8px",
+            color: "#3A5268",
+            marginTop: "2px",
+          }}
+        >
+          {subtext}
+        </div>
+      )}
 
-  if (position === "tl") {
-    return (
-      <div style={{ ...base, top: -1, left: -1 }}>
-        <div style={{ position: "absolute", top: 0, left: 0, width: size, height: thickness, backgroundColor: color }} />
-        <div style={{ position: "absolute", top: 0, left: 0, width: thickness, height: size, backgroundColor: color }} />
-      </div>
-    );
-  }
-  if (position === "tr") {
-    return (
-      <div style={{ ...base, top: -1, right: -1 }}>
-        <div style={{ position: "absolute", top: 0, right: 0, width: size, height: thickness, backgroundColor: color }} />
-        <div style={{ position: "absolute", top: 0, right: 0, width: thickness, height: size, backgroundColor: color }} />
-      </div>
-    );
-  }
-  if (position === "bl") {
-    return (
-      <div style={{ ...base, bottom: -1, left: -1 }}>
-        <div style={{ position: "absolute", bottom: 0, left: 0, width: size, height: thickness, backgroundColor: color }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, width: thickness, height: size, backgroundColor: color }} />
-      </div>
-    );
-  }
-  return (
-    <div style={{ ...base, bottom: -1, right: -1 }}>
-      <div style={{ position: "absolute", bottom: 0, right: 0, width: size, height: thickness, backgroundColor: color }} />
-      <div style={{ position: "absolute", bottom: 0, right: 0, width: thickness, height: size, backgroundColor: color }} />
+      {showProgress && status === "active" && (
+        <div className="h-1 bg-[#1C2A38] mt-2 overflow-hidden rounded-xs">
+          <div className="h-full bg-[#F59E0B] w-3/5 animate-pulse" />
+        </div>
+      )}
     </div>
   );
 };
 
-// ── Main component ─────────────────────────────────────────────────────────
 export const ValidationPhaseOverlay: React.FC = () => {
   const { state } = useMission();
   const isActive = state.currentStage === "VALIDATION_AUDIT";
@@ -177,11 +97,9 @@ export const ValidationPhaseOverlay: React.FC = () => {
   const check2Status = getCheckStatus(2500, 4500);
   const check3Status = getCheckStatus(4500, 6500);
 
-  const showDiagnostic = elapsed > 6500;
-  const showBadge = elapsed > 7500;
-
-  // Confidence fill: 0 → 94.8% over 1000ms starting at elapsed=6500
-  const confPct = showDiagnostic ? Math.min(((elapsed - 6500) / 1000) * 94.8, 94.8) : 0;
+  const showDiagnostic = elapsed > 6000;
+  const showBadge = elapsed > 7000;
+  const confPct = showDiagnostic ? Math.min(((elapsed - 6000) / 1000) * 94.8, 94.8) : 0;
 
   return (
     <div
@@ -189,162 +107,140 @@ export const ValidationPhaseOverlay: React.FC = () => {
         position: "absolute",
         inset: 0,
         pointerEvents: "none",
-        zIndex: 500,
+        zIndex: 20,
       }}
     >
-      {/* ── Right side panel ─────────────────────────────── */}
       <div
         style={{
           position: "absolute",
-          top: 80,
-          right: 12,
+          top: 64,
+          right: 14,
           width: 300,
-          border: "1px solid #1C2A38",
-          backgroundColor: "#0D1117",
-          borderRadius: 2,
-          overflow: "visible",
+          maxHeight: "calc(100vh - 200px)",
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: "auto",
         }}
       >
-        {/* Decorative corner brackets */}
-        <CornerBracket position="tl" />
-        <CornerBracket position="tr" />
-        <CornerBracket position="bl" />
-        <CornerBracket position="br" />
-
-        {/* Panel header */}
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #1C2A38" }}>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: "#22D3EE",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              marginBottom: 3,
-            }}
-          >
-            VALIDATION AUDIT
-          </div>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: "#5A7A94",
-            }}
-          >
-            Lookalike Discrimination Filter v2.4
-          </div>
-        </div>
-
-        {/* Check 1 — ERA5 Wind */}
-        {elapsed >= 500 && (
-          <CheckRow
-            status={check1Status}
-            label="ERA5 Surface Wind Analysis"
-            result="6.6 m/s WSW — Above 3.0 m/s calm threshold"
-            resultColor="#22D3EE"
-            showProgressBar
+        <OperationsPanel
+          variant="side"
+          borderLeftAccent
+          accentColor="cyan"
+          style={{ maxHeight: "100%", overflowY: "auto" }}
+        >
+          <PanelHeader
+            category="02 · VALIDATION"
+            title="DETECTION AUDIT"
+            statusText={check3Status === "complete" ? "DISCRIMINATED" : "AUDITING"}
+            statusVariant={check3Status === "complete" ? "emerald" : "amber"}
           />
-        )}
 
-        {/* Check 2 — Chlorophyll */}
-        {elapsed >= 2500 && (
-          <CheckRow
-            status={check2Status}
-            label="Chlorophyll-a / Algal Index"
-            result="0.21 mg/m³ — Biogenic surfactant: NEGATIVE"
-            resultColor="#22D3EE"
-            showProgressBar
-          />
-        )}
-
-        {/* Check 3 — Internal Waves */}
-        {elapsed >= 4500 && (
-          <CheckRow
-            status={check3Status}
-            label="Internal Waves / Bathymetric Check"
-            result="Depth 62m — No reflection artifact detected"
-            resultColor="#22D3EE"
-            showProgressBar
-          />
-        )}
-
-        {/* Diagnostic meter */}
-        {showDiagnostic && (
-          <div style={{ padding: "10px 12px" }}>
-            {/* Meter label */}
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#5A7A94",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginBottom: 6,
-              }}
-            >
-              CLASSIFICATION CONFIDENCE
-            </div>
-
-            {/* Progress bar track */}
-            <div
-              style={{
-                height: 4,
-                backgroundColor: "#1C2A38",
-                borderRadius: 0,
-                overflow: "hidden",
-                marginBottom: 8,
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${confPct}%`,
-                  backgroundColor: "#22D3EE",
-                  transition: "width 0.05s linear",
-                }}
+          <PanelSection title="Environmental Discrimination Checks">
+            {elapsed >= 500 && (
+              <CheckItem
+                status={check1Status}
+                title="ERA5 Surface Wind Analysis"
+                result="6.6 m/s WSW (Above 3.0 m/s calm threshold)"
+                subtext="Rules out calm-water lookalike slick"
+                showProgress
               />
-            </div>
-
-            {/* Percentage value */}
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 22,
-                color: "#E2E8F0",
-                lineHeight: 1,
-                marginBottom: 8,
-              }}
-            >
-              {confPct.toFixed(1)}%
-            </div>
-
-            {/* Confirmation badge */}
-            {showBadge && (
-              <div
-                style={{
-                  display: "inline-block",
-                  backgroundColor: "rgba(34,211,238,0.063)",
-                  border: "1px solid rgba(34,211,238,0.25)",
-                  padding: "4px 8px",
-                  borderRadius: 2,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 9,
-                    color: "#22D3EE",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  CONFIRMED CRUDE PETROLEUM SLICK
-                </span>
-              </div>
             )}
-          </div>
-        )}
+
+            {elapsed >= 2500 && (
+              <CheckItem
+                status={check2Status}
+                title="MODIS Chlorophyll-a / Algal Index"
+                result="0.21 mg/m³ — Negative surfactant"
+                subtext="Rules out biogenic algal bloom film"
+                showProgress
+              />
+            )}
+
+            {elapsed >= 4500 && (
+              <CheckItem
+                status={check3Status}
+                title="GEBCO Bathymetric Wave Check"
+                result="Depth 62m — No internal wave reflection"
+                subtext="Rules out bathymetric radar artifact"
+                showProgress
+              />
+            )}
+          </PanelSection>
+
+          {showDiagnostic && (
+            <PanelSection title="Discrimination Confidence" borderBottom={false}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <ConfidenceIndicator
+                  label="Classification Confidence"
+                  value={confPct}
+                  color="cyan"
+                  height={4}
+                />
+
+                {showBadge && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      padding: "12px 14px",
+                      background: "rgba(34,211,238,0.06)",
+                      border: "1px solid rgba(34,211,238,0.25)",
+                      borderRadius: 2,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    {/* Prominent result block */}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: "#22D3EE",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        letterSpacing: "0.04em",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      CRUDE PETROLEUM SLICK
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "#10B981",
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: 600,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      CONFIRMED
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: 6,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#22D3EE",
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {confPct.toFixed(1)}%
+                      </span>
+                      <StatusBadge label="VERIFIED" variant="emerald" size="sm" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </PanelSection>
+          )}
+        </OperationsPanel>
       </div>
     </div>
   );

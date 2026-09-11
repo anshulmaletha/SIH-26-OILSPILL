@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { IncidentScenario } from "@/lib/data/offlineDemoData";
+import { OperationsPanel, PanelHeader, PanelSection, MetricRow, MetricCard, StatusBadge } from "@/components/ui/panel-system";
 
 interface MaritimeH3DashboardProps {
   currentScenario?: IncidentScenario;
@@ -263,217 +264,65 @@ export function MaritimeH3Dashboard({
         }}
       >
         {/* ── LEFT PANEL ── */}
-        <aside
-          style={{
-            background: "#0D1117",
-            borderRight: "1px solid #1C2A38",
-            padding: "12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            overflowY: "auto",
-            fontSize: "11px",
-          }}
-          className="custom-scrollbar"
+        <OperationsPanel
+          variant="side"
+          borderLeftAccent
+          accentColor="cyan"
+          className="rounded-none border-t-0 border-l-0 border-b-0 h-full overflow-y-auto"
         >
-          {/* Active match summary */}
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: 4,
-                marginBottom: 8,
-              }}
-            >
-              Vessel — Active Match
-            </div>
-            {[
-              { label: "Name",       value: "IND_TANKER_412",   mono: true,  highlight: true },
-              { label: "MMSI",       value: "419 000 101",       mono: true,  highlight: false },
-              { label: "Status",     value: "MATCHED",           badge: true,  highlight: true },
-              { label: "Match Cell", value: "8742da54effffff",   mono: true,  highlight: true },
-              { label: "Resolution", value: "H3 R=7",            mono: true,  highlight: false },
-            ].map((row) => (
-              <div
-                key={row.label}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "2px 0",
-                }}
-              >
-                <span style={{ color: "#5A7A94", fontSize: "10px" }}>{row.label}</span>
-                {"badge" in row && row.badge ? (
-                  <span
-                    style={{
-                      border: "1px solid #22D3EE",
-                      color: "#22D3EE",
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: "7.5px",
-                      padding: "0 4px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    {row.value}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontFamily: row.mono ? "'JetBrains Mono', monospace" : "inherit",
-                      fontSize: "10px",
-                      color: row.highlight ? "#22D3EE" : "#C8D8E8",
-                      fontWeight: row.highlight ? 600 : 400,
-                    }}
-                  >
-                    {row.value}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <PanelHeader
+            category="ATTRIBUTION"
+            title="VESSEL MATCH"
+            statusText="CONFIRMED"
+            statusVariant="cyan"
+          />
 
-          {/* Cell centroid */}
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: 4,
-                marginBottom: 8,
-              }}
-            >
-              Cell Centroid
-            </div>
-            <div
-              style={{
-                border: "1px solid #1C2A38",
-                background: "#0A0E14",
-                padding: "7px",
-                marginBottom: 5,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "7px",
-                  color: "#5A7A94",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  marginBottom: 4,
-                }}
-              >
+          <PanelSection title="Target Vessel Metadata">
+            <MetricRow label="Name" value="IND_TANKER_412" mono highlight />
+            <MetricRow label="MMSI" value="419 000 101" mono />
+            <MetricRow
+              label="Status"
+              value="MATCHED"
+              badge={<StatusBadge label="CONFIRMED" variant="cyan" size="sm" />}
+            />
+            <MetricRow label="H3 Index" value="8742da54effffff" mono highlight subtext="Resolution 7 hex cell" />
+          </PanelSection>
+
+          <PanelSection title="Cell Centroid Coordinates">
+            <div className="p-2 rounded-xs bg-[#0A0E14] border border-[#1C2A38]">
+              <div className="text-[7.5px] font-mono text-[#5A7A94] uppercase tracking-wider mb-1">
                 {activeTick.label} — {activeTick.tag}
               </div>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "11px",
-                  color: "#E2E8F0",
-                  lineHeight: 1.6,
-                }}
-              >
+              <div className="text-[11px] font-mono font-bold text-[#E2E8F0] leading-tight">
                 19.3512° N<br />71.8540° E
               </div>
             </div>
-          </div>
+          </PanelSection>
 
-          {/* k-Ring decay */}
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: 4,
-                marginBottom: 8,
-              }}
-            >
-              k-Ring Expansion
-            </div>
+          <PanelSection title="k-Ring Expansion Decay">
             {[
-              { k: "k=0 (origin)", w: 48, wPct: "100%", alpha: 1.0 },
-              { k: "k=1",          w: 32, wPct: "50%",  alpha: 0.5 },
-              { k: "k=2",          w: 20, wPct: "33%",  alpha: 0.33 },
+              { k: "k=0 (origin)", wPct: "100%", color: "cyan" as const },
+              { k: "k=1", wPct: "50%", color: "dim" as const },
+              { k: "k=2", wPct: "33%", color: "dim" as const },
             ].map((r) => (
-              <div
+              <MetricRow
                 key={r.k}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 3,
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "9px",
-                  color: "#5A7A94",
-                }}
-              >
-                <span style={{ flex: 1 }}>{r.k}</span>
-                <span
-                  style={{
-                    display: "inline-block",
-                    height: 2,
-                    width: r.w,
-                    background: "#22D3EE",
-                    opacity: r.alpha,
-                  }}
-                />
-                <span style={{ color: "#C8D8E8", width: 30, textAlign: "right" }}>
-                  {r.wPct}
-                </span>
-              </div>
+                label={r.k}
+                value={r.wPct}
+                color={r.color}
+              />
             ))}
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                color: "#3A5268",
-                marginTop: 5,
-              }}
-            >
-              1/(1+k) confidence falloff
+            <div className="text-[7.5px] font-mono text-[#3A5268] mt-1.5">
+              1/(1+k) spatial confidence falloff
             </div>
-          </div>
+          </PanelSection>
 
-          {/* Grid params */}
-          <div style={{ marginTop: "auto", borderTop: "1px solid #1C2A38", paddingTop: 8 }}>
-            {[
-              { label: "Timestep Δ",   value: "6 h" },
-              { label: "Active Cells", value: `${activeCluster.length} cells` },
-              { label: "Audit Mode",   value: "Discrete", highlight: true },
-            ].map((r) => (
-              <div
-                key={r.label}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "2px 0",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "9px",
-                }}
-              >
-                <span style={{ color: "#5A7A94" }}>{r.label}</span>
-                <span style={{ color: r.highlight ? "#22D3EE" : "#C8D8E8" }}>{r.value}</span>
-              </div>
-            ))}
-          </div>
-        </aside>
+          <PanelSection title="Audit Configuration" borderBottom={false}>
+            <MetricRow label="Timestep Δ" value="6 h" />
+            <MetricRow label="Active Cells" value={`${activeCluster.length} cells`} />
+            <MetricRow label="Audit Mode" value="Discrete" highlight />
+          </PanelSection>
+        </OperationsPanel>
 
         {/* ── CENTER — SVG HEX MAP ── */}
         <main
@@ -610,44 +459,21 @@ export function MaritimeH3Dashboard({
         </main>
 
         {/* ── RIGHT PANEL ── */}
-        <aside
-          style={{
-            background: "#0D1117",
-            borderLeft: "1px solid #1C2A38",
-            padding: "12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            overflowY: "auto",
-            fontSize: "11px",
-          }}
-          className="custom-scrollbar"
+        <OperationsPanel
+          variant="side"
+          borderLeftAccent
+          accentColor="cyan"
+          className="w-80 flex flex-col gap-4 overflow-y-auto custom-scrollbar p-3 text-[11px] rounded-none border-y-0 border-r-0 border-l border-border-tactical"
         >
+          <PanelHeader
+            title="Correlation Matrix"
+            category="H3 DENSITY"
+            live
+          />
+
           {/* Match density legend — 5 discrete hex swatches */}
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: 4,
-                marginBottom: 8,
-              }}
-            >
-              Match Density
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-                padding: "0 2px",
-              }}
-            >
+          <PanelSection title="Match Density">
+            <div className="flex items-end justify-between px-1 py-1">
               {[
                 { op: 0.30, label: "Low" },
                 { op: 0.50, label: "" },
@@ -655,284 +481,175 @@ export function MaritimeH3Dashboard({
                 { op: 0.90, label: "" },
                 { op: 1.00, label: "High" },
               ].map((s, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <div key={i} className="flex flex-col items-center gap-1">
                   <svg width="18" height="16" viewBox="-10 -9 20 18">
                     <polygon
                       points="9,0 4.5,-7.79 -4.5,-7.79 -9,0 -4.5,7.79 4.5,7.79"
-                      fill="#22D3EE" fillOpacity={s.op}
-                      stroke="#22D3EE" strokeOpacity={0.7} strokeWidth="1"
+                      fill="#22D3EE"
+                      fillOpacity={s.op}
+                      stroke="#22D3EE"
+                      strokeOpacity={0.7}
+                      strokeWidth="1"
                     />
                   </svg>
                   {s.label && (
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: "6.5px",
-                        color: "#3A5268",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
+                    <span className="font-mono text-[7px] text-text-dim uppercase tracking-wider">
                       {s.label}
                     </span>
                   )}
                 </div>
               ))}
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7px",
-                color: "#3A5268",
-                marginTop: 5,
-              }}
-            >
+            <div className="flex justify-between font-mono text-[8px] text-text-dim mt-1.5 pt-1 border-t border-border-tactical/40">
               <span>Low</span>
-              <span style={{ color: "#22D3EE" }}>Cyan · Discrete</span>
+              <span className="text-accent-cyan">Cyan · Discrete H3</span>
               <span>High</span>
             </div>
-          </div>
+          </PanelSection>
 
           {/* Candidate matches */}
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                borderBottom: "1px solid #1C2A38",
-                paddingBottom: 4,
-                marginBottom: 8,
-              }}
-            >
-              Candidate Matches
+          <PanelSection title="Candidate Matches">
+            <div className="space-y-2">
+              {CANDIDATES.map((cand) => (
+                <div
+                  key={cand.mmsi}
+                  className={`p-2.5 rounded border transition-all ${
+                    cand.isConfirmed
+                      ? 'border-accent-cyan bg-accent-cyan/10 shadow-[0_0_12px_rgba(34,211,238,0.15)]'
+                      : 'border-border-tactical bg-surface-elevated/40 hover:border-border-tactical-accent'
+                  }`}
+                >
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span
+                      className={`text-[11px] truncate ${
+                        cand.isConfirmed ? 'font-bold text-white' : 'text-text-primary'
+                      }`}
+                    >
+                      {cand.name}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-accent-cyan ml-2 flex-shrink-0">
+                      {(cand.score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-[9px] text-text-dim mb-1.5">
+                    <span>MMSI {cand.mmsi}</span>
+                    {cand.isConfirmed && (
+                      <span className="px-1.5 py-0.5 text-[8px] bg-accent-cyan/20 text-accent-cyan border border-accent-cyan/40 rounded font-semibold uppercase">
+                        Target Match
+                      </span>
+                    )}
+                  </div>
+                  <div className="h-1 bg-surface-base rounded-full overflow-hidden border border-border-tactical/40">
+                    <div
+                      className="h-full bg-accent-cyan transition-all duration-300"
+                      style={{
+                        width: `${cand.score * 100}%`,
+                        opacity: cand.isConfirmed ? 1 : 0.45,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            {CANDIDATES.map((cand) => (
-              <div
-                key={cand.mmsi}
-                style={{
-                  marginBottom: 8,
-                  padding: "7px 7px",
-                  border: `1px solid ${cand.isConfirmed ? "#22D3EE" : "#1C2A38"}`,
-                  background: cand.isConfirmed ? "#22D3EE08" : "transparent",
-                  borderRadius: "2px",
-                }}
-              >
-                <div
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: "10px",
-                      color: cand.isConfirmed ? "#E2E8F0" : "#C8D8E8",
-                      fontWeight: cand.isConfirmed ? 700 : 400,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {cand.name}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: "10px",
-                      color: "#22D3EE",
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {cand.score.toFixed(2)}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "8.5px",
-                    color: "#3A5268",
-                    marginBottom: 5,
-                  }}
-                >
-                  MMSI {cand.mmsi}
-                </div>
-                <div style={{ height: 2, background: "#1C2A38", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${cand.score * 100}%`,
-                      background: "#22D3EE",
-                      opacity: cand.isConfirmed ? 1 : 0.4,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          </PanelSection>
 
           {/* Cluster stats */}
-          <div style={{ marginTop: "auto", borderTop: "1px solid #1C2A38", paddingTop: 8 }}>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "7.5px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "#3A5268",
-                marginBottom: 6,
-              }}
-            >
-              Cluster Stats
+          <PanelSection title="Cluster Stats" className="mt-auto">
+            <div className="space-y-1">
+              <MetricRow
+                label="Peak Cell Density"
+                value={(activeCluster.find(c => c.isMatch)?.density ?? 0).toFixed(2)}
+                highlight
+                color="cyan"
+              />
+              <MetricRow
+                label="Active H3 Cells"
+                value={activeCluster.length}
+                color="default"
+              />
+              <MetricRow
+                label="Attribution Confidence"
+                value="91.2% Conf"
+                highlight
+                color="emerald"
+              />
             </div>
-            {[
-              { label: "Peak Cell",    value: String((activeCluster.find(c => c.isMatch)?.density ?? 0).toFixed(2)), highlight: true },
-              { label: "Active Cells", value: String(activeCluster.length) },
-              { label: "Attribution",  value: "91.2% Conf", highlight: true },
-            ].map((r) => (
-              <div
-                key={r.label}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "2px 0",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "9px",
-                }}
-              >
-                <span style={{ color: "#5A7A94" }}>{r.label}</span>
-                <span style={{ color: r.highlight ? "#22D3EE" : "#C8D8E8" }}>{r.value}</span>
-              </div>
-            ))}
-          </div>
-        </aside>
+          </PanelSection>
+        </OperationsPanel>
       </div>
 
       {/* ── BOTTOM TIME SLIDER ─────────────────────────────────────────────── */}
-      <footer
-        style={{
-          height: 72,
-          background: "#0D1117",
-          borderTop: "1px solid #1C2A38",
-          padding: "0 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          flexShrink: 0,
-          zIndex: 20,
-        }}
-      >
-        {/* Timestep label */}
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: "8px",
-            color: "#5A7A94",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            whiteSpace: "nowrap",
-          }}
+      <footer className="relative z-20 flex-shrink-0">
+        <OperationsPanel
+          variant="compact"
+          showCornerBrackets={false}
+          className="h-[72px] rounded-none border-x-0 border-b-0 border-t border-border-tactical px-5 flex items-center gap-4 bg-surface-panel/95 backdrop-blur-md"
         >
-          Timestep
-        </div>
+          {/* Timestep label */}
+          <div className="font-mono text-[9px] text-text-muted uppercase tracking-widest whitespace-nowrap">
+            TIMESTEP
+          </div>
 
-        {/* Play/pause */}
-        <button
-          type="button"
-          onClick={() => setIsPlaying(!isPlaying)}
-          style={{
-            height: 24,
-            padding: "0 10px",
-            border: `1px solid ${isPlaying ? "#22D3EE" : "#1C2A38"}`,
-            background: isPlaying ? "#22D3EE18" : "transparent",
-            color: isPlaying ? "#22D3EE" : "#5A7A94",
-            cursor: "pointer",
-            borderRadius: 0,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: "8px",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
-        </button>
-
-        {/* Scrubber track + tick buttons */}
-        <div style={{ flex: 1, position: "relative" }}>
-          {/* Tick buttons */}
-          <div
-            style={{
-              position: "absolute",
-              top: -18,
-              left: 0,
-              right: 0,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
+          {/* Play/pause */}
+          <button
+            type="button"
+            onClick={() => setIsPlaying(!isPlaying)}
+            className={`h-7 px-3.5 border font-mono text-[9px] uppercase tracking-wider whitespace-nowrap transition-all rounded ${
+              isPlaying
+                ? 'border-accent-cyan bg-accent-cyan/20 text-accent-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)]'
+                : 'border-border-tactical bg-surface-elevated/40 text-text-muted hover:border-border-tactical-accent hover:text-white'
+            }`}
           >
-            {TIME_TICKS.map((tick) => (
-              <button
-                key={tick.label}
-                type="button"
-                onClick={() => { setIsPlaying(false); setSelectedStep(tick.idx); }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "9px",
-                  color: selectedStep === tick.idx ? "#22D3EE" : "#3A5268",
-                  fontWeight: selectedStep === tick.idx ? 700 : 400,
-                  padding: "0 4px",
-                  transition: "color 150ms",
-                }}
-              >
-                {tick.label}
-              </button>
-            ))}
+            {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+          </button>
+
+          {/* Scrubber track + tick buttons */}
+          <div className="flex-1 relative">
+            {/* Tick buttons */}
+            <div className="absolute -top-5 left-0 right-0 flex justify-between">
+              {TIME_TICKS.map((tick) => (
+                <button
+                  key={tick.label}
+                  type="button"
+                  onClick={() => { setIsPlaying(false); setSelectedStep(tick.idx); }}
+                  className={`bg-transparent border-0 cursor-pointer font-mono text-[9px] px-1 transition-colors ${
+                    selectedStep === tick.idx
+                      ? 'text-accent-cyan font-bold drop-shadow-[0_0_6px_rgba(34,211,238,0.5)]'
+                      : 'text-text-dim hover:text-text-muted'
+                  }`}
+                >
+                  {tick.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Draggable scrubber */}
+            <input
+              type="range"
+              className="scrubber"
+              min={0}
+              max={TIME_TICKS.length - 1}
+              step={1}
+              value={selectedStep}
+              style={{
+                "--range-fill": `${fillPercent}%`,
+                width: "100%",
+              } as React.CSSProperties}
+              onChange={(e) => {
+                setIsPlaying(false);
+                setSelectedStep(Number(e.target.value));
+              }}
+            />
           </div>
 
-          {/* Draggable scrubber */}
-          <input
-            type="range"
-            className="scrubber"
-            min={0}
-            max={TIME_TICKS.length - 1}
-            step={1}
-            value={selectedStep}
-            style={{
-              "--range-fill": `${fillPercent}%`,
-              width: "100%",
-            } as React.CSSProperties}
-            onChange={(e) => {
-              setIsPlaying(false);
-              setSelectedStep(Number(e.target.value));
-            }}
-          />
-        </div>
-
-        {/* Active step readout */}
-        <div
-          style={{
-            textAlign: "right",
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: "9px",
-            whiteSpace: "nowrap",
-            minWidth: 110,
-          }}
-        >
-          <div style={{ color: "#22D3EE", fontWeight: 700, textTransform: "uppercase" }}>
-            {activeTick.label} Active
+          {/* Active step readout */}
+          <div className="text-right font-mono text-[10px] whitespace-nowrap min-w-[120px] pl-3 border-l border-border-tactical">
+            <div className="text-accent-cyan font-bold uppercase tracking-wider">
+              {activeTick.label} ACTIVE
+            </div>
+            <div className="text-text-dim text-[9px] mt-0.5">{activeTick.date}</div>
           </div>
-          <div style={{ color: "#3A5268", marginTop: 2 }}>{activeTick.date}</div>
-        </div>
+        </OperationsPanel>
       </footer>
     </div>
   );

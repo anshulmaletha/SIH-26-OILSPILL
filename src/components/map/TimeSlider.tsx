@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
 
 interface TimeSliderProps {
   selectedHour: number;
@@ -14,23 +17,15 @@ const OBSERVATION_STEPS: { value: number; label: string; tag: string }[] = [
   { value:   0, label: "0h",   tag: "SAR Scene" },
 ];
 
-// Shared inline style helpers
-const monoSm = {
-  fontFamily: "'JetBrains Mono', monospace",
-  fontSize: "10px",
-} as const;
-
 export function TimeSlider({
   selectedHour,
   onSelectHour,
   detectionTimeIso = "2026-09-02T06:00:00Z",
 }: TimeSliderProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  // Track current hour internally for the play interval (avoids stale closure)
   const currentHourRef = useRef(selectedHour);
   currentHourRef.current = selectedHour;
 
-  // Auto-play: advances one step every 2500 ms (readable demo pace per spec)
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -45,7 +40,6 @@ export function TimeSlider({
     return () => clearInterval(timer);
   }, [isPlaying, onSelectHour]);
 
-  // UTC timestamp for selected step
   const baseTime = new Date(detectionTimeIso).getTime();
   const currentStepTime = new Date(baseTime + selectedHour * 3600 * 1000);
   const formattedUtc = currentStepTime.toUTCString().replace("GMT", "UTC");
@@ -64,242 +58,121 @@ export function TimeSlider({
     onSelectHour(next !== undefined ? next : 0);
   };
 
-  // Compute % fill for CSS range track gradient
-  // Map selectedHour (-24 to 0) → 0–100%
   const fillPercent = ((selectedHour + 24) / 24) * 100;
 
   return (
-    <div
-      style={{
-        width: 360,
-        background: "#0D1117",
-        border: "1px solid #1C2A38",
-        borderRadius: "2px",
-        padding: "10px 14px 12px",
-        color: "#C8D8E8",
-        fontFamily: "'Inter', sans-serif",
-      }}
+    <OperationsPanel
+      variant="floating"
+      borderLeftAccent
+      accentColor="cyan"
+      className="w-[360px]"
     >
-      {/* ── Header row ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: "1px solid #1C2A38",
-          paddingBottom: 8,
-          marginBottom: 10,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              ...monoSm,
-              fontSize: "8px",
-              color: "#3A5268",
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              fontWeight: 700,
-              marginBottom: 2,
-            }}
-          >
-            Observation Timeline
-          </div>
-          <div style={{ ...monoSm, color: "#5A7A94", fontSize: "9px" }}>
-            {formattedUtc}
-          </div>
-        </div>
-
-        {/* Step + play controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-          {/* Step back */}
-          <button
-            type="button"
-            onClick={handleStepBack}
-            disabled={selectedHour <= -24}
-            style={{
-              width: 22,
-              height: 22,
-              border: "1px solid #1C2A38",
-              background: "transparent",
-              color: selectedHour <= -24 ? "#3A5268" : "#5A7A94",
-              cursor: selectedHour <= -24 ? "default" : "pointer",
-              borderRadius: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              padding: 0,
-            }}
-            title="Step back 6h"
-          >
-            ‹
-          </button>
-
-          {/* Play / Pause */}
-          <button
-            type="button"
-            onClick={() => setIsPlaying(!isPlaying)}
-            style={{
-              height: 22,
-              padding: "0 8px",
-              border: `1px solid ${isPlaying ? "#22D3EE" : "#1C2A38"}`,
-              background: isPlaying ? "#22D3EE18" : "transparent",
-              color: isPlaying ? "#22D3EE" : "#5A7A94",
-              cursor: "pointer",
-              borderRadius: 0,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "8px",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              transition: "border-color 150ms, color 150ms, background 150ms",
-            }}
-          >
-            {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
-          </button>
-
-          {/* Step forward */}
-          <button
-            type="button"
-            onClick={handleStepForward}
-            disabled={selectedHour >= 0}
-            style={{
-              width: 22,
-              height: 22,
-              border: "1px solid #1C2A38",
-              background: "transparent",
-              color: selectedHour >= 0 ? "#3A5268" : "#5A7A94",
-              cursor: selectedHour >= 0 ? "default" : "pointer",
-              borderRadius: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              padding: 0,
-            }}
-            title="Step forward 6h"
-          >
-            ›
-          </button>
-
-          {/* Reset */}
-          <button
-            type="button"
-            onClick={() => { setIsPlaying(false); onSelectHour(0); }}
-            style={{
-              width: 22,
-              height: 22,
-              border: "1px solid #1C2A38",
-              background: "transparent",
-              color: "#3A5268",
-              cursor: "pointer",
-              borderRadius: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "9px",
-              padding: 0,
-            }}
-            title="Reset to 0h"
-          >
-            ↺
-          </button>
-        </div>
-      </div>
-
-      {/* ── Quick-select step buttons ── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 3,
-          marginBottom: 10,
-        }}
-      >
-        {OBSERVATION_STEPS.map((step) => {
-          const isActive = selectedHour === step.value;
-          return (
+      <PanelHeader
+        category="Temporal Scrubber"
+        title="OBSERVATION TIMELINE"
+        subtitle={formattedUtc}
+        statusText={`T = ${selectedHour}H`}
+        statusVariant="cyan"
+        action={
+          <div className="flex items-center gap-1">
             <button
-              key={step.value}
               type="button"
-              onClick={() => { setIsPlaying(false); onSelectHour(step.value); }}
+              onClick={handleStepBack}
+              disabled={selectedHour <= -24}
+              className="w-5 h-5 flex items-center justify-center border border-[#1C2A38] bg-[#0A0E14] text-[#5A7A94] hover:text-[#22D3EE] rounded-xs text-[10px] cursor-pointer disabled:opacity-30"
+              title="Step back 6h"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="h-5 px-2 flex items-center justify-center border rounded-xs font-mono text-[8px] font-bold uppercase tracking-wider cursor-pointer transition-all"
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "5px 2px",
-                border: `1px solid ${isActive ? "#22D3EE" : "#1C2A38"}`,
-                background: isActive ? "#22D3EE14" : "transparent",
-                color: isActive ? "#22D3EE" : "#5A7A94",
-                cursor: "pointer",
-                borderRadius: 0,
-                transition: "border-color 150ms, color 150ms, background 150ms",
+                borderColor: isPlaying ? "#22D3EE" : "#1C2A38",
+                background: isPlaying ? "rgba(34, 211, 238, 0.15)" : "#0A0E14",
+                color: isPlaying ? "#22D3EE" : "#5A7A94",
               }}
             >
-              <span
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "10px",
-                  fontWeight: isActive ? 700 : 400,
-                  lineHeight: 1.2,
-                }}
-              >
-                {step.label}
-              </span>
-              <span
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "7.5px",
-                  color: isActive ? "#22D3EE99" : "#3A5268",
-                  marginTop: 1,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: "100%",
-                }}
-              >
-                {step.tag}
-              </span>
+              {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
             </button>
-          );
-        })}
-      </div>
+            <button
+              type="button"
+              onClick={handleStepForward}
+              disabled={selectedHour >= 0}
+              className="w-5 h-5 flex items-center justify-center border border-[#1C2A38] bg-[#0A0E14] text-[#5A7A94] hover:text-[#22D3EE] rounded-xs text-[10px] cursor-pointer disabled:opacity-30"
+              title="Step forward 6h"
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsPlaying(false); onSelectHour(0); }}
+              className="w-5 h-5 flex items-center justify-center border border-[#1C2A38] bg-[#0A0E14] text-[#3A5268] hover:text-[#E2E8F0] rounded-xs text-[9px] cursor-pointer"
+              title="Reset to T=0h"
+            >
+              ↺
+            </button>
+          </div>
+        }
+      />
 
-      {/* ── Draggable scrubber — native range input for live drag ── */}
-      <div style={{ position: "relative" }}>
-        {/* Active step display */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 5,
-          }}
-        >
-          <span style={{ ...monoSm, color: "#22D3EE", fontSize: "9px", fontWeight: 700 }}>
-            T = {selectedHour === 0 ? "0h (Detection)" : `${selectedHour}h`}
-          </span>
-          <span style={{ ...monoSm, color: "#3A5268", fontSize: "9px" }}>
-            Scrub ←→
-          </span>
+      <div className="p-3 flex flex-col gap-2.5">
+        {/* Step Buttons */}
+        <div className="grid grid-cols-5 gap-1">
+          {OBSERVATION_STEPS.map((step) => {
+            const isActive = selectedHour === step.value;
+            return (
+              <button
+                key={step.value}
+                type="button"
+                onClick={() => { setIsPlaying(false); onSelectHour(step.value); }}
+                className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xs border transition-all cursor-pointer"
+                style={{
+                  borderColor: isActive ? "#22D3EE" : "#1C2A38",
+                  backgroundColor: isActive ? "rgba(34, 211, 238, 0.12)" : "#0A0E14",
+                  color: isActive ? "#22D3EE" : "#5A7A94",
+                }}
+              >
+                <span className="font-mono text-[10px] font-bold leading-none mb-0.5">
+                  {step.label}
+                </span>
+                <span className="text-[7px] truncate max-w-full font-sans">
+                  {step.tag}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <input
-          type="range"
-          className="scrubber"
-          min={-24}
-          max={0}
-          step={1}
-          value={selectedHour}
-          style={{
-            "--range-fill": `${fillPercent}%`,
-          } as React.CSSProperties}
-          onChange={(e) => {
-            setIsPlaying(false);
-            onSelectHour(Number(e.target.value));
-          }}
-        />
+        {/* Scrubber Input */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between text-[8px] font-mono">
+            <span className="text-[#22D3EE] font-bold">
+              CURRENT OFFSET: {selectedHour === 0 ? "0h (Detection)" : `${selectedHour}h`}
+            </span>
+            <span className="text-[#3A5268]">Scrub ←→</span>
+          </div>
+
+          <input
+            type="range"
+            className="scrubber"
+            min={-24}
+            max={0}
+            step={1}
+            value={selectedHour}
+            style={{
+              "--range-fill": `${fillPercent}%`,
+            } as React.CSSProperties}
+            onChange={(e) => {
+              setIsPlaying(false);
+              onSelectHour(Number(e.target.value));
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </OperationsPanel>
   );
 }
+
+export default TimeSlider;

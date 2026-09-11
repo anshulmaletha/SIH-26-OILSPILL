@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { LAYER_META, type LayerId } from "@/lib/map/config";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
 
 interface MapLegendProps {
   visibility: Record<LayerId, boolean>;
 }
 
-// 5 discrete hex swatches: dim edge → bright cyan core (14% → 90%)
 const DENSITY_SWATCHES = [
   { opacity: 0.14, label: "Low" },
   { opacity: 0.31, label: "" },
@@ -14,7 +16,6 @@ const DENSITY_SWATCHES = [
   { opacity: 0.90, label: "Peak" },
 ];
 
-/** Small inline SVG hexagon swatch (flat-top) */
 function HexSwatch({ opacity, label }: { opacity: number; label: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
@@ -51,201 +52,74 @@ export function MapLegend({ visibility }: MapLegendProps) {
   if (visible.length === 0) return null;
 
   return (
-    <div
-      style={{
-        width: 200,
-        background: "#0D1117",
-        border: "1px solid #1C2A38",
-        borderRadius: "2px",
-        color: "#C8D8E8",
-        overflow: "hidden",
-      }}
+    <OperationsPanel
+      variant="side"
+      borderLeftAccent
+      accentColor="cyan"
+      className="w-[240px]"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: isCollapsed ? "none" : "1px solid #1C2A38",
-          padding: "6px 10px",
-          background: "#0A0E14",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: "8px",
-            color: "#3A5268",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            fontWeight: 700,
-          }}
-        >
-          Legend — {visible.length} Active
-        </span>
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#3A5268",
-            padding: "0 2px",
-            fontSize: "10px",
-            lineHeight: 1,
-          }}
-          title={isCollapsed ? "Expand legend" : "Collapse legend"}
-        >
-          {isCollapsed ? "▼" : "▲"}
-        </button>
-      </div>
+      <PanelHeader
+        category="MAP"
+        title="LEGEND"
+        statusText={`${visible.length} ACTIVE`}
+        statusVariant="cyan"
+        onCollapse={() => setIsCollapsed(!isCollapsed)}
+        isCollapsed={isCollapsed}
+      />
 
-      {/* Body */}
       {!isCollapsed && (
-        <div style={{ padding: "8px 10px" }}>
-          {/* Layer swatches */}
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, marginBottom: 8 }}>
+        <div className="p-2.5 flex flex-col gap-2">
+          {/* Active Layer Swatches */}
+          <div className="flex flex-col gap-1.5">
             {visible.map((meta) => (
-              <li
+              <div
                 key={meta.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  marginBottom: 4,
-                }}
+                className="flex items-center justify-between py-1 px-1.5 rounded-xs bg-[#0A0E14] border border-[#1C2A38]"
               >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    background: meta.color,
-                    flexShrink: 0,
-                    borderRadius: 0,
-                    opacity: 0.85,
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: "10px",
-                    color: "#C8D8E8",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {meta.label}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-xs flex-shrink-0"
+                    style={{ backgroundColor: meta.color }}
+                  />
+                  <span className="text-[10px] font-sans text-[#E2E8F0]">
+                    {meta.label}
+                  </span>
+                </div>
+                <span className="text-[8px] font-mono text-[#5A7A94] uppercase">
+                  {meta.id === "sar-raster" ? "SAR" : meta.id === "slick-polygon" ? "POLY" : meta.id === "h3-corridor" ? "H3" : "AIS"}
                 </span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "8px",
-                    color: "#3A5268",
-                    marginLeft: "auto",
-                    flexShrink: 0,
-                  }}
-                >
-                  {meta.id === "sar-raster"   ? "SAR"  :
-                   meta.id === "slick-polygon" ? "POLY" :
-                   meta.id === "h3-corridor"   ? "H3"   : "AIS"}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {/* H3 density swatch row — only when H3 corridor is visible */}
-          {visibility["h3-corridor"] && (
-            <div
-              style={{
-                borderTop: "1px solid #1C2A38",
-                paddingTop: 8,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "7.5px",
-                  color: "#3A5268",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  marginBottom: 6,
-                }}
-              >
-                Match Density
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: "space-between",
-                  gap: 4,
-                }}
-              >
+            ))}
+          </div>
+
+          {/* H3 density row */}
+          {visibility["h3-corridor"] && (
+            <div className="pt-2 border-t border-[#1C2A38]">
+              <span className="text-[7.5px] font-mono font-bold text-[#5A7A94] uppercase tracking-wider block mb-1.5">
+                H3 Corridor Plume Density
+              </span>
+              <div className="flex items-end justify-between px-1">
                 {DENSITY_SWATCHES.map((s, i) => (
                   <HexSwatch key={i} opacity={s.opacity} label={s.label} />
                 ))}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "7px",
-                  color: "#3A5268",
-                  marginTop: 4,
-                }}
-              >
-                <span>Low</span>
-                <span style={{ color: "#22D3EE" }}>High</span>
-              </div>
             </div>
           )}
 
-          {/* Dark vessel indicator */}
-          <div
-            style={{
-              borderTop: "1px solid #1C2A38",
-              paddingTop: 7,
-              marginTop: 7,
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-            }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                background: "#EF4444",
-                flexShrink: 0,
-                borderRadius: "50%",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: "10px",
-                color: "#C8D8E8",
-              }}
-            >
-              Dark Vessel
-            </span>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "8px",
-                color: "#EF4444",
-                marginLeft: "auto",
-              }}
-            >
-              CFAR
-            </span>
+          {/* Dark Vessel Alert Tag */}
+          <div className="pt-2 border-t border-[#1C2A38] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] animate-pulse" />
+              <span className="text-[10px] font-sans font-semibold text-[#E2E8F0]">
+                Dark Vessel Alert
+              </span>
+            </div>
+            <StatusBadge label="CFAR RADAR" variant="red" size="sm" />
           </div>
         </div>
       )}
-    </div>
+    </OperationsPanel>
   );
 }
+
+export default MapLegend;

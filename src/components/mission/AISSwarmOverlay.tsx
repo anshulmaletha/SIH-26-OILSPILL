@@ -1,52 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useMission, MissionStage } from '@/lib/mission/missionState';
+import React, { useState, useEffect, useRef } from "react";
+import { useMission } from "@/lib/mission/missionState";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { PanelSection } from "@/components/ui/panel-system/PanelSection";
+import { MetricRow } from "@/components/ui/panel-system/MetricRow";
+import { MetricCard } from "@/components/ui/panel-system/MetricCard";
+import { StatusBadge } from "@/components/ui/panel-system/StatusBadge";
+import { CollapsibleSection } from "@/components/ui/panel-system/CollapsibleSection";
 
-// Inject loading-dots keyframes once
-const DOTS_STYLE_ID = 'ais-dots-style';
-if (typeof document !== 'undefined' && !document.getElementById(DOTS_STYLE_ID)) {
-  const style = document.createElement('style');
-  style.id = DOTS_STYLE_ID;
-  style.textContent = `
-    @keyframes ais-dots {
-      0%   { content: '.'; }
-      33%  { content: '..'; }
-      66%  { content: '...'; }
-      100% { content: '.'; }
-    }
-    .ais-dots::after {
-      content: '.';
-      animation: ais-dots 1.2s step-end infinite;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-const VESSEL_TYPES: { label: string; count: number }[] = [
-  { label: 'Crude Tanker', count: 127 },
-  { label: 'Bulk Carrier', count: 98 },
-  { label: 'Container', count: 84 },
-  { label: 'Other', count: 103 },
+const VESSEL_TYPES: { label: string; count: number; pct: string; color: "cyan" | "emerald" | "amber" | "dim" }[] = [
+  { label: "Crude Oil Tankers", count: 127, pct: "30.8%", color: "amber" },
+  { label: "Bulk Carriers", count: 98, pct: "23.8%", color: "dim" },
+  { label: "Container Ships", count: 84, pct: "20.4%", color: "dim" },
+  { label: "Service / Other", count: 103, pct: "25.0%", color: "cyan" },
 ];
 
 const TOTAL_VESSELS = 412;
-const COUNT_ANIM_DURATION_MS = 4000; // 0ms -> 412 at 4000ms
+const COUNT_ANIM_DURATION_MS = 3500;
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
 
-const AISSwarmOverlay: React.FC = () => {
+export const AISSwarmOverlay: React.FC = () => {
   const { state } = useMission();
-
-  // Animated vessel count
+  const isActive = state.currentStage === "AIS_SWARM";
   const [displayCount, setDisplayCount] = useState(0);
   const rafRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (state.currentStage !== ('AIS_SWARM' as MissionStage)) {
+    if (!isActive) {
       setDisplayCount(0);
-      startTimeRef.current = null;
       return;
     }
 
@@ -54,160 +38,163 @@ const AISSwarmOverlay: React.FC = () => {
     const progress = Math.min(elapsed / COUNT_ANIM_DURATION_MS, 1);
     const target = Math.round(easeOutCubic(progress) * TOTAL_VESSELS);
     setDisplayCount(target);
-  }, [state.stageElapsedMs, state.currentStage]);
+  }, [state.stageElapsedMs, isActive]);
 
-  // Cleanup raf on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
-  if (state.currentStage !== ('AIS_SWARM' as MissionStage)) return null;
+  if (!isActive) return null;
 
-  const showBreakdown = state.stageElapsedMs > 2000;
-  const showStatus = state.stageElapsedMs > 3500;
+  const showBreakdown = state.stageElapsedMs > 1800;
+  const showStatus = state.stageElapsedMs > 3000;
 
   return (
     <div
       style={{
-        position: 'absolute',
-        top: '80px',
-        left: '12px',
-        zIndex: 15,
-        width: '280px',
-        backgroundColor: '#0D1117',
-        border: '1px solid #1C2A38',
-        borderRadius: '2px',
-        overflow: 'hidden',
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 20,
       }}
     >
-      {/* Header */}
       <div
         style={{
-          padding: '10px 12px',
-          borderBottom: '1px solid #1C2A38',
+          position: "absolute",
+          top: 64,
+          left: 14,
+          width: 280,
+          maxHeight: "calc(100vh - 270px)",
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: "auto",
         }}
       >
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '9px',
-            color: '#22D3EE',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            lineHeight: 1,
-            marginBottom: '3px',
-          }}
+        <OperationsPanel
+          variant="side"
+          borderLeftAccent
+          accentColor="cyan"
+          style={{ maxHeight: "100%", overflowY: "auto" }}
         >
-          AIS MARITIME TRAFFIC
-        </div>
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '8px',
-            color: '#5A7A94',
-            lineHeight: 1,
-          }}
-        >
-          Temporal corridor T-24h — T=0h
-        </div>
-      </div>
+          <PanelHeader
+            category="03 · AIS ANALYSIS"
+            title="VESSEL TRACKING"
+            statusText={showStatus ? "INDEXED" : "INGESTING"}
+            statusVariant={showStatus ? "cyan" : "amber"}
+          />
 
-      {/* Content */}
-      <div style={{ padding: '10px 12px' }}>
-        {/* Rolling vessel counter */}
-        <div style={{ marginBottom: '8px' }}>
+          {/* Primary metric block */}
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '32px',
-              fontWeight: 700,
-              color: '#E2E8F0',
-              lineHeight: 1,
-              letterSpacing: '-0.02em',
+              padding: "14px",
+              borderBottom: "1px solid #1C2A38",
             }}
           >
-            {String(displayCount).padStart(3, '0')}
-          </div>
-          <div
-            style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '8px',
-              color: '#5A7A94',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginTop: '4px',
-              lineHeight: 1.3,
-            }}
-          >
-            ACTIVE VESSELS IN TEMPORAL CORRIDOR
-          </div>
-        </div>
-
-        {/* Vessel type breakdown */}
-        {showBreakdown && (
-          <div style={{ marginTop: '8px' }}>
-            {VESSEL_TYPES.map((v, i) => (
-              <div
-                key={v.label}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingTop: '3px',
-                  paddingBottom: '3px',
-                  borderBottom: i < VESSEL_TYPES.length - 1 ? '1px solid #111822' : 'none',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '9px',
-                    color: '#5A7A94',
-                  }}
-                >
-                  {v.label}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '10px',
-                    color: '#C8D8E8',
-                  }}
-                >
-                  {v.count}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Status badge */}
-        {showStatus && (
-          <div
-            style={{
-              backgroundColor: 'rgba(34,211,238,0.03)',
-              border: '1px solid rgba(34,211,238,0.13)',
-              padding: '6px 10px',
-              marginTop: '8px',
-              borderRadius: '2px',
-            }}
-          >
-            <span
-              className="ais-dots"
+            <div
               style={{
+                fontSize: 36,
+                fontWeight: 800,
+                color: "#22D3EE",
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: '8px',
-                color: '#22D3EE',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
               }}
             >
-              H3 SPATIAL-TEMPORAL INDEXING
-            </span>
+              {String(displayCount).padStart(3, "0")}
+            </div>
+            <div
+              style={{
+                fontSize: 9,
+                color: "#5A7A94",
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                marginTop: 4,
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              VESSELS ANALYZED
+            </div>
           </div>
-        )}
+
+          {/* Supporting block — 2 items, visible after breakdown phase */}
+          {showBreakdown && (
+            <div
+              style={{
+                padding: "10px 14px",
+                borderBottom: "1px solid #1C2A38",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              <MetricRow
+                label="Crude Tankers"
+                value={127}
+                unit="30.8%"
+                color="amber"
+              />
+              <MetricRow
+                label="AIS Anomalies"
+                value={1}
+                color="red"
+              />
+            </div>
+          )}
+
+          {/* Collapsible: Fleet Breakdown + Spatial Pipeline */}
+          <CollapsibleSection label="Fleet Breakdown">
+            {VESSEL_TYPES.map((v) => (
+              <MetricRow
+                key={v.label}
+                label={v.label}
+                value={v.count}
+                unit={`(${v.pct})`}
+                color={v.color}
+              />
+            ))}
+
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 9,
+                }}
+              >
+                <span style={{ color: "#5A7A94" }}>H3 Hex Indexing (Res 7):</span>
+                {showStatus ? (
+                  <StatusBadge label="READY" variant="emerald" size="sm" />
+                ) : (
+                  <StatusBadge label="PROCESSING" variant="amber" pulse size="sm" />
+                )}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 9,
+                }}
+              >
+                <span style={{ color: "#5A7A94" }}>Trajectory Discretization:</span>
+                <span style={{ color: "#E2E8F0", fontWeight: 600 }}>1-Hour Interpolation</span>
+              </div>
+            </div>
+          </CollapsibleSection>
+        </OperationsPanel>
       </div>
     </div>
   );

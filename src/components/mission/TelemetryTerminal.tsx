@@ -1,32 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { useMission } from '@/lib/mission/missionState';
-import { getVisibleLogs, levelColor } from '@/lib/mission/telemetryLog';
+import React, { useRef, useEffect } from "react";
+import { useMission } from "@/lib/mission/missionState";
+import { getVisibleLogs } from "@/lib/mission/telemetryLog";
+import { OperationsPanel } from "@/components/ui/panel-system/OperationsPanel";
+import { PanelHeader } from "@/components/ui/panel-system/PanelHeader";
+import { TelemetryEvent } from "@/components/ui/panel-system/TelemetryEvent";
 
-// Blinking cursor keyframes injected once
-const BLINK_STYLE_ID = 'telemetry-blink-style';
-if (typeof document !== 'undefined' && !document.getElementById(BLINK_STYLE_ID)) {
-  const style = document.createElement('style');
-  style.id = BLINK_STYLE_ID;
-  style.textContent = `
-    @keyframes telemetry-blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-    .telemetry-blink {
-      animation: telemetry-blink 1s step-end infinite;
-    }
-    @keyframes telemetry-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-    .telemetry-pulse {
-      animation: telemetry-pulse 1.4s ease-in-out infinite;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-const TelemetryTerminal: React.FC = () => {
+export const TelemetryTerminal: React.FC = () => {
   const { state } = useMission();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,159 +23,69 @@ const TelemetryTerminal: React.FC = () => {
   return (
     <div
       style={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '12px',
-        zIndex: 15,
-        width: '420px',
-        height: '200px',
-        backgroundColor: 'rgba(5, 7, 10, 0.88)',
-        border: '1px solid #1C2A38',
-        borderLeft: '2px solid #22D3EE',
-        borderRadius: '2px',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
+        position: "absolute",
+        bottom: "16px",
+        left: "14px",
+        zIndex: 25,
+        width: "280px",
+        height: "160px",
+        pointerEvents: "auto",
       }}
     >
-      {/* Header */}
-      <div
+      <OperationsPanel
+        variant="terminal"
+        borderLeftAccent
+        accentColor="cyan"
         style={{
-          height: '24px',
-          minHeight: '24px',
-          borderBottom: '1px solid #1C2A38',
-          paddingLeft: '8px',
-          paddingRight: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxSizing: 'border-box',
+          height: "100%",
+          backgroundColor: "rgba(8, 11, 15, 0.94)",
         }}
       >
-        {/* Left: pulsing dot + label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div
-            className="telemetry-pulse"
-            style={{
-              width: '5px',
-              height: '5px',
-              borderRadius: '50%',
-              backgroundColor: '#22D3EE',
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '9px',
-              color: '#22D3EE',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              lineHeight: 1,
-            }}
-          >
-            TELEMETRY FEED
-          </span>
-        </div>
+        <PanelHeader
+          category="SYSTEM"
+          title="LIVE ACTIVITY"
+          live
+          style={{
+            padding: "5px 10px",
+            borderBottom: "1px solid #1C2A38",
+            minHeight: "28px",
+          }}
+        />
 
-        {/* Right: LIVE indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <div
-            style={{
-              width: '5px',
-              height: '5px',
-              borderRadius: '50%',
-              backgroundColor: '#EF4444',
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '8px',
-              color: '#EF4444',
-              lineHeight: 1,
-              letterSpacing: '0.05em',
-            }}
-          >
-            LIVE
-          </span>
-        </div>
-      </div>
+        {/* Log stream */}
+        <div
+          ref={scrollRef}
+          className="custom-scrollbar"
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "6px 10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "3px",
+          }}
+        >
+          {lines.slice(-5).map((line, idx, arr) => {
+            const isLast = idx === arr.length - 1;
+            return (
+              <TelemetryEvent
+                key={idx}
+                timestamp={line.offsetLabel}
+                level={line.level}
+                message={line.message}
+                isLast={isLast}
+              />
+            );
+          })}
 
-      {/* Scrollable log area */}
-      <div
-        ref={scrollRef}
-        className="custom-scrollbar"
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '6px 8px',
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '9px',
-          lineHeight: 1.5,
-          boxSizing: 'border-box',
-        }}
-      >
-        {lines.map((line, idx) => {
-          const isLast = idx === lines.length - 1;
-          return (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* Timestamp */}
-              <span
-                style={{
-                  color: '#3A5268',
-                  flexShrink: 0,
-                  marginRight: '8px',
-                  userSelect: 'none',
-                }}
-              >
-                {line.timestamp}
-              </span>
-              {/* Message */}
-              <span
-                style={{
-                  color: levelColor(line.level),
-                  wordBreak: 'break-word',
-                  flex: 1,
-                }}
-              >
-                {line.message}
-                {isLast && (
-                  <span
-                    className="telemetry-blink"
-                    style={{
-                      color: '#22D3EE',
-                      marginLeft: '2px',
-                    }}
-                  >
-                    _
-                  </span>
-                )}
-              </span>
+          {lines.length === 0 && (
+            <div className="flex items-center gap-1 font-mono text-[9px] text-[#5A7A94]">
+              <span>INITIALIZING EVENT SUBSCRIPTION STREAM…</span>
+              <span className="w-1.5 h-3 bg-[#22D3EE] inline-block animate-pulse" />
             </div>
-          );
-        })}
-
-        {/* Show cursor alone if no lines */}
-        {lines.length === 0 && (
-          <div style={{ display: 'flex' }}>
-            <span
-              className="telemetry-blink"
-              style={{ color: '#22D3EE' }}
-            >
-              _
-            </span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </OperationsPanel>
     </div>
   );
 };

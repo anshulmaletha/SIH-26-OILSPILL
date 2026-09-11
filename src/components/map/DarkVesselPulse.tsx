@@ -55,6 +55,10 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
 
   if (!screenPos) return null;
 
+  const isNearRight = typeof window !== "undefined" && screenPos.x > window.innerWidth - 240;
+  const isNearBottom = typeof window !== "undefined" && screenPos.y > window.innerHeight - 100;
+  const isNearTop = screenPos.y < 120;
+
   return (
     <div
       style={{
@@ -130,11 +134,14 @@ export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulsePr
       <div
         style={{
           position: "absolute",
-          left: 20,
-          top: -18,
+          left: isNearRight ? "auto" : 20,
+          right: isNearRight ? 20 : "auto",
+          top: isNearBottom ? "auto" : (isNearTop ? 20 : -18),
+          bottom: isNearBottom ? 20 : "auto",
           background: "#0D1117",
           border: "1px solid #1C2A38",
-          borderLeft: "2px solid #EF4444",
+          borderLeft: isNearRight ? "1px solid #1C2A38" : "2px solid #EF4444",
+          borderRight: isNearRight ? "2px solid #EF4444" : "none",
           borderRadius: "2px",
           padding: "5px 8px",
           boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
