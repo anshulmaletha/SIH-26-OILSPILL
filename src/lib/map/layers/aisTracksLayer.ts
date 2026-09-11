@@ -6,6 +6,7 @@ import type { MapTooltipInfo } from "../types";
 import {
   getShipIconDataUri,
   getSuspectHaloDataUri,
+  getMasterShipAtlasDataUri,
   SHIP_ICON_MAPPING,
   HALO_ICON_MAPPING,
   SHIP_ICON_SIZE,
@@ -255,6 +256,7 @@ export function createAisTrackLayers({
   }
 
   // ── 4. Dark vessel marker (IconLayer) — red ship hull silhouette rotated to heading ─────
+  const shipIconAtlas = getMasterShipAtlasDataUri();
   const darkVesselLayer = new IconLayer<ActiveVesselPosition>({
     id: `${LAYER_IDS.aisTracks}-dark-vessel`,
     visible,
