@@ -151,26 +151,32 @@ export function DarkVesselPulse({
 
       {/* Red Dark Ship Hull Marker Core */}
       <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
+        width="26"
+        height="26"
+        viewBox="0 0 32 32"
         style={{
           position: "absolute",
-          left: -9,
-          top: -9,
-          filter: "drop-shadow(0 0 8px #EF4444)",
+          left: -13,
+          top: -13,
+          filter: "drop-shadow(0 0 10px #EF4444)",
           pointerEvents: "none",
         }}
       >
         <path
-          d="M 12,2 C 14,4 17,9 16.5,14 L 15,20 L 9,20 L 7.5,14 C 7,9 10,4 12,2 Z"
+          d="M 16,3 C 19.5,5.5 22,12 21.5,20 L 19,27 L 13,27 L 10.5,20 C 10,12 12.5,5.5 16,3 Z"
           fill="#EF4444"
           stroke="#FCA5A5"
-          strokeWidth="1.2"
+          strokeWidth="1.5"
           strokeLinejoin="round"
         />
-        <rect x="10" y="10" width="4" height="5" rx="0.5" fill="#0D1117" stroke="#EF4444" strokeWidth="0.6" />
-        <circle cx="12" cy="12.5" r="0.8" fill="#EF4444" />
+        <path
+          d="M 16,6 C 18,8 20,13 19.5,19 L 17.5,24 L 14.5,24 L 12.5,19 C 12,13 14,8 16,6 Z"
+          fill="#1A0707"
+          stroke="#EF4444"
+          strokeWidth="0.8"
+        />
+        <rect x="13.5" y="16" width="5" height="6" rx="1" fill="#EF4444" stroke="#FCA5A5" strokeWidth="0.8" />
+        <circle cx="16" cy="19" r="1" fill="#FFFFFF" />
       </svg>
 
       {/* ── Compact docked label card near the marker on the map canvas ── */}

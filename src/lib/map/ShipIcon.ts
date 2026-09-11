@@ -1,22 +1,27 @@
 /**
- * ShipIcon — Realistic naval ship hull vessel markers for MapLibre / Deck.gl IconLayer.
+ * ShipIcon — High-Contrast Naval Ship Vessel Markers for MapLibre / Deck.gl IconLayer.
  *
- * Generates crisp top-down ship hull silhouettes with pointed bow, flared beam,
- * stern transom, bridge superstructure, and centerline keel.
+ * Generates crisp, clearly visible top-down ship hull silhouettes:
+ * - Pointed razor bow at front
+ * - Flared wide cargo hull in the middle
+ * - Blunt/flat stern transom at back
+ * - Elevated navigation bridge superstructure & wheelhouse
+ * - Centerline keel and deck cargo hatches
+ * - High-contrast contrasting outline ensuring immediate visibility on dark maps
  *
  * Deck.gl IconLayer's `getAngle` rotates each ship to its actual heading (0° = North).
- * Size: 64×64 px per icon cell in a 256×128 master SVG atlas.
+ * Master atlas dimensions: 512×256 px (128×128 px per cell).
  */
 
-const ATLAS_CELL = 64; // px per icon cell
+const ATLAS_CELL = 128; // px per icon cell in 512x256 atlas
 
 /**
  * Master multi-icon atlas containing distinct top-down ship hull silhouettes:
  * Row 0:
- * - ship-tanker (Crude Oil Tanker - Cyan #22D3EE)
+ * - ship-tanker (Crude Oil Tanker - Vibrant Electric Cyan #22D3EE)
  * - ship-bulk (Bulk Carrier - Sky Blue #38BDF8)
- * - ship-container (Container Ship - Teal #14B8A6)
- * - ship-other (Other / Support - Slate #94A3B8)
+ * - ship-container (Container Ship - Bright Teal #14B8A6)
+ * - ship-other (Other / Support / Tug - Slate Blue #94A3B8)
  * Row 1:
  * - ship-red (Dark / Suspicious Vessel - Alert Red #EF4444)
  * - ship-amber (Suspect Candidate - Warning Amber #F59E0B)
@@ -24,119 +29,214 @@ const ATLAS_CELL = 64; // px per icon cell
  * - ship-teal (General Teal Traffic)
  */
 export function getMasterShipAtlasDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128">
-    <!-- (0,0): Crude Tanker (Cyan) -->
-    <g transform="translate(32,32)">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="256" viewBox="0 0 512 256">
+    <defs>
+      <!-- Drop shadow filter for maximum vessel pop against dark water -->
+      <filter id="ship-shadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.95" />
+      </filter>
+    </defs>
+
+    <!-- (0,0): Crude Oil Tanker (Electric Cyan #22D3EE) -->
+    <g transform="translate(64,64)" filter="url(#ship-shadow)">
+      <!-- Outer Hull Silhouette -->
       <path
-        d="M 0,-24 C 6,-19 12,-6 11,8 L 8,19 L -8,19 L -11,8 C -12,-6 -6,-19 0,-24 Z"
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
         fill="#22D3EE"
-        stroke="#E2E8F0"
-        stroke-width="1.2"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="2" width="10" height="10" rx="1" fill="#0D1117" stroke="#22D3EE" stroke-width="0.8" />
-      <circle cx="0" cy="7" r="1.2" fill="#22D3EE" />
-      <line x1="0" y1="-20" x2="0" y2="-2" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
-      <line x1="-5" y1="-8" x2="5" y2="-8" stroke="#0D1117" stroke-width="0.8" />
+      <!-- Dark Inset Deck -->
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#09131D"
+        stroke="#22D3EE"
+        stroke-width="1.2"
+      />
+      <!-- Forward Keel Line -->
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#22D3EE" stroke-width="2.2" stroke-linecap="round" />
+      <!-- Cargo Oil Manifolds / Tank Hatches -->
+      <rect x="-8" y="-24" width="16" height="6" rx="1.5" fill="#22D3EE" opacity="0.85" />
+      <rect x="-8" y="-12" width="16" height="6" rx="1.5" fill="#22D3EE" opacity="0.85" />
+      <rect x="-8" y="0" width="16" height="6" rx="1.5" fill="#22D3EE" opacity="0.85" />
+      <!-- Aft Bridge Superstructure -->
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#22D3EE" stroke="#FFFFFF" stroke-width="1.2" />
+      <!-- Wheelhouse Windows -->
+      <rect x="-7" y="22" width="14" height="4" rx="1" fill="#09131D" />
+      <!-- Navigation Radar Mast -->
+      <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
 
-    <!-- (64,0): Bulk Carrier (Sky Blue) -->
-    <g transform="translate(96,32)">
+    <!-- (128,0): Bulk Carrier (Sky Blue #38BDF8) -->
+    <g transform="translate(192,64)" filter="url(#ship-shadow)">
+      <!-- Broad Heavy Hull -->
       <path
-        d="M 0,-23 C 8,-17 13,-4 12,9 L 9,19 L -9,19 L -12,9 C -13,-4 -8,-17 0,-23 Z"
+        d="M 0,-50 C 18,-38 27,-8 25,26 L 19,48 L -19,48 L -25,26 C -27,-8 -18,-38 0,-50 Z"
         fill="#38BDF8"
-        stroke="#E0F2FE"
-        stroke-width="1.2"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-6" y="3" width="12" height="9" rx="1" fill="#0D1117" stroke="#38BDF8" stroke-width="0.8" />
-      <rect x="-4" y="-12" width="8" height="6" rx="0.5" fill="#0D1117" opacity="0.85" />
-      <rect x="-4" y="-4" width="8" height="5" rx="0.5" fill="#0D1117" opacity="0.85" />
+      <!-- Inset Deck -->
+      <path
+        d="M 0,-42 C 13,-32 20,-6 18,24 L 14,42 L -14,42 L -18,24 C -20,-6 -13,-32 0,-42 Z"
+        fill="#09131D"
+        stroke="#38BDF8"
+        stroke-width="1.2"
+      />
+      <!-- Large Ore / Cargo Holds -->
+      <rect x="-10" y="-28" width="20" height="9" rx="1.5" fill="#38BDF8" opacity="0.9" />
+      <rect x="-10" y="-14" width="20" height="9" rx="1.5" fill="#38BDF8" opacity="0.9" />
+      <rect x="-10" y="0" width="20" height="9" rx="1.5" fill="#38BDF8" opacity="0.9" />
+      <!-- Aft Bridge Superstructure -->
+      <rect x="-11" y="18" width="22" height="18" rx="2.5" fill="#38BDF8" stroke="#FFFFFF" stroke-width="1.2" />
+      <rect x="-8" y="22" width="16" height="4" rx="1" fill="#09131D" />
+      <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
 
-    <!-- (128,0): Container Ship (Teal) -->
-    <g transform="translate(160,32)">
+    <!-- (256,0): Container Ship (Bright Teal #14B8A6) -->
+    <g transform="translate(320,64)" filter="url(#ship-shadow)">
+      <!-- Sleek Streamlined Fast Hull -->
       <path
-        d="M 0,-25 C 5,-20 10,-8 9,8 L 7,20 L -7,20 L -9,8 C -10,-8 -5,-20 0,-25 Z"
+        d="M 0,-54 C 12,-44 22,-14 21,24 L 16,48 L -16,48 L -21,24 C -22,-14 -12,-44 0,-54 Z"
         fill="#14B8A6"
-        stroke="#CCFBF1"
-        stroke-width="1.2"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="4" width="10" height="9" rx="1" fill="#0D1117" stroke="#14B8A6" stroke-width="0.8" />
-      <line x1="0" y1="-21" x2="0" y2="0" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
-      <rect x="-4" y="-14" width="8" height="4" fill="#0D1117" opacity="0.8" />
-      <rect x="-4" y="-8" width="8" height="4" fill="#0D1117" opacity="0.8" />
-      <rect x="-4" y="-2" width="8" height="4" fill="#0D1117" opacity="0.8" />
+      <!-- Inset Deck -->
+      <path
+        d="M 0,-46 C 8,-36 15,-10 14,22 L 11,42 L -11,42 L -14,22 C -15,-10 -8,-36 0,-46 Z"
+        fill="#09131D"
+        stroke="#14B8A6"
+        stroke-width="1.2"
+      />
+      <!-- Container Tier Bays -->
+      <rect x="-9" y="-32" width="18" height="6" rx="1" fill="#14B8A6" opacity="0.9" />
+      <rect x="-9" y="-23" width="18" height="6" rx="1" fill="#14B8A6" opacity="0.9" />
+      <rect x="-9" y="-14" width="18" height="6" rx="1" fill="#14B8A6" opacity="0.9" />
+      <rect x="-9" y="-5" width="18" height="6" rx="1" fill="#14B8A6" opacity="0.9" />
+      <!-- Bridge Structure (Mid-Aft) -->
+      <rect x="-9" y="16" width="18" height="18" rx="2" fill="#14B8A6" stroke="#FFFFFF" stroke-width="1.2" />
+      <rect x="-6" y="20" width="12" height="4" rx="1" fill="#09131D" />
+      <circle cx="0" cy="28" r="2.2" fill="#FFFFFF" />
     </g>
 
-    <!-- (192,0): Other / Support / Tug (Slate) -->
-    <g transform="translate(224,32)">
+    <!-- (384,0): Other / Support / OSV (Slate Blue #94A3B8) -->
+    <g transform="translate(448,64)" filter="url(#ship-shadow)">
+      <!-- Compact Service Hull -->
       <path
-        d="M 0,-20 C 6,-15 9,-4 8,8 L 7,16 L -7,16 L -8,8 C -9,-4 -6,-15 0,-20 Z"
+        d="M 0,-46 C 14,-34 20,-8 18,22 L 15,44 L -15,44 L -18,22 C -20,-8 -14,-34 0,-46 Z"
         fill="#94A3B8"
-        stroke="#F1F5F9"
-        stroke-width="1.2"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-4" y="-2" width="8" height="9" rx="1" fill="#0D1117" stroke="#94A3B8" stroke-width="0.8" />
-      <circle cx="0" cy="2" r="1.2" fill="#94A3B8" />
-      <line x1="0" y1="-16" x2="0" y2="-5" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
+      <!-- Inset Deck -->
+      <path
+        d="M 0,-38 C 9,-28 14,-6 12,18 L 10,38 L -10,38 L -12,18 C -14,-6 -9,-28 0,-38 Z"
+        fill="#09131D"
+        stroke="#94A3B8"
+        stroke-width="1.2"
+      />
+      <!-- Forward Wheelhouse (Tug/OSV Style) -->
+      <rect x="-8" y="-18" width="16" height="18" rx="2" fill="#94A3B8" stroke="#FFFFFF" stroke-width="1.2" />
+      <rect x="-5" y="-14" width="10" height="4" rx="1" fill="#09131D" />
+      <circle cx="0" cy="-6" r="2" fill="#FFFFFF" />
+      <!-- Open Aft Working Deck / Tow Winch -->
+      <circle cx="0" cy="18" r="4.5" fill="#94A3B8" />
+      <line x1="-7" y1="28" x2="7" y2="28" stroke="#94A3B8" stroke-width="2" />
     </g>
 
-    <!-- (0,64): Dark / Suspicious Ship (Red) -->
-    <g transform="translate(32,96)">
+    <!-- (0,128): Dark / Suspicious Vessel (Alert Red #EF4444) -->
+    <g transform="translate(64,192)" filter="url(#ship-shadow)">
+      <!-- Warning Red Outer Hull -->
       <path
-        d="M 0,-24 C 6,-19 12,-6 11,8 L 8,19 L -8,19 L -11,8 C -12,-6 -6,-19 0,-24 Z"
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
         fill="#EF4444"
         stroke="#FCA5A5"
-        stroke-width="1.4"
+        stroke-width="3"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="2" width="10" height="10" rx="1" fill="#0D1117" stroke="#EF4444" stroke-width="1.0" />
-      <circle cx="0" cy="7" r="1.5" fill="#EF4444" />
-      <line x1="0" y1="-20" x2="0" y2="-2" stroke="#0D1117" stroke-width="1.4" stroke-linecap="round" />
+      <!-- Dark Red Deck -->
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#1A0707"
+        stroke="#EF4444"
+        stroke-width="1.5"
+      />
+      <!-- Centerline & Alert Crossbars -->
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="-8" y1="-18" x2="8" y2="-18" stroke="#EF4444" stroke-width="2" />
+      <line x1="-8" y1="-4" x2="8" y2="-4" stroke="#EF4444" stroke-width="2" />
+      <!-- Aft Bridge Superstructure -->
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#EF4444" stroke="#FCA5A5" stroke-width="1.4" />
+      <rect x="-7" y="22" width="14" height="4" rx="1" fill="#1A0707" />
+      <circle cx="0" cy="30" r="2.5" fill="#FFFFFF" />
     </g>
 
-    <!-- (64,64): Amber Candidate Ship -->
-    <g transform="translate(96,96)">
+    <!-- (128,128): Amber Candidate Ship (Warning Amber #F59E0B) -->
+    <g transform="translate(192,192)" filter="url(#ship-shadow)">
       <path
-        d="M 0,-24 C 6,-19 12,-6 11,8 L 8,19 L -8,19 L -11,8 C -12,-6 -6,-19 0,-24 Z"
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
         fill="#F59E0B"
-        stroke="#FDE68A"
-        stroke-width="1.2"
+        stroke="#FEF3C7"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="2" width="10" height="10" rx="1" fill="#0D1117" stroke="#F59E0B" stroke-width="0.8" />
-      <circle cx="0" cy="7" r="1.2" fill="#F59E0B" />
-      <line x1="0" y1="-20" x2="0" y2="-2" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#140D04"
+        stroke="#F59E0B"
+        stroke-width="1.2"
+      />
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" />
+      <rect x="-8" y="-18" width="16" height="6" rx="1" fill="#F59E0B" opacity="0.85" />
+      <rect x="-8" y="-4" width="16" height="6" rx="1" fill="#F59E0B" opacity="0.85" />
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#F59E0B" stroke="#FEF3C7" stroke-width="1.2" />
+      <rect x="-7" y="22" width="14" height="4" rx="1" fill="#140D04" />
+      <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
 
-    <!-- (128,64): Cyan Default Ship -->
-    <g transform="translate(160,96)">
+    <!-- (256,128): Cyan General Vessel -->
+    <g transform="translate(320,192)" filter="url(#ship-shadow)">
       <path
-        d="M 0,-24 C 6,-19 12,-6 11,8 L 8,19 L -8,19 L -11,8 C -12,-6 -6,-19 0,-24 Z"
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
         fill="#22D3EE"
-        stroke="#E2E8F0"
-        stroke-width="1.2"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="2" width="10" height="10" rx="1" fill="#0D1117" stroke="#22D3EE" stroke-width="0.8" />
-      <circle cx="0" cy="7" r="1.2" fill="#22D3EE" />
-      <line x1="0" y1="-20" x2="0" y2="-2" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#09131D"
+        stroke="#22D3EE"
+        stroke-width="1.2"
+      />
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#22D3EE" stroke-width="2.2" stroke-linecap="round" />
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#22D3EE" stroke="#FFFFFF" stroke-width="1.2" />
+      <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
 
-    <!-- (192,64): Teal Default Ship -->
-    <g transform="translate(224,96)">
+    <!-- (384,128): Teal General Vessel -->
+    <g transform="translate(448,192)" filter="url(#ship-shadow)">
       <path
-        d="M 0,-25 C 5,-20 10,-8 9,8 L 7,20 L -7,20 L -9,8 C -10,-8 -5,-20 0,-25 Z"
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
         fill="#14B8A6"
         stroke="#CCFBF1"
-        stroke-width="1.2"
+        stroke-width="2.5"
         stroke-linejoin="round"
       />
-      <rect x="-5" y="4" width="10" height="9" rx="1" fill="#0D1117" stroke="#14B8A6" stroke-width="0.8" />
-      <line x1="0" y1="-21" x2="0" y2="0" stroke="#0D1117" stroke-width="1.2" stroke-linecap="round" />
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#09131D"
+        stroke="#14B8A6"
+        stroke-width="1.2"
+      />
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#14B8A6" stroke-width="2.2" stroke-linecap="round" />
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#14B8A6" stroke="#CCFBF1" stroke-width="1.2" />
+      <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
   </svg>`;
 
@@ -155,8 +255,8 @@ export function getShipIconDataUri(color = "22D3EE"): string {
  * Subtle dashed ring around suspect vessel inside the matched hex.
  */
 export function getSuspectHaloDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ATLAS_CELL}" height="${ATLAS_CELL}" viewBox="0 0 64 64">
-    <circle cx="32" cy="32" r="22" fill="none" stroke="#22D3EE" stroke-width="1.2" stroke-opacity="0.65" stroke-dasharray="3 3" />
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ATLAS_CELL}" height="${ATLAS_CELL}" viewBox="0 0 128 128">
+    <circle cx="64" cy="64" r="48" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-opacity="0.75" stroke-dasharray="6 6" />
   </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
@@ -258,5 +358,6 @@ export const HALO_ICON_MAPPING = {
   },
 };
 
-export const SHIP_ICON_SIZE = 22; // default rendered pixels on map
+/** Default rendered pixels on map — large & crisp enough to immediately read as a ship */
+export const SHIP_ICON_SIZE = 30;
 
