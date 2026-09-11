@@ -424,21 +424,17 @@ export default function MapView({
     }
   }, [followTrack, selectedTrackId, relativeHour, p5Data]);
 
-  // Collect all 4 dark vessel positions & metadata for CSS pulse overlays
+  // Collect dark vessel positions for CSS overlay
   const darkVesselPositions = useMemo(() => {
     return p5Data.vessels
       .filter((v) => v.isDarkVessel)
       .map((v) => {
-        const pos = (v.path?.[v.path.length - 1] || v.pings?.[0]?.position) as [number, number] | undefined;
-        return {
-          vessel: v,
-          position: pos ?? [71.9, 19.28],
-          label: v.vesselName,
-          statusText: v.darkAnomaly
-            ? `GAP ${v.darkAnomaly.gapDurationHours.toFixed(1)}h · NO SIGNAL`
-            : "AIS: BLACKOUT · NO SIGNAL",
-        };
-      });
+        const ping = v.pings?.[0];
+        return ping
+          ? (ping.position as [number, number])
+          : (v.path?.[0] as [number, number] | undefined);
+      })
+      .filter((p): p is [number, number] => !!p);
   }, [p5Data]);
 
   return (
@@ -447,20 +443,19 @@ export default function MapView({
       className="absolute inset-0"
       style={{ position: "absolute", inset: 0 }}
     >
-      {/* Dark vessel pulsing CSS rings — rendered for all suspicious targets */}
-      {mapReady &&
-        darkVesselPositions.map((dv, i) => (
-          <DarkVesselPulse
-            key={dv.vessel.vesselId || i}
-            position={dv.position}
-            label={dv.label}
-            statusText={dv.statusText}
-            mapRef={mapRef}
-            onClick={() => {
-              if (onSelectVessel) onSelectVessel(dv.vessel);
-            }}
-          />
-        ))}
+      {/* Dark vessel pulsing CSS rings — rendered over map canvas */}
+      {mapReady && darkVesselPositions.map((pos, i) => (
+        <DarkVesselPulse
+          key={i}
+          position={pos}
+          mapRef={mapRef}
+          onClick={() => {
+            // Focus the dark vessel on click
+            const dv = p5Data.vessels.find((v) => v.isDarkVessel);
+            if (dv && onSelectVessel) onSelectVessel(dv);
+          }}
+        />
+      ))}
 
       {/* Docked H3 Cell Details Popover (Click Interactivity) */}
       {selectedHexCell && hexScreenPos && (

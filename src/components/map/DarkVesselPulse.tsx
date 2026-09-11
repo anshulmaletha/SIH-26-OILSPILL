@@ -6,21 +6,21 @@ interface DarkVesselPulseProps {
   position: [number, number];
   /** MapLibre map instance — used to project geo → screen coordinates */
   mapRef: React.RefObject<MapLibreMap | null>;
-  /** Optional custom label for the dark target */
-  label?: string;
-  /** Optional status text */
-  statusText?: string;
   /** Called when user clicks the pulsing marker */
   onClick?: () => void;
 }
 
-export function DarkVesselPulse({
-  position,
-  mapRef,
-  label = "DARK VESSEL (CFAR)",
-  statusText = "AIS: BLACKOUT · NO SIGNAL",
-  onClick,
-}: DarkVesselPulseProps) {
+/**
+ * DarkVesselPulse — CSS-animated pulsing red ring at a fixed geographic position.
+ *
+ * Renders as an absolute-positioned DOM element over the map canvas.
+ * Uses MapLibre's `map.project()` to convert [lng, lat] → screen px.
+ * Updates on every map move/zoom so the marker tracks the geo-point.
+ *
+ * Color: #EF4444 (alert red) — the ONE place red appears in the app.
+ * No glow, no bloom — just concentric ring scale+fade animation.
+ */
+export function DarkVesselPulse({ position, mapRef, onClick }: DarkVesselPulseProps) {
   const [screenPos, setScreenPos] = useState<{ x: number; y: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -163,7 +163,7 @@ export function DarkVesselPulse({
               textTransform: "uppercase",
             }}
           >
-            {label}
+            DARK VESSEL (CFAR)
           </span>
         </div>
         <div
@@ -184,7 +184,7 @@ export function DarkVesselPulse({
             letterSpacing: "0.04em",
           }}
         >
-          {statusText}
+          AIS: BLACKOUT · NO SIGNAL
         </div>
       </div>
     </div>
