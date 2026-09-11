@@ -22,6 +22,7 @@ export interface DarkVesselAnomaly {
   estimatedTransitSpeedKnots: number;
   spillCorridorIntersection: boolean;
   radarContactCorrelated: boolean;
+  radarSignature?: number;
   notes: string;
 }
 

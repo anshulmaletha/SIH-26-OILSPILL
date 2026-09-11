@@ -6,8 +6,8 @@ import {
   type IControl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { ScatterplotLayer, PathLayer, IconLayer } from "@deck.gl/layers";
 
 import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
@@ -19,9 +19,14 @@ import { DEFAULT_P4_DATA } from "@/lib/adapters/p4Adapter";
 import { DEFAULT_P5_DATA, getVesselPositionsAtHour } from "@/lib/adapters/p5Adapter";
 import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
+import { VesselInfoPanel } from "./VesselInfoPanel";
 import type { MissionStage } from "@/lib/mission/missionState";
 import type { SwarmVessel } from "@/lib/mission/swarmData";
-import { swarmVesselColor } from "@/lib/mission/swarmData";
+import {
+  getMasterShipAtlasDataUri,
+  SHIP_ICON_MAPPING,
+  SHIP_ICON_SIZE,
+} from "@/lib/map/ShipIcon";
 
 export interface MapViewProps {
   visibility: Record<LayerId, boolean>;
@@ -79,8 +84,19 @@ export default function MapView({
     ringK: number;
   } | null>(null);
   const [hexScreenPos, setHexScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<SwarmVessel | VesselTrack | null>(null);
 
   const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
+
+  const handleSelectVessel = useCallback(
+    (vessel: SwarmVessel | VesselTrack | null) => {
+      setSelectedVessel(vessel);
+      if (vessel && "vesselId" in vessel && onSelectVessel) {
+        onSelectVessel(vessel as VesselTrack);
+      }
+    },
+    [onSelectVessel]
+  );
 
   // Project selected hex cell coordinate to screen space on map move
   useEffect(() => {
@@ -119,7 +135,7 @@ export default function MapView({
       followTrack,
       primarySuspectVesselId,
       onHover: (info) => setTooltip(info),
-      onSelectVessel,
+      onSelectVessel: handleSelectVessel,
       onClickHex: (cell, coord) => {
         let k = 0;
         try {
@@ -131,23 +147,203 @@ export default function MapView({
       },
     });
 
-    // Add synthetic swarm scatter layer for AIS_SWARM and BACKTRACK_CORRIDOR phases
+    const extraLayers: (ScatterplotLayer | PathLayer | IconLayer<SwarmVessel>)[] = [];
+
+    // Add synthetic swarm ship icons for maritime traffic (interactive blue/cyan ship markers)
     if (swarmVessels.length > 0) {
-      const swarmLayer = new ScatterplotLayer({
-        id: "mission-swarm",
+      const shipAtlas = getMasterShipAtlasDataUri();
+
+      const swarmLayer = new IconLayer<SwarmVessel>({
+        id: "mission-swarm-ships",
         data: swarmVessels,
-        getPosition: (d) => d.position,
-        getRadius: (d) => (d.isCandidate ? 900 : 600),
-        getFillColor: (d) => swarmVesselColor(d, swarmPhase),
-        radiusUnits: "meters",
-        radiusMinPixels: swarmPhase === "backtrack" ? 3 : 2,
-        pickable: false,
-        parameters: { depthTest: false },
+        getPosition: (d: SwarmVessel) => d.position,
+        getIcon: (d: SwarmVessel) => {
+          if (d.isDarkVessel || d.suspicionLevel === "high") return "ship-red";
+          if (d.isCandidate || d.suspicionLevel === "moderate") return "ship-amber";
+          if (swarmPhase === "backtrack" && !d.isCandidate) return "ship-teal";
+          if (d.vesselType === "tanker") return "ship-tanker";
+          if (d.vesselType === "bulk") return "ship-bulk";
+          if (d.vesselType === "container") return "ship-container";
+          if (d.vesselType === "misc") return "ship-other";
+          return "ship-cyan";
+        },
+        getSize: (d: SwarmVessel) => {
+          const isSelected =
+            selectedVessel &&
+            (("id" in selectedVessel && selectedVessel.id === d.id) ||
+              ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
+          if (isSelected) return SHIP_ICON_SIZE * 1.35;
+          if (d.isDarkVessel) return SHIP_ICON_SIZE * 1.25;
+          if (d.isCandidate) return SHIP_ICON_SIZE * 1.15;
+          if (d.vesselType === "tanker" || d.vesselType === "bulk") return SHIP_ICON_SIZE * 1.08;
+          if (d.vesselType === "container") return SHIP_ICON_SIZE;
+          return SHIP_ICON_SIZE * 0.92;
+        },
+        getAngle: (d: SwarmVessel) => -(d.heading ?? d.course ?? 0),
+        iconAtlas: shipAtlas,
+        iconMapping: SHIP_ICON_MAPPING,
+        sizeUnits: "pixels",
+        pickable: true,
+        onClick: (info) => {
+          if (info.object) {
+            handleSelectVessel(info.object as SwarmVessel);
+          }
+        },
+        onHover: (info) => {
+          if (!info.object) {
+            setTooltip(null);
+            return;
+          }
+          const v = info.object as SwarmVessel;
+          const isDark = !!(v.isDarkVessel || v.suspicionLevel === "high");
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            type: isDark ? "dark-vessel" : "vessel",
+            title: v.name,
+            items: [
+              { label: "MMSI", value: v.mmsi || "—" },
+              { label: "Type", value: v.typeLabel || "Vessel" },
+              { label: "Speed", value: `${(v.speedKnots ?? 0).toFixed(1)} kn` },
+              { label: "Heading", value: `${(v.heading ?? 0).toFixed(0)}°` },
+              { label: "Status", value: isDark ? "BLACKOUT / ANOMALY" : (v.navStatus || "Underway") },
+            ],
+          });
+        },
       });
-      return [...baseLayers, swarmLayer];
+      extraLayers.push(swarmLayer);
     }
 
-    return baseLayers;
+    // Selected Vessel Trajectory, Waypoints, Heading Vector, and Target Ring
+    if (selectedVessel) {
+      const v = selectedVessel;
+      const isDark = "isDarkVessel" in v ? !!v.isDarkVessel : false;
+      const isCandidate = "isCandidate" in v ? !!v.isCandidate : false;
+      const trajColor: [number, number, number] = isDark
+        ? [239, 68, 68]
+        : isCandidate
+        ? [245, 158, 11]
+        : [34, 211, 238];
+
+      // Extract trajectory path
+      let trajectory: [number, number][] = [];
+      if ("trajectory" in v && Array.isArray(v.trajectory) && v.trajectory.length > 0) {
+        trajectory = v.trajectory;
+      } else if ("path" in v && Array.isArray(v.path) && v.path.length > 0) {
+        trajectory = v.path;
+      }
+
+      // Extract current position
+      let curPos: [number, number] | null = null;
+      if ("position" in v && Array.isArray(v.position) && typeof v.position[0] === "number") {
+        curPos = v.position as [number, number];
+      } else if ("pings" in v && v.pings?.[0]?.position) {
+        curPos = v.pings[0].position as [number, number];
+      } else if (trajectory.length > 0) {
+        curPos = (trajectory[trajectory.length - 1] ?? null) as [number, number] | null;
+      }
+
+      if (trajectory.length > 1) {
+        // 1. Glow underlay
+        extraLayers.push(
+          new PathLayer({
+            id: "selected-vessel-trajectory-glow",
+            data: [{ path: trajectory }],
+            getPath: (d: { path: [number, number][] }) => d.path,
+            getColor: () => [...trajColor, 60] as [number, number, number, number],
+            getWidth: 6,
+            widthUnits: "pixels",
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+
+        // 2. Crisp main path line
+        extraLayers.push(
+          new PathLayer({
+            id: "selected-vessel-trajectory-line",
+            data: [{ path: trajectory }],
+            getPath: (d: { path: [number, number][] }) => d.path,
+            getColor: () => [...trajColor, 230] as [number, number, number, number],
+            getWidth: 2.2,
+            widthUnits: "pixels",
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+
+        // 3. Waypoint dots along historical trajectory
+        extraLayers.push(
+          new ScatterplotLayer({
+            id: "selected-vessel-waypoints",
+            data: trajectory.map((p, idx) => ({
+              position: p,
+              isCurrent: idx === trajectory.length - 1,
+            })),
+            getPosition: (d: { position: [number, number] }) => d.position,
+            getRadius: (d: { isCurrent: boolean }) => (d.isCurrent ? 600 : 350),
+            radiusUnits: "meters",
+            radiusMinPixels: 3,
+            getFillColor: (d: { isCurrent: boolean }) =>
+              d.isCurrent ? [...trajColor, 255] : [13, 17, 23, 220],
+            getLineColor: () => [...trajColor, 255] as [number, number, number, number],
+            lineWidthMinPixels: 1.5,
+            stroked: true,
+            filled: true,
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+      }
+
+      // 4. Forward heading vector and target ring
+      if (curPos && typeof curPos[0] === "number" && typeof curPos[1] === "number") {
+        const heading =
+          ("heading" in v && typeof v.heading === "number" ? v.heading : undefined) ??
+          ("pings" in v && v.pings?.[0]?.headingDegrees ? v.pings[0].headingDegrees : undefined) ??
+          135;
+        const headingRad = (heading * Math.PI) / 180;
+        const cosLat = Math.cos((curPos[1] * Math.PI) / 180) || 1;
+        const length = 0.025; // ~2.5km vector length
+        const forwardPt: [number, number] = [
+          curPos[0] + (Math.sin(headingRad) * length) / cosLat,
+          curPos[1] + Math.cos(headingRad) * length,
+        ];
+
+        extraLayers.push(
+          new PathLayer({
+            id: "selected-vessel-heading-vector",
+            data: [{ path: [curPos, forwardPt] }],
+            getPath: (d: { path: [number, number][] }) => d.path,
+            getColor: () => (isDark ? [239, 68, 68, 240] : [34, 211, 238, 240]),
+            getWidth: 2,
+            widthUnits: "pixels",
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+
+        extraLayers.push(
+          new ScatterplotLayer({
+            id: "selected-vessel-target-ring",
+            data: [{ position: curPos }],
+            getPosition: (d: { position: [number, number] }) => d.position,
+            getRadius: 850,
+            radiusUnits: "meters",
+            radiusMinPixels: 12,
+            getFillColor: [0, 0, 0, 0],
+            getLineColor: isDark ? [239, 68, 68, 255] : [34, 211, 238, 255],
+            lineWidthMinPixels: 2,
+            stroked: true,
+            filled: false,
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+      }
+    }
+
+    return [...baseLayers, ...extraLayers];
   }, [
     visibility,
     p1Data,
@@ -159,9 +355,10 @@ export default function MapView({
     selectedTrackColor,
     followTrack,
     primarySuspectVesselId,
-    onSelectVessel,
+    handleSelectVessel,
     swarmVessels,
     swarmPhase,
+    selectedVessel,
   ]);
 
   // Initialize Map
@@ -181,12 +378,31 @@ export default function MapView({
 
     map.on("load", () => {
       if (overlayRef.current) return;
-      const overlay = new MapboxOverlay({ interleaved: false, layers });
+      const overlay = new MapboxOverlay({
+        interleaved: false,
+        layers,
+        getCursor: ({ isHovering }) => (isHovering ? "pointer" : "default"),
+        onClick: (info) => {
+          if (!info.object) {
+            setSelectedVessel(null);
+            setSelectedHexCell(null);
+          }
+        },
+      });
       overlayRef.current = overlay;
       map.addControl(overlay as unknown as IControl);
       setMapReady(true);
       // Fire onMapReady so the mission controller can issue flyTo
       onMapReady?.(map);
+    });
+
+    map.on("click", (e) => {
+      // Check if click was on background
+      const features = map.queryRenderedFeatures(e.point);
+      if (!features || features.length === 0) {
+        setSelectedVessel(null);
+        setSelectedHexCell(null);
+      }
     });
 
     mapRef.current = map;
@@ -228,17 +444,9 @@ export default function MapView({
     }
   }, [followTrack, selectedTrackId, relativeHour, p5Data]);
 
-  // Collect dark vessel positions for CSS overlay
-  const darkVesselPositions = useMemo(() => {
-    return p5Data.vessels
-      .filter((v) => v.isDarkVessel)
-      .map((v) => {
-        const ping = v.pings?.[0];
-        return ping
-          ? (ping.position as [number, number])
-          : (v.path?.[0] as [number, number] | undefined);
-      })
-      .filter((p): p is [number, number] => !!p);
+  // Collect dark vessels from p5Data
+  const darkVessels = useMemo(() => {
+    return p5Data.vessels.filter((v) => v.isDarkVessel);
   }, [p5Data]);
 
   return (
@@ -247,19 +455,35 @@ export default function MapView({
       className="absolute inset-0"
       style={{ position: "absolute", inset: 0 }}
     >
-      {/* Dark vessel pulsing CSS rings — rendered over map canvas */}
-      {mapReady && darkVesselPositions.map((pos, i) => (
-        <DarkVesselPulse
-          key={i}
-          position={pos}
-          mapRef={mapRef}
-          onClick={() => {
-            // Focus the dark vessel on click
-            const dv = p5Data.vessels.find((v) => v.isDarkVessel);
-            if (dv && onSelectVessel) onSelectVessel(dv);
-          }}
-        />
-      ))}
+      {/* Dark vessel pulsing CSS rings — rendered over map canvas for all dark vessels */}
+      {mapReady &&
+        darkVessels.map((v, i) => {
+          const ping = v.pings?.[0];
+          const pos = (ping?.position ?? v.path?.[0]) as [number, number] | undefined;
+          if (!pos || typeof pos[0] !== "number" || typeof pos[1] !== "number") return null;
+
+          return (
+            <DarkVesselPulse
+              key={v.vesselId || i}
+              position={pos}
+              mapRef={mapRef}
+              label={v.vesselName}
+              statusText={
+                v.darkAnomaly?.notes ??
+                (v.darkAnomaly?.radarSignature
+                  ? `RCS ${v.darkAnomaly.radarSignature}m² · SOG ${v.darkAnomaly.estimatedTransitSpeedKnots} kn`
+                  : "AIS: BLACKOUT · NO SIGNAL")
+              }
+              onClick={() => handleSelectVessel(v)}
+            />
+          );
+        })}
+
+      {/* Dark Maritime HUD Panel for Selected Vessel */}
+      <VesselInfoPanel
+        vessel={selectedVessel}
+        onClose={() => setSelectedVessel(null)}
+      />
 
       {/* Docked H3 Cell Details Popover (Click Interactivity) */}
       {selectedHexCell && hexScreenPos && (

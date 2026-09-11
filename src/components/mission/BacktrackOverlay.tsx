@@ -190,7 +190,7 @@ export function BacktrackOverlay() {
           {SUSPECT_LABELS.slice(0, visibleSuspects).map((s, i) => {
             const cand = candidates.find((c) => c.id === s.id);
             const level = cand?.suspicionLevel ?? "none";
-            const theme = SUSPECT_COLORS[level] ?? SUSPECT_COLORS.low!;
+            const theme = SUSPECT_COLORS[level] ?? SUSPECT_COLORS["low"]!;
 
             return (
               <div

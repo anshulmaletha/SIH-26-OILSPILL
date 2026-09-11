@@ -274,7 +274,7 @@ export function CulpritLockOverlay() {
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: "#1C2A38", mx: 12 }} />
+        <div style={{ height: 1, background: "#1C2A38", marginLeft: 12, marginRight: 12 }} />
 
         {/* Final score */}
         <div

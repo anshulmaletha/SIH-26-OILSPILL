@@ -9,7 +9,7 @@
  */
 
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useRef, useCallback } from "react";
+import { Suspense, lazy, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 import {
@@ -201,11 +201,8 @@ function MissionControllerInner() {
 
   const primarySuspect = p3Data.suspects[0]?.vesselId;
 
-  // Swarm vessels for phase 3 & 4
-  const swarmVessels =
-    currentStage === "AIS_SWARM" || currentStage === "BACKTRACK_CORRIDOR"
-      ? generateSwarmVessels()
-      : [];
+  // Swarm vessels generated once & memoized so all blue vessels are present & interactive across all stages
+  const swarmVessels = useMemo(() => generateSwarmVessels(), []);
 
   // Determine the "swarm phase" for color assignment
   const swarmPhase =
