@@ -9,7 +9,7 @@
  */
 
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useRef, useCallback, useMemo } from "react";
+import { Suspense, lazy, useEffect, useRef, useCallback, useState, useMemo } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 import {
@@ -23,6 +23,20 @@ import {
 } from "@/lib/mission/swarmData";
 import { getOfflineScenario } from "@/lib/data/offlineDemoData";
 import { DEFAULT_VISIBILITY, type LayerId } from "@/lib/map/config";
+import type { P1Output } from "@/lib/contracts/p1";
+import type { P3Output } from "@/lib/contracts/p3";
+import type { P4Output } from "@/lib/contracts/p4";
+import type { P5Output } from "@/lib/contracts/p5";
+import { convertDetectionResponseToP1 } from "@/lib/adapters/p1Adapter";
+import { convertSuspectsResponseToP3 } from "@/lib/adapters/p3Adapter";
+import { convertCorridorResponseToP4 } from "@/lib/adapters/p4Adapter";
+import { convertAisResponseToP5 } from "@/lib/adapters/p5Adapter";
+import {
+  fetchDetection,
+  fetchCorridor,
+  fetchSuspects,
+  fetchAisTracks,
+} from "@/lib/api/client";
 
 // Mission overlay components
 import { StandbyScreen } from "./StandbyScreen";
@@ -35,7 +49,6 @@ import { ContainmentRoom } from "./ContainmentRoom";
 import { CaseFileOverlay } from "./CaseFileOverlay";
 import TelemetryTerminal from "./TelemetryTerminal";
 import MissionStatusBar from "./MissionStatusBar";
-
 
 const MapView = lazy(() => import("@/components/map/MapView"));
 
@@ -110,8 +123,6 @@ const STAGE_CAMERAS: Partial<Record<MissionStage, CameraConfig>> = {
 
 // ─── Layer visibility per stage ───────────────────────────────────────────────
 
-type LayerVisibilityMap = Record<LayerId, boolean>;
-
 function getLayerVisibility(stage: MissionStage): Record<LayerId, boolean> {
   const base = { ...DEFAULT_VISIBILITY };
 
@@ -161,8 +172,50 @@ function MissionControllerInner() {
   const mapRef = useRef<MapLibreMap | null>(null);
   const prevStageRef = useRef<MissionStage | null>(null);
 
-  const scenario = getOfflineScenario("active");
-  const { p1Data, p3Data, p4Data, p5Data } = scenario;
+  const [p1Data, setP1Data] = useState<P1Output>(() => getOfflineScenario(state.scenario).p1Data);
+  const [p3Data, setP3Data] = useState<P3Output>(() => getOfflineScenario(state.scenario).p3Data);
+  const [p4Data, setP4Data] = useState<P4Output>(() => getOfflineScenario(state.scenario).p4Data);
+  const [p5Data, setP5Data] = useState<P5Output>(() => getOfflineScenario(state.scenario).p5Data);
+
+  useEffect(() => {
+    const offline = getOfflineScenario(state.scenario);
+    setP1Data(offline.p1Data);
+    setP3Data(offline.p3Data);
+    setP4Data(offline.p4Data);
+    setP5Data(offline.p5Data);
+
+    let mounted = true;
+
+    fetchDetection(state.scenario)
+      .then((det) => {
+        if (mounted) setP1Data(convertDetectionResponseToP1(det));
+      })
+      .catch((err) => console.warn("API fetchDetection error:", err));
+
+    fetchCorridor()
+      .then((corr) => {
+        if (mounted) setP4Data(convertCorridorResponseToP4(corr));
+      })
+      .catch((err) => console.warn("API fetchCorridor error:", err));
+
+    fetchSuspects(state.scenario)
+      .then((susp) => {
+        if (mounted) setP3Data(convertSuspectsResponseToP3(susp));
+      })
+      .catch((err) => console.warn("API fetchSuspects error:", err));
+
+    if (state.scenario !== "no_candidates") {
+      fetchAisTracks()
+        .then((ais) => {
+          if (mounted) setP5Data(convertAisResponseToP5(ais));
+        })
+        .catch((err) => console.warn("API fetchAisTracks error:", err));
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [state.scenario]);
 
   // Trigger camera flyTo on stage change
   useEffect(() => {
@@ -172,7 +225,6 @@ function MissionControllerInner() {
     const cam = STAGE_CAMERAS[currentStage];
     if (!cam || !mapRef.current) return;
 
-    // Small delay to let the map settle before flying
     const tid = setTimeout(() => {
       mapRef.current?.flyTo({
         center: cam.center,
@@ -191,24 +243,30 @@ function MissionControllerInner() {
   const visibility = getLayerVisibility(currentStage);
   const sarOpacity = getSarOpacity(currentStage, state.stageElapsedMs);
 
-  // In backtrack stage, only show candidates at full opacity
+  // Primary suspect from scored suspect list
+  const primarySuspect = p3Data.suspects.find((s) => s.isPrimarySuspect)?.vesselId || p3Data.suspects[0]?.vesselId;
+
+  // In backtrack stage, only show candidates at full opacity; in culprit lock, isolate primary suspect
   const selectedTrackId =
     currentStage === "CULPRIT_LOCK"
-      ? p3Data.suspects[0]?.vesselId ?? "all"
-      : currentStage === "BACKTRACK_CORRIDOR"
-        ? "all"
-        : "all";
+      ? (primarySuspect ?? "none")
+      : "all";
 
-  const primarySuspect = p3Data.suspects[0]?.vesselId;
-
-  // Swarm vessels generated once & memoized so all blue vessels are present & interactive across all stages
-  const swarmVessels = useMemo(() => generateSwarmVessels(), []);
+  // Swarm vessels generated once & memoized so all vessels are present & interactive across all stages
+  const swarmVessels = useMemo(() => {
+    return generateSwarmVessels().map((v) => {
+      if (state.scenario === "no_candidates") {
+        return { ...v, isCandidate: false, suspicionLevel: "none" as const };
+      }
+      return v;
+    });
+  }, [state.scenario]);
 
   // Determine the "swarm phase" for color assignment
   const swarmPhase =
     currentStage === "BACKTRACK_CORRIDOR" ? "backtrack" : "swarm";
 
-  // Relative hour for the map (backtrack shows T-12 at corridor midpoint)
+  // Relative hour for the map
   const relativeHour =
     currentStage === "BACKTRACK_CORRIDOR"
       ? Math.round(-12 * Math.min(1, state.stageElapsedMs / 5000))
@@ -219,7 +277,6 @@ function MissionControllerInner() {
   // Map ref callback so we can issue flyTo
   const handleMapReady = useCallback((map: MapLibreMap) => {
     mapRef.current = map;
-    // Initial fly on first mount
     const cam = STAGE_CAMERAS[currentStage] ?? STAGE_CAMERAS.STANDBY!;
     map.flyTo({
       center: cam.center,

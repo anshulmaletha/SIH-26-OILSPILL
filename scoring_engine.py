@@ -46,9 +46,9 @@ from datetime import datetime, timezone
 
 WEIGHTS = {
     "corridor_overlap": 0.40,
-    "heading_alignment": 0.30,
+    "heading_alignment": 0.25,
     "speed_anomaly": 0.20,
-    "ais_gap_history": 0.10,
+    "ais_gap_history": 0.15,
 }
 
 # Heading alignment: angles beyond this threshold score 0.0
@@ -57,7 +57,7 @@ HEADING_MAX_DIFF_DEG = 45.0
 # AIS gap: gaps shorter than this are ignored
 AIS_GAP_MIN_MINUTES = 15
 
-DEFAULT_INPUT_FILE = "dummy_day2_input.json"
+DEFAULT_INPUT_FILE = "candidate_vessels.json"
 OUTPUT_FILE = "ranked_suspects.json"
 
 # Speed anomaly: minimum knot drop to qualify as suspicious
@@ -218,7 +218,6 @@ def compute_vessel_score(vessel, slick_orientation):
         + WEIGHTS["ais_gap_history"] * f4
     )
     total_score = round(raw_score * 100.0, 2)
-
     return {
         "vessel_id": vessel_id,
         "total_score": total_score,
@@ -384,8 +383,8 @@ def main():
 
     # ── Extract metadata ──
     slick_id = data.get("slick_id", "UNKNOWN_SLICK")
-    slick_orientation = data.get("slick_orientation_deg", 0.0)
-    candidates = data.get("candidate_vessels", [])
+    slick_orientation = data.get("slick_orientation_deg", 135.0)
+    candidates = data.get("candidates", data.get("candidate_vessels", []))
 
     print(f"\n  Slick ID           : {slick_id}")
     print(f"  Slick orientation  : {slick_orientation}°")

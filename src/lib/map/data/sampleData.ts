@@ -35,7 +35,7 @@ export const CORRIDOR_WAYPOINTS: [number, number][] = [
   [71.85, 19.35],
 ];
 
-export const H3_CORRIDOR_RESOLUTION = 8;
+export const H3_CORRIDOR_RESOLUTION = 7;
 
 export const AIS_TRACKS: AisTrack[] = [
   {

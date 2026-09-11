@@ -44,7 +44,7 @@ export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
     name: "Mumbai Offshore Corridor Incident (Active Suspects)",
     sector: "Arabian Sea — Mumbai Offshore Corridor (71.85°E, 19.35°N)",
     description:
-      "Active heavy crude oil slick identified via Sentinel-1A SAR radar (scene S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI). OpenDrift backtracking reconstructed 12h dispersion corridor. 2 candidate AIS tracks correlated plus 1 SAR-only dark vessel, identifying 1 primary polluter (IND_TANKER_412, score 91.2%) and 1 unregistered dark vessel (CFAR_DARK_002).",
+      "Active heavy crude oil slick identified via Sentinel-1A SAR radar (scene S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI). OpenDrift backtracking reconstructed 12h dispersion corridor. 2 candidate AIS tracks correlated plus 1 SAR-only dark vessel, identifying 1 primary polluter (IND_TANKER_412, score 65.7%) and 1 unregistered dark vessel (CFAR_DARK_002).",
     p1Data: DEFAULT_P1_DATA,
     p3Data: DEFAULT_P3_DATA,
     p4Data: DEFAULT_P4_DATA,
@@ -58,6 +58,52 @@ export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
       waveHeightMeters: 1.1,
     },
     isNoCandidateScenario: false,
+  },
+  rejected_lookalike: {
+    id: "INC-2026-MUM-LOOKALIKE",
+    name: "Arabian Sea Calm Patch (Look-Alike Discarded)",
+    sector: "Arabian Sea — Mumbai Offshore (72.62°E, 18.60°N)",
+    description:
+      "Low-wind calm patch identified by initial SAR sweep. Look-Alike Discriminator evaluates physical gates (wind speed 1.4 m/s < 2.0 m/s threshold, damping ratio 0.35 < 0.50) and correctly rejects the candidate as biogenic surfactant / natural calm sea.",
+    p1Data: {
+      ...DEFAULT_P1_DATA,
+      slicks: [
+        {
+          id: "lookalike_poly_mumbai_002",
+          sceneId: "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+          detectionTime: "2026-05-15T06:00:00Z",
+          confidence: 0.32,
+          areaKm2: 8.5,
+          thicknessCategory: "biogenic_sheen",
+          centroid: [72.62, 18.60],
+          coordinates: [
+            [72.600, 18.600],
+            [72.610, 18.615],
+            [72.625, 18.620],
+            [72.640, 18.615],
+            [72.645, 18.600],
+            [72.635, 18.585],
+            [72.620, 18.582],
+            [72.605, 18.588],
+            [72.600, 18.600],
+          ],
+          boundingExtent: [72.600, 18.582, 72.645, 18.620],
+        },
+      ],
+      modelConfidence: 0.32,
+    },
+    p3Data: NO_CANDIDATES_P3_DATA,
+    p4Data: DEFAULT_P4_DATA,
+    p5Data: EMPTY_P5_DATA,
+    metocean: {
+      windSpeedKnots: 2.7,
+      windDirectionDegrees: 245,
+      currentSpeedKnots: 1.1,
+      currentDirectionDegrees: 135,
+      seaSurfaceTemperatureC: 28.6,
+      waveHeightMeters: 0.4,
+    },
+    isNoCandidateScenario: true,
   },
   no_candidates: {
     id: "INC-2026-MUM-002",
@@ -87,6 +133,6 @@ export const OFFLINE_SCENARIOS: Record<string, IncidentScenario> = {
  * Retrieves the pre-cached offline scenario payload by key.
  * Guarantees zero runtime external network calls.
  */
-export function getOfflineScenario(scenarioId: "active" | "no_candidates" = "active"): IncidentScenario {
+export function getOfflineScenario(scenarioId: "active" | "rejected_lookalike" | "no_candidates" = "active"): IncidentScenario {
   return OFFLINE_SCENARIOS[scenarioId] ?? OFFLINE_SCENARIOS["active"]!;
 }

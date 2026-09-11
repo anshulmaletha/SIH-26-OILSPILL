@@ -5,7 +5,7 @@
  * across the Mumbai offshore maritime corridor (INC-2026-MUM-001).
  *
  * Provides rich, deterministic, realistic vessel metadata:
- * - Vessel Name, MMSI, Call Sign, Flag, Type
+ * - Vessel Name, MMSI, Call Sign, Flag, Type, IMO
  * - Position (lat, lng), SOG Speed, COG / Heading
  * - Navigational Status, Destination, ETA, Dimensions (Length, Beam, Draught)
  * - Historical trajectory waypoints leading up to current position
@@ -425,7 +425,6 @@ export function generateSwarmVessels(): SwarmVessel[] {
         name = MISC_NAMES[(idCounter + i) % MISC_NAMES.length]!;
       }
 
-      // Add a distinctive number suffix for uniqueness if repeated
       if (idCounter > 20) {
         name = `${name} ${String((idCounter % 50) + 1).padStart(2, "0")}`;
       }
@@ -499,7 +498,6 @@ export function generateSwarmVessels(): SwarmVessel[] {
     }
   }
 
-  // Append the candidate & dark vessels
   vessels.push(...CANDIDATE_VESSELS);
 
   _swarm = vessels;

@@ -85,3 +85,54 @@ export function getPrimarySlick(p1: P1Output): SlickPolygonData | null {
 export function getSarBoundingBox(sar: SarRasterData): [minLng: number, minLat: number, maxLng: number, maxLat: number] {
   return sar.bounds;
 }
+
+export function convertDetectionResponseToP1(data: any): P1Output {
+  if (!data || !Array.isArray(data.polygons) || data.polygons.length === 0) {
+    return DEFAULT_P1_DATA;
+  }
+
+  const slicks: SlickPolygonData[] = data.polygons.map((p: any, idx: number) => {
+    const coords: [number, number][] = p.geometry?.coordinates?.[0] || SLICK_POLYGONS[0]?.ring || [];
+    let sumLng = 0, sumLat = 0;
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+
+    for (const [lng, lat] of coords) {
+      sumLng += lng;
+      sumLat += lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    const count = coords.length || 1;
+    const centroid: [number, number] = [Number((sumLng / count).toFixed(4)), Number((sumLat / count).toFixed(4))];
+
+    return {
+      id: p.polygon_id || `poly-${idx + 1}`,
+      sceneId: data.scene_id || "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+      detectionTime: data.acquisition_time || "2026-05-15T06:00:00Z",
+      confidence: p.confidence ?? (p.lookalike_filter?.final_decision === "confirmed" ? 0.94 : 0.32),
+      areaKm2: p.geometry_features?.area_km2 ?? 4.82,
+      estimatedVolumeM3: 650,
+      thicknessCategory: "heavy_crude",
+      centroid,
+      coordinates: coords,
+      boundingExtent: [minLng, minLat, maxLng, maxLat],
+    };
+  });
+
+  return {
+    sarScene: {
+      sceneId: data.scene_id || "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+      satellite: "Sentinel-1A",
+      acquisitionTime: data.acquisition_time || "2026-05-15T06:00:00Z",
+      polarization: "VV",
+      resolutionMeters: 10,
+      bounds: SAR_RASTER_PATCH.bounds,
+      meanBackscatterDb: -18.6,
+    },
+    slicks,
+    processedAt: "2026-05-15T06:15:00Z",
+    modelConfidence: slicks[0]?.confidence ?? 0.94,
+  };
+}

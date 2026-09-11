@@ -1,0 +1,262 @@
+{
+  "case_id": "CASE-2026-MUMBAI-001",
+  "generated_at": "2026-09-11T15:01:20.223995+00:00",
+  "scene_id": "S1A_IW_GRDH_1SDV_20260515T060000_MUMBAI",
+  "h3_resolution": 7,
+  "processing_parameters": {
+    "segmentation_model_version": "DeepLabv3Plus-ResNet50-Krestenitis-v1.4",
+    "lookalike_thresholds": {
+      "wind_min_ms": 2.0,
+      "wind_max_ms": 12.0,
+      "damping_ratio_min_db": 4.5,
+      "min_eccentricity": 0.75
+    },
+    "drift_config": {
+      "currents_source": "HYCOM-GLBv0.08 (OPeNDAP)",
+      "wind_source": "ERA5-Reanalysis (Copernicus CDS)",
+      "wind_drift_factor": 0.03,
+      "diffusion_coefficient": 1.0,
+      "particle_count": 1000,
+      "backward_timesteps_hours": [
+        -6,
+        -12,
+        -24
+      ]
+    },
+    "scoring_weights": {
+      "corridor_overlap": 0.4,
+      "heading_alignment": 0.25,
+      "speed_anomaly": 0.2,
+      "ais_gap_history": 0.15
+    }
+  },
+  "corridor": {
+    "t0": {
+      "hex_ids": [
+        "8742da541ffffff",
+        "8742da548ffffff",
+        "8742da54affffff",
+        "8742da54cffffff",
+        "8742da54effffff",
+        "8742da55dffffff"
+      ],
+      "particle_density": {
+        "8742da54cffffff": 118,
+        "8742da54effffff": 227,
+        "8742da55dffffff": 19,
+        "8742da548ffffff": 51,
+        "8742da541ffffff": 40,
+        "8742da54affffff": 45
+      }
+    },
+    "t_minus_6h": {
+      "hex_ids": [
+        "8742da540ffffff",
+        "8742da541ffffff",
+        "8742da542ffffff",
+        "8742da543ffffff",
+        "8742da544ffffff",
+        "8742da545ffffff",
+        "8742da548ffffff",
+        "8742da54cffffff",
+        "8742da54effffff",
+        "8742da56affffff",
+        "8742da56effffff"
+      ],
+      "particle_density": {
+        "8742da545ffffff": 134,
+        "8742da541ffffff": 171,
+        "8742da543ffffff": 29,
+        "8742da542ffffff": 3,
+        "8742da540ffffff": 75,
+        "8742da54cffffff": 12,
+        "8742da56affffff": 54,
+        "8742da56effffff": 5,
+        "8742da54effffff": 14,
+        "8742da548ffffff": 1,
+        "8742da544ffffff": 2
+      }
+    },
+    "t_minus_12h": {
+      "hex_ids": [
+        "8742da540ffffff",
+        "8742da544ffffff",
+        "8742da545ffffff",
+        "8742da546ffffff",
+        "8742da560ffffff",
+        "8742da561ffffff",
+        "8742da562ffffff",
+        "8742da563ffffff",
+        "8742da564ffffff",
+        "8742da565ffffff",
+        "8742da566ffffff",
+        "8742da56effffff",
+        "8742da571ffffff",
+        "8742da575ffffff"
+      ],
+      "particle_density": {
+        "8742da560ffffff": 118,
+        "8742da563ffffff": 141,
+        "8742da544ffffff": 45,
+        "8742da562ffffff": 106,
+        "8742da571ffffff": 6,
+        "8742da566ffffff": 13,
+        "8742da545ffffff": 16,
+        "8742da561ffffff": 30,
+        "8742da56effffff": 8,
+        "8742da565ffffff": 8,
+        "8742da564ffffff": 5,
+        "8742da575ffffff": 2,
+        "8742da546ffffff": 1,
+        "8742da540ffffff": 1
+      }
+    },
+    "t_minus_18h": {
+      "hex_ids": [
+        "8742da560ffffff",
+        "8742da564ffffff",
+        "8742da566ffffff",
+        "8742da575ffffff",
+        "8742dacc3ffffff",
+        "8742daccaffffff",
+        "8742dacceffffff",
+        "8742dacd8ffffff",
+        "8742dacd9ffffff",
+        "8742dacdaffffff",
+        "8742dacdbffffff",
+        "8742dacdcffffff",
+        "8742dacddffffff",
+        "8742dacdeffffff"
+      ],
+      "particle_density": {
+        "8742dacc3ffffff": 6,
+        "8742dacdbffffff": 65,
+        "8742dacd8ffffff": 108,
+        "8742dacddffffff": 97,
+        "8742dacdaffffff": 15,
+        "8742dacdeffffff": 12,
+        "8742dacd9ffffff": 99,
+        "8742dacdcffffff": 31,
+        "8742da566ffffff": 18,
+        "8742da564ffffff": 8,
+        "8742daccaffffff": 29,
+        "8742da575ffffff": 3,
+        "8742dacceffffff": 7,
+        "8742da560ffffff": 2
+      }
+    },
+    "t_minus_24h": {
+      "hex_ids": [
+        "8742dacc0ffffff",
+        "8742dacc1ffffff",
+        "8742dacc2ffffff",
+        "8742dacc3ffffff",
+        "8742dacc6ffffff",
+        "8742dacd0ffffff",
+        "8742dacd1ffffff",
+        "8742dacd3ffffff",
+        "8742dacd4ffffff",
+        "8742dacd5ffffff",
+        "8742dacd8ffffff",
+        "8742dacd9ffffff",
+        "8742dacdaffffff",
+        "8742dacdbffffff",
+        "8742dacdcffffff",
+        "8742dacddffffff",
+        "8742dacdeffffff",
+        "8742dacf3ffffff"
+      ],
+      "particle_density": {
+        "8742dacc0ffffff": 8,
+        "8742dacdeffffff": 46,
+        "8742dacd1ffffff": 101,
+        "8742dacc2ffffff": 105,
+        "8742dacdcffffff": 103,
+        "8742dacd0ffffff": 7,
+        "8742dacd4ffffff": 1,
+        "8742dacd5ffffff": 15,
+        "8742dacddffffff": 15,
+        "8742dacd8ffffff": 29,
+        "8742dacc3ffffff": 38,
+        "8742dacc6ffffff": 10,
+        "8742dacd3ffffff": 14,
+        "8742dacf3ffffff": 1,
+        "8742dacdbffffff": 2,
+        "8742dacd9ffffff": 2,
+        "8742dacdaffffff": 2,
+        "8742dacc1ffffff": 1
+      }
+    }
+  },
+  "ais_query_bounds": {
+    "spatial": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          70.5,
+          18.0
+        ],
+        [
+          73.0,
+          18.0
+        ],
+        [
+          73.0,
+          20.5
+        ],
+        [
+          70.5,
+          20.5
+        ],
+        [
+          70.5,
+          18.0
+        ]
+      ]
+    },
+    "temporal": {
+      "start": "2026-05-14T06:00:00Z",
+      "end": "2026-05-15T06:00:00Z"
+    }
+  },
+  "ranked_suspects": [
+    {
+      "rank": 1,
+      "vessel_id": "MMSI_419000101",
+      "vessel_name": "IND_TANKER_412",
+      "flag": "India (IND)",
+      "vessel_type": "Crude Oil Tanker",
+      "total_score": 0.6572,
+      "feature_breakdown": {
+        "corridor_overlap_score": 0.1429,
+        "heading_alignment_score": 1.0,
+        "speed_anomaly_score": 1.0,
+        "ais_gap_history_score": 1.0
+      },
+      "weights_used": {
+        "corridor_overlap": 0.4,
+        "heading_alignment": 0.25,
+        "speed_anomaly": 0.2,
+        "ais_gap_history": 0.15
+      },
+      "assessment": "Attributed via multi-factor rule scoring. Score: 0.657."
+    }
+  ],
+  "dark_vessels": [
+    {
+      "cfar_detection_id": "CFAR_DARK_002",
+      "position": {
+        "type": "Point",
+        "coordinates": [
+          71.9,
+          19.28
+        ]
+      },
+      "timestamp": "2026-05-15T06:00:00Z",
+      "ais_match_found": false,
+      "proximity_to_corridor": "8742da462ffffff"
+    }
+  ],
+  "null_result": false,
+  "input_data_hash": "d9845cb370ed3639f7e4833f6270af84cf8b37e2684a18385872010f1f322850"
+}

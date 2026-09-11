@@ -154,6 +154,53 @@ const MissionStatusBar: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Vertical separator */}
+        <div
+          style={{
+            width: '1px',
+            height: '24px',
+            backgroundColor: '#1C2A38',
+            marginLeft: '8px',
+            marginRight: '8px',
+            flexShrink: 0,
+          }}
+        />
+
+        {/* Scenario Selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '8px',
+              color: '#5A7A94',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              lineHeight: 1,
+            }}
+          >
+            SCENARIO
+          </span>
+          <select
+            value={state.scenario}
+            onChange={(e) => dispatch({ type: 'SET_SCENARIO', scenario: e.target.value as any })}
+            style={{
+              backgroundColor: '#111822',
+              color: '#22D3EE',
+              border: '1px solid #1C2A38',
+              borderRadius: '2px',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '10px',
+              padding: '2px 6px',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="active">Mumbai Offshore (Attributed)</option>
+            <option value="rejected_lookalike">Look-Alike Rejection Test</option>
+            <option value="no_candidates">Uncorrelated Sector (Null-Result)</option>
+          </select>
+        </div>
       </div>
 
       {/* CENTER SECTION */}

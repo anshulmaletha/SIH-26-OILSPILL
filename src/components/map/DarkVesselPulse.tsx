@@ -6,12 +6,12 @@ interface DarkVesselPulseProps {
   position: [number, number];
   /** MapLibre map instance — used to project geo → screen coordinates */
   mapRef: React.RefObject<MapLibreMap | null>;
+  /** Optional custom label for the dark target */
+  label?: string;
+  /** Optional status text */
+  statusText?: string;
   /** Called when user clicks the pulsing marker */
   onClick?: () => void;
-  /** Custom label / name for the dark vessel */
-  label?: string;
-  /** Custom status / anomaly note */
-  statusText?: string;
 }
 
 /**
@@ -21,8 +21,7 @@ interface DarkVesselPulseProps {
  * Uses MapLibre's `map.project()` to convert [lng, lat] → screen px.
  * Updates on every map move/zoom so the marker tracks the geo-point.
  *
- * Color: #EF4444 (alert red) — the ONE place red appears in the app.
- * Concentric ring scale+fade animation with high-contrast radar ping styling.
+ * Color: #EF4444 (alert red) — high-contrast radar ping styling.
  */
 export function DarkVesselPulse({
   position,
@@ -51,11 +50,11 @@ export function DarkVesselPulse({
           return;
         }
         const pt = map.project(position as [number, number]);
-        if (pt && typeof pt.x === "number" && typeof pt.y === "number") {
+        if (pt && typeof pt.x === "number" && typeof pt.y === "number" && !isNaN(pt.x) && !isNaN(pt.y)) {
           setScreenPos({ x: pt.x, y: pt.y });
         }
       } catch {
-        // Map may not be ready or point outside bounds
+        // Map transform may not be fully initialized
       }
     };
 
@@ -79,16 +78,16 @@ export function DarkVesselPulse({
     };
   }, [position, mapRef]);
 
-  if (!screenPos) return null;
+  if (!screenPos || !position || position.length < 2) return null;
 
   const latStr =
     position && typeof position[1] === "number" && !isNaN(position[1])
       ? `${position[1].toFixed(4)}°N`
-      : "";
+      : "19.2800°N";
   const lngStr =
     position && typeof position[0] === "number" && !isNaN(position[0])
       ? `${position[0].toFixed(4)}°E`
-      : "";
+      : "71.9000°E";
 
   return (
     <div
@@ -220,18 +219,16 @@ export function DarkVesselPulse({
             {label}
           </span>
         </div>
-        {(latStr || lngStr) && (
-          <div
-            style={{
-              fontSize: "8.5px",
-              color: "#C8D8E8",
-              marginTop: 2,
-              lineHeight: 1.3,
-            }}
-          >
-            {latStr}, {lngStr}
-          </div>
-        )}
+        <div
+          style={{
+            fontSize: "8.5px",
+            color: "#C8D8E8",
+            marginTop: 2,
+            lineHeight: 1.3,
+          }}
+        >
+          {latStr}, {lngStr}
+        </div>
         <div
           style={{
             fontSize: "7px",

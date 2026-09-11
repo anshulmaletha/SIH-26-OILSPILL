@@ -119,6 +119,15 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel: rawVes
   const beamMeters = vessel.beamMeters ?? (isDark ? 28 : 32);
   const draughtMeters = vessel.draughtMeters ?? (isDark ? 9.8 : 10.5);
 
+  const headerTag =
+    vessel.mmsi === "419000101"
+      ? "⚠ PRIMARY ATTRIBUTED CULPRIT"
+      : isDark
+      ? "⚠ SAR RADAR CONTACT (DARK VESSEL)"
+      : vessel.mmsi === "419000202"
+      ? "✓ CLEARED CONTROL VESSEL"
+      : "AIS VESSEL TELEMETRY";
+
   return (
     <div
       className="animate-in fade-in zoom-in-95 duration-200"
@@ -176,7 +185,7 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel: rawVes
                 textTransform: "uppercase",
               }}
             >
-              {isDark ? "⚠ SUSPICIOUS MARITIME TARGET (CFAR)" : "AIS VESSEL TELEMETRY"}
+              {headerTag}
             </span>
           </div>
 
@@ -472,7 +481,9 @@ export const VesselInfoPanel: React.FC<VesselInfoPanelProps> = ({ vessel: rawVes
             <span>HISTORICAL TRAJECTORY TRAIL ACTIVE</span>
           </div>
           <span style={{ color: "#5A7A94" }}>
-            {vessel.trajectory?.length || 4} WAYPOINTS
+            {vessel.mmsi === "419000101" || vessel.mmsi === "419000202"
+              ? "289 AIS WAYPOINTS (5-MIN EPOCHS)"
+              : `${vessel.trajectory?.length || 4} WAYPOINTS`}
           </span>
         </div>
       </div>

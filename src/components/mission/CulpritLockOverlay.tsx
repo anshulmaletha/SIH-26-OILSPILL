@@ -4,7 +4,9 @@
  * Camera is locked onto the primary suspect vessel.
  */
 
+import React, { useState, useEffect } from "react";
 import { useMission } from "@/lib/mission/missionState";
+import { fetchSuspects, type SuspectsResult } from "@/lib/api/client";
 
 interface ScoreFactor {
   key: string;
@@ -15,50 +17,6 @@ interface ScoreFactor {
   color: string;
   note: string;
 }
-
-const SCORE_FACTORS: ScoreFactor[] = [
-  {
-    key: "time",
-    label: "Temporal Proximity",
-    shortLabel: "S_time",
-    value: 0.9444,
-    displayPct: "94.4%",
-    color: "#22D3EE",
-    note: "T-9h speed anomaly within corridor",
-  },
-  {
-    key: "dist",
-    label: "Corridor Geometric Intersection",
-    shortLabel: "S_dist",
-    value: 1.0,
-    displayPct: "100%",
-    color: "#22D3EE",
-    note: "H3 k=0 cell overlap confirmed",
-  },
-  {
-    key: "type",
-    label: "Vessel Profile Risk (Aframax crude)",
-    shortLabel: "S_type",
-    value: 0.95,
-    displayPct: "95.0%",
-    color: "#22D3EE",
-    note: "Crude oil tanker — high prior probability",
-  },
-  {
-    key: "dark",
-    label: "AIS Gap Anomaly",
-    shortLabel: "P_dark",
-    value: 0.25,
-    displayPct: "+25%",
-    color: "#F59E0B",
-    note: "3.4h blackout over discharge origin",
-  },
-];
-
-const FINAL_SCORE = 0.912;
-const CULPRIT_NAME = "MT IND_TANKER_412";
-const CULPRIT_IMO = "9384124";
-const CULPRIT_MMSI = "419000101";
 
 function ScoreBar({ value, color, delay }: { value: number; color: string; delay: number }) {
   return (
@@ -77,7 +35,7 @@ function ScoreBar({ value, color, delay }: { value: number; color: string; delay
           inset: 0,
           background: color,
           transformOrigin: "left center",
-          transform: `scaleX(${value})`,
+          transform: `scaleX(${Math.max(0, Math.min(1, value))})`,
           transition: `transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
         }}
       />
@@ -87,81 +45,143 @@ function ScoreBar({ value, color, delay }: { value: number; color: string; delay
 
 export function CulpritLockOverlay() {
   const { state } = useMission();
+  const [suspectsData, setSuspectsData] = useState<SuspectsResult | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchSuspects(state.scenario)
+      .then((data) => {
+        if (mounted) setSuspectsData(data);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch suspects from API:", err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [state.scenario]);
 
   if (state.currentStage !== "CULPRIT_LOCK") return null;
 
   const elapsed = state.stageElapsedMs;
+  const isNullResult = suspectsData?.null_result || (suspectsData && suspectsData.ranked_suspects.length === 0);
+
+  const primary = suspectsData?.ranked_suspects?.[0];
+  const fb = primary?.feature_breakdown;
+
+  // Real computed values from scoring engine or fallback defaults
+  const totalScorePct = primary ? primary.total_score : 65.72;
+  const normalizedScore = primary ? primary.normalized_score : 0.6572;
+  const culpritName = primary ? primary.vessel_name : "IND_TANKER_412";
+  const culpritMmsi = primary ? primary.vessel_id.replace("MMSI_", "") : "419000101";
+  const culpritFlag = primary ? primary.flag : "India (IND)";
+
+  const factors: ScoreFactor[] = [
+    {
+      key: "corr",
+      label: "Corridor Overlap (w=0.40)",
+      shortLabel: "w1 · S_corr",
+      value: fb ? fb.corridor_overlap_score : 0.1429,
+      displayPct: `${((fb ? fb.corridor_overlap_score : 0.1429) * 100).toFixed(1)}%`,
+      color: "#22D3EE",
+      note: "Lagrangian particle dispersion intersection",
+    },
+    {
+      key: "head",
+      label: "Heading Alignment (w=0.25)",
+      shortLabel: "w2 · S_head",
+      value: fb ? fb.heading_alignment_score : 1.0,
+      displayPct: `${((fb ? fb.heading_alignment_score : 1.0) * 100).toFixed(1)}%`,
+      color: "#22D3EE",
+      note: "Alignment with SAR slick orientation axis (135°)",
+    },
+    {
+      key: "speed",
+      label: "Speed Anomaly (w=0.20)",
+      shortLabel: "w3 · S_speed",
+      value: fb ? fb.speed_anomaly_score : 1.0,
+      displayPct: `${((fb ? fb.speed_anomaly_score : 1.0) * 100).toFixed(1)}%`,
+      color: "#22D3EE",
+      note: "Speed drop from 14.2 to 3.8 kts during corridor transit",
+    },
+    {
+      key: "gap",
+      label: "AIS Gap History (w=0.15)",
+      shortLabel: "w4 · S_gap",
+      value: fb ? fb.ais_gap_history_score : 1.0,
+      displayPct: `${((fb ? fb.ais_gap_history_score : 1.0) * 100).toFixed(1)}%`,
+      color: "#F59E0B",
+      note: "3.4h transponder blackout over corridor",
+    },
+  ];
 
   // Reveal each factor row sequentially
   const factorRevealMs = [0, 1200, 2400, 3600];
-  const visibleFactors = SCORE_FACTORS.filter((_, i) => elapsed > (factorRevealMs[i] ?? 9999));
+  const visibleFactors = factors.filter((_, i) => elapsed > (factorRevealMs[i] ?? 9999));
 
-  // Final score rolls up from 0 to 91.2 after all factors shown (4800ms)
+  // Final score rolls up after all factors shown
   const scoreRevealProgress = Math.min(1, Math.max(0, (elapsed - 5000) / 800));
-  const displayScore = (FINAL_SCORE * scoreRevealProgress * 100).toFixed(1);
+  const displayScore = isNullResult ? "0.0" : (totalScorePct * scoreRevealProgress).toFixed(1);
 
-  // Culprit badge appears after score fully revealed (5800ms)
-  const showCulprit = elapsed > 5800;
+  // Culprit badge appears after score fully revealed
+  const showCulprit = elapsed > 5800 && !isNullResult;
 
-  // Targeting reticle pulses from the start
-  const reticleOpacity = Math.min(1, elapsed / 500);
+  // Targeting reticle pulses only if candidate exists
+  const reticleOpacity = isNullResult ? 0 : Math.min(1, elapsed / 500);
 
   return (
     <>
-      {/* ── Targeting reticle (centered, overlaying map) ── */}
-      <div
-        style={{
-          position: "absolute",
-          top: "45%",
-          left: "42%",
-          transform: "translate(-50%, -50%)",
-          zIndex: 18,
-          pointerEvents: "none",
-          opacity: reticleOpacity,
-        }}
-      >
-        {/* Outer ring */}
+      {/* ── Targeting reticle (only for confirmed candidate) ── */}
+      {!isNullResult && (
         <div
           style={{
             position: "absolute",
-            width: 80,
-            height: 80,
-            top: "50%",
-            left: "50%",
+            top: "45%",
+            left: "42%",
             transform: "translate(-50%, -50%)",
-            border: "1px solid #EF4444",
-            borderRadius: "50%",
-            animation: "culprit-ring-pulse 1.5s ease-in-out infinite",
+            zIndex: 18,
+            pointerEvents: "none",
+            opacity: reticleOpacity,
           }}
-        />
-        {/* Inner ring */}
-        <div
-          style={{
-            position: "absolute",
-            width: 50,
-            height: 50,
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            border: "1px solid #EF444480",
-            borderRadius: "50%",
-            animation: "culprit-ring-pulse 1.5s ease-in-out 0.3s infinite",
-          }}
-        />
-        {/* Crosshair lines */}
-        <svg width="100" height="100" viewBox="0 0 100 100" style={{ position: "relative" }}>
-          {/* Top tick */}
-          <line x1="50" y1="2" x2="50" y2="18" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Bottom tick */}
-          <line x1="50" y1="82" x2="50" y2="98" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Left tick */}
-          <line x1="2" y1="50" x2="18" y2="50" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Right tick */}
-          <line x1="82" y1="50" x2="98" y2="50" stroke="#EF4444" strokeWidth="1.5" />
-          {/* Center dot */}
-          <circle cx="50" cy="50" r="3" fill="#EF4444" />
-        </svg>
-      </div>
+        >
+          {/* Outer ring */}
+          <div
+            style={{
+              position: "absolute",
+              width: 80,
+              height: 80,
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              border: "1px solid #EF4444",
+              borderRadius: "50%",
+              animation: "culprit-ring-pulse 1.5s ease-in-out infinite",
+            }}
+          />
+          {/* Inner ring */}
+          <div
+            style={{
+              position: "absolute",
+              width: 50,
+              height: 50,
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              border: "1px solid #EF444480",
+              borderRadius: "50%",
+              animation: "culprit-ring-pulse 1.5s ease-in-out 0.3s infinite",
+            }}
+          />
+          {/* Crosshair lines */}
+          <svg width="100" height="100" viewBox="0 0 100 100" style={{ position: "relative" }}>
+            <line x1="50" y1="2" x2="50" y2="18" stroke="#EF4444" strokeWidth="1.5" />
+            <line x1="50" y1="82" x2="50" y2="98" stroke="#EF4444" strokeWidth="1.5" />
+            <line x1="2" y1="50" x2="18" y2="50" stroke="#EF4444" strokeWidth="1.5" />
+            <line x1="82" y1="50" x2="98" y2="50" stroke="#EF4444" strokeWidth="1.5" />
+            <circle cx="50" cy="50" r="3" fill="#EF4444" />
+          </svg>
+        </div>
+      )}
 
       {/* ── Attribution scoring panel — right side ── */}
       <div
@@ -170,7 +190,7 @@ export function CulpritLockOverlay() {
           top: 80,
           right: 12,
           zIndex: 20,
-          width: 300,
+          width: 320,
           background: "#0D1117",
           border: "1px solid #1C2A38",
         }}
@@ -187,7 +207,7 @@ export function CulpritLockOverlay() {
             style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
-              color: "#22D3EE",
+              color: isNullResult ? "#F59E0B" : "#22D3EE",
               textTransform: "uppercase",
               letterSpacing: "0.12em",
             }}
@@ -202,79 +222,132 @@ export function CulpritLockOverlay() {
               marginTop: 2,
             }}
           >
-            XGBoost Ensemble v2.4  ·  MMSI 419000101
+            {suspectsData?.scoring_model || "Weighted Rule-Based Attribution Model"} {isNullResult ? "· RESTRICTION ACTIVE" : `· MMSI ${culpritMmsi}`}
           </div>
         </div>
 
-        {/* Score factors */}
-        <div style={{ padding: "8px 12px" }}>
-          {SCORE_FACTORS.map((factor, i) => {
-            const isVisible = visibleFactors.includes(factor);
-            const animDelay = (factorRevealMs[i] ?? 0) + 400;
-
-            return (
+        {/* Null Result scenario */}
+        {isNullResult ? (
+          <div style={{ padding: "14px 12px" }}>
+            <div
+              style={{
+                backgroundColor: "rgba(245,158,11,0.06)",
+                border: "1px solid rgba(245,158,11,0.3)",
+                padding: "10px 12px",
+                borderRadius: "2px",
+                marginBottom: 12,
+              }}
+            >
               <div
-                key={factor.key}
                 style={{
-                  marginBottom: 10,
-                  opacity: isVisible ? 1 : 0,
-                  transition: "opacity 0.4s ease",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 9,
+                  color: "#F59E0B",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 6,
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 9,
-                      color: "#5A7A94",
-                    }}
-                  >
-                    {factor.shortLabel}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: factor.color,
-                    }}
-                  >
-                    {factor.displayPct}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 9,
-                    color: "#3A5268",
-                    marginTop: 1,
-                    marginBottom: 3,
-                  }}
-                >
-                  {factor.label}
-                </div>
-                <ScoreBar
-                  value={isVisible ? (factor.key === "dark" ? 0.25 : factor.value) : 0}
-                  color={factor.color}
-                  delay={animDelay}
-                />
-                <div
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: factor.key === "dark" ? "#F59E0B" : "#3A5268",
-                    marginTop: 3,
-                  }}
-                >
-                  {factor.note}
-                </div>
+                NO SUSPECT CORRELATED — RESTRICTION ENFORCED
               </div>
-            );
-          })}
-        </div>
+              <div
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 10,
+                  color: "#C8D8E8",
+                  lineHeight: 1.4,
+                }}
+              >
+                All monitored AIS tracks remained clear of the backward dispersion corridor.
+                Under evidentiary standards, the system exercises judicial restraint and assigns zero false culpability.
+              </div>
+            </div>
+
+            <div
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 8,
+                color: "#5A7A94",
+                lineHeight: 1.5,
+              }}
+            >
+              Status: UNCORRELATED OBSERVATION
+              <br />
+              Action: Retain corridor parameters for dark vessel cross-referencing.
+            </div>
+          </div>
+        ) : (
+          /* Normal Scored Factors */
+          <div style={{ padding: "8px 12px" }}>
+            {factors.map((factor, i) => {
+              const isVisible = visibleFactors.includes(factor);
+              const animDelay = (factorRevealMs[i] ?? 0) + 400;
+
+              return (
+                <div
+                  key={factor.key}
+                  style={{
+                    marginBottom: 10,
+                    opacity: isVisible ? 1 : 0,
+                    transition: "opacity 0.4s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 9,
+                        color: "#5A7A94",
+                      }}
+                    >
+                      {factor.shortLabel}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: factor.color,
+                      }}
+                    >
+                      {factor.displayPct}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: 9,
+                      color: "#C8D8E8",
+                      marginTop: 1,
+                      marginBottom: 3,
+                    }}
+                  >
+                    {factor.label}
+                  </div>
+                  <ScoreBar
+                    value={isVisible ? factor.value : 0}
+                    color={factor.color}
+                    delay={animDelay}
+                  />
+                  <div
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 8,
+                      color: factor.key === "gap" ? "#F59E0B" : "#5A7A94",
+                      marginTop: 3,
+                    }}
+                  >
+                    {factor.note}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Divider */}
-        <div style={{ height: 1, background: "#1C2A38", marginLeft: 12, marginRight: 12 }} />
+        <div style={{ height: 1, background: "#1C2A38" }} />
 
         {/* Final score */}
         <div
@@ -307,7 +380,7 @@ export function CulpritLockOverlay() {
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 26,
                 fontWeight: 800,
-                color: "#E2E8F0",
+                color: isNullResult ? "#5A7A94" : "#E2E8F0",
                 letterSpacing: "-0.02em",
                 transition: "color 0.3s",
               }}
@@ -328,9 +401,9 @@ export function CulpritLockOverlay() {
               style={{
                 position: "absolute",
                 inset: 0,
-                background: scoreRevealProgress > 0.5 ? "#EF4444" : "#22D3EE",
+                background: isNullResult ? "#3A5268" : (scoreRevealProgress > 0.5 ? "#EF4444" : "#22D3EE"),
                 transformOrigin: "left center",
-                transform: `scaleX(${FINAL_SCORE * scoreRevealProgress})`,
+                transform: `scaleX(${isNullResult ? 0 : normalizedScore * scoreRevealProgress})`,
                 transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
@@ -356,7 +429,7 @@ export function CulpritLockOverlay() {
                 marginBottom: 6,
               }}
             >
-              ▶ CULPRIT IDENTIFIED
+              ▶ PRIMARY SUSPECT IDENTIFIED
             </div>
             <div
               style={{
@@ -367,7 +440,7 @@ export function CulpritLockOverlay() {
                 letterSpacing: "-0.01em",
               }}
             >
-              {CULPRIT_NAME}
+              {culpritName}
             </div>
             <div
               style={{
@@ -379,9 +452,9 @@ export function CulpritLockOverlay() {
                 color: "#5A7A94",
               }}
             >
-              <span>IMO: {CULPRIT_IMO}</span>
+              <span>Flag: {culpritFlag}</span>
               <span style={{ color: "#3A5268" }}>·</span>
-              <span>MMSI: {CULPRIT_MMSI}</span>
+              <span>MMSI: {culpritMmsi}</span>
             </div>
             <div
               style={{
@@ -394,7 +467,7 @@ export function CulpritLockOverlay() {
                 color: "#F87171",
               }}
             >
-              Confidence: {(FINAL_SCORE * 100).toFixed(1)}%  ·  Score: 0.912 / 1.000
+              Total Score: {totalScorePct.toFixed(1)}%  ·  Normalized: {normalizedScore.toFixed(3)} / 1.000
             </div>
           </div>
         )}

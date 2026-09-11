@@ -64,6 +64,8 @@ export const STAGE_LABELS: Record<MissionStage, string> = {
 
 // ─── State & Actions ─────────────────────────────────────────────────────────
 
+export type MissionScenario = "active" | "rejected_lookalike" | "no_candidates";
+
 export interface MissionState {
   currentStage: MissionStage;
   autoPlay: boolean;
@@ -74,6 +76,8 @@ export interface MissionState {
   simulatedTime: string;
   /** Whether the mission has been initiated (Start was clicked) */
   initiated: boolean;
+  /** Active demonstration scenario */
+  scenario: MissionScenario;
 }
 
 export type MissionAction =
@@ -83,6 +87,7 @@ export type MissionAction =
   | { type: "PREV_STAGE" }
   | { type: "TOGGLE_AUTOPLAY" }
   | { type: "SET_SPEED"; speed: 1 | 2 | 4 }
+  | { type: "SET_SCENARIO"; scenario: MissionScenario }
   | { type: "TICK"; deltaMs: number };
 
 const MISSION_START_ISO = "2026-05-15T06:00:00Z";
@@ -110,6 +115,13 @@ function reducer(state: MissionState, action: MissionAction): MissionState {
       return {
         ...state,
         currentStage: action.stage,
+        stageElapsedMs: 0,
+      };
+
+    case "SET_SCENARIO":
+      return {
+        ...state,
+        scenario: action.scenario,
         stageElapsedMs: 0,
       };
 
@@ -192,6 +204,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     stageElapsedMs: 0,
     simulatedTime: MISSION_START_ISO,
     initiated: false,
+    scenario: "active",
   });
 
   // Tick loop: 16ms intervals (~60fps)

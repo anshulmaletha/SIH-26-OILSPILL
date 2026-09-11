@@ -21,15 +21,15 @@ if (typeof document !== 'undefined' && !document.getElementById(DOTS_STYLE_ID)) 
   document.head.appendChild(style);
 }
 
-const VESSEL_TYPES: { label: string; count: number }[] = [
-  { label: 'Crude Tanker', count: 127 },
-  { label: 'Bulk Carrier', count: 98 },
-  { label: 'Container', count: 84 },
-  { label: 'Other', count: 103 },
+const AIS_QUERY_METRICS = [
+  { label: 'Sampling Epochs', value: '289 (5-min intervals)' },
+  { label: 'Geographic Bounds', value: '70.5°–73.0°E, 18.0°–20.5°N' },
+  { label: 'Spatial Index', value: 'Uber H3 Resolution 7' },
+  { label: 'Corridor Traffic', value: 'Active Telemetry + Load Test' },
 ];
 
-const TOTAL_VESSELS = 412;
-const COUNT_ANIM_DURATION_MS = 4000; // 0ms -> 412 at 4000ms
+const TOTAL_AIS_RECORDS = 578;
+const COUNT_ANIM_DURATION_MS = 3500; // 0 -> 578 at 3500ms
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -41,18 +41,16 @@ const AISSwarmOverlay: React.FC = () => {
   // Animated vessel count
   const [displayCount, setDisplayCount] = useState(0);
   const rafRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (state.currentStage !== ('AIS_SWARM' as MissionStage)) {
       setDisplayCount(0);
-      startTimeRef.current = null;
       return;
     }
 
     const elapsed = state.stageElapsedMs;
     const progress = Math.min(elapsed / COUNT_ANIM_DURATION_MS, 1);
-    const target = Math.round(easeOutCubic(progress) * TOTAL_VESSELS);
+    const target = Math.round(easeOutCubic(progress) * TOTAL_AIS_RECORDS);
     setDisplayCount(target);
   }, [state.stageElapsedMs, state.currentStage]);
 
@@ -65,8 +63,8 @@ const AISSwarmOverlay: React.FC = () => {
 
   if (state.currentStage !== ('AIS_SWARM' as MissionStage)) return null;
 
-  const showBreakdown = state.stageElapsedMs > 2000;
-  const showStatus = state.stageElapsedMs > 3500;
+  const showBreakdown = state.stageElapsedMs > 1800;
+  const showStatus = state.stageElapsedMs > 3000;
 
   return (
     <div
@@ -75,7 +73,7 @@ const AISSwarmOverlay: React.FC = () => {
         top: '80px',
         left: '12px',
         zIndex: 15,
-        width: '280px',
+        width: '300px',
         backgroundColor: '#0D1117',
         border: '1px solid #1C2A38',
         borderRadius: '2px',
@@ -100,7 +98,7 @@ const AISSwarmOverlay: React.FC = () => {
             marginBottom: '3px',
           }}
         >
-          AIS MARITIME TRAFFIC
+          AIS CORRIDOR TELEMETRY
         </div>
         <div
           style={{
@@ -110,13 +108,13 @@ const AISSwarmOverlay: React.FC = () => {
             lineHeight: 1,
           }}
         >
-          Temporal corridor T-24h — T=0h
+          Window: 2026-05-14T06:00Z → 2026-05-15T06:00Z (T-24h)
         </div>
       </div>
 
       {/* Content */}
       <div style={{ padding: '10px 12px' }}>
-        {/* Rolling vessel counter */}
+        {/* Rolling records counter */}
         <div style={{ marginBottom: '8px' }}>
           <div
             style={{
@@ -141,23 +139,23 @@ const AISSwarmOverlay: React.FC = () => {
               lineHeight: 1.3,
             }}
           >
-            ACTIVE VESSELS IN TEMPORAL CORRIDOR
+            INDEXED AIS BROADCAST RECORDS (standardized_ais_indexed.csv)
           </div>
         </div>
 
-        {/* Vessel type breakdown */}
+        {/* Query metrics breakdown */}
         {showBreakdown && (
           <div style={{ marginTop: '8px' }}>
-            {VESSEL_TYPES.map((v, i) => (
+            {AIS_QUERY_METRICS.map((m, i) => (
               <div
-                key={v.label}
+                key={m.label}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   paddingTop: '3px',
                   paddingBottom: '3px',
-                  borderBottom: '1px solid #111822',
+                  borderBottom: i < AIS_QUERY_METRICS.length - 1 ? '1px solid #111822' : 'none',
                 }}
               >
                 <span
@@ -167,16 +165,16 @@ const AISSwarmOverlay: React.FC = () => {
                     color: '#5A7A94',
                   }}
                 >
-                  {v.label}
+                  {m.label}
                 </span>
                 <span
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '10px',
+                    fontSize: '9px',
                     color: '#C8D8E8',
                   }}
                 >
-                  {v.count}
+                  {m.value}
                 </span>
               </div>
             ))}
@@ -235,7 +233,7 @@ const AISSwarmOverlay: React.FC = () => {
                 letterSpacing: '0.08em',
               }}
             >
-              H3 SPATIAL-TEMPORAL INDEXING
+              H3 SPATIAL-TEMPORAL HASH LOOKUP READY
             </span>
           </div>
         )}

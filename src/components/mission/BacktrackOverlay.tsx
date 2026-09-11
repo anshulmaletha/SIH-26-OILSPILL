@@ -32,12 +32,9 @@ const SUSPECT_COLORS: Record<string, { bg: string; border: string; dot: string; 
 };
 
 const SUSPECT_LABELS = [
-  { id: "cand-001", name: "MT IND_TANKER_412", type: "Crude Oil Tanker", flag: "IND", note: "AIS gap 3.4h · Speed drop detected" },
-  { id: "cand-002", name: "DARK VESSEL (CFAR_002)", type: "Unknown (SAR-only)", flag: "—", note: "No AIS · Corridor intersection" },
-  { id: "cand-003", name: "MT ARABIAN_VENTURE", type: "Crude Oil Tanker", flag: "PAN", note: "Outer corridor boundary" },
-  { id: "cand-004", name: "MV COASTAL_SPIRIT", type: "Bulk Carrier", flag: "SGP", note: "Moderate overlap score" },
-  { id: "cand-005", name: "TUG HARBOUR_QUEEN", type: "Service Vessel", flag: "IND", note: "Anchored — low speed" },
-  { id: "cand-006", name: "CS PACIFIC_BRIDGE", type: "Container Ship", flag: "PAN", note: "Incompatible speed 18.5kts" },
+  { id: "cand-001", name: "MT IND_TANKER_412", type: "Crude Oil Tanker", flag: "India (IND)", note: "Corridor overlap (k-ring 6/8) · Speed drop 14.2→3.8 kts · 3.4h AIS blackout", level: "high" as const },
+  { id: "cand-002", name: "DARK VESSEL (CFAR_DARK_002)", type: "Unknown (SAR Radar Echo)", flag: "—", note: "0 AIS broadcasts within 2.5 km of slick head · SAR contact", level: "high" as const },
+  { id: "cand-006", name: "CONTAINER_EXPRESS", type: "Container Ship", flag: "Singapore (SGP)", note: "Speed steady 18.5 kts · Cleared (0 corridor intersection)", level: "low" as const },
 ];
 
 export function BacktrackOverlay() {
@@ -45,18 +42,20 @@ export function BacktrackOverlay() {
 
   if (state.currentStage !== "BACKTRACK_CORRIDOR") return null;
 
+  const isNullResult = state.scenario === "no_candidates";
+  const activeSuspects = isNullResult ? [] : SUSPECT_LABELS;
+
   const elapsed = state.stageElapsedMs;
-  const candidates = getCandidateVessels();
+  const candidates = isNullResult ? [] : getCandidateVessels().filter(c => c.id === "cand-001" || c.id === "cand-002" || c.id === "cand-006");
 
   // Clock animation: starts at T=0, winds to T-24 over 5s
   const clockProgress = Math.min(1, elapsed / 5000);
   const clockHour = Math.round(-24 * clockProgress);
 
   // How many suspects are visible (stagger reveal)
-  const visibleSuspects = Math.min(
-    SUSPECT_LABELS.length,
-    elapsed > 5000 ? Math.ceil((elapsed - 5000) / 400) : 0
-  );
+  const visibleSuspects = isNullResult
+    ? (elapsed > 4000 ? 1 : 0)
+    : Math.min(activeSuspects.length, elapsed > 4500 ? Math.ceil((elapsed - 4500) / 600) : 0);
 
   return (
     <>
@@ -140,10 +139,16 @@ export function BacktrackOverlay() {
             pointerEvents: "none",
           }}
         >
-          {(candidates.length === 0 ? 0 : 412 - candidates.length).toLocaleString()} vessels cleared ·{" "}
-          <span style={{ color: "#F59E0B" }}>
-            {Math.min(candidates.length, visibleSuspects)} suspects highlighted
-          </span>
+          {isNullResult ? (
+            <span style={{ color: "#22D3EE" }}>0 corridor intersections detected · Judicial restraint invoked</span>
+          ) : (
+            <>
+              Corridor filter applied ·{" "}
+              <span style={{ color: "#F59E0B" }}>
+                {Math.min(activeSuspects.length, visibleSuspects)} candidate targets evaluated
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -155,7 +160,7 @@ export function BacktrackOverlay() {
             top: 80,
             right: 12,
             zIndex: 20,
-            width: 300,
+            width: 320,
             background: "#0D1117",
             border: "1px solid #1C2A38",
           }}
@@ -174,90 +179,99 @@ export function BacktrackOverlay() {
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 9,
-                color: "#22D3EE",
+                color: isNullResult ? "#5A7A94" : "#22D3EE",
                 textTransform: "uppercase",
                 letterSpacing: "0.1em",
               }}
             >
-              SUSPECT VESSELS
+              {isNullResult ? "CORRIDOR CANDIDATES (NULL-RESULT)" : "CORRIDOR SUSPECT TARGETS"}
             </span>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#5A7A94" }}>
-              {Math.min(visibleSuspects, SUSPECT_LABELS.length)} / 412
+              {isNullResult ? "0 Intersections" : `${Math.min(visibleSuspects, activeSuspects.length)} / ${activeSuspects.length}`}
             </span>
           </div>
 
-          {/* Suspect rows */}
-          {SUSPECT_LABELS.slice(0, visibleSuspects).map((s, i) => {
-            const cand = candidates.find((c) => c.id === s.id);
-            const level = cand?.suspicionLevel ?? "none";
-            const theme = SUSPECT_COLORS[level] ?? SUSPECT_COLORS["low"]!;
+          {isNullResult ? (
+            <div style={{ padding: "12px", backgroundColor: "rgba(34, 211, 238, 0.04)" }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#22D3EE", fontWeight: 700, marginBottom: 4 }}>
+                ✓ JUDICIAL RESTRAINT ENFORCED
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: "#8DA2B5", lineHeight: 1.4 }}>
+                Zero AIS tracks intersected the backward particle advection corridor above minimum confidence threshold. System correctly declines to nominate an innocent vessel.
+              </div>
+            </div>
+          ) : (
+            /* Suspect rows */
+            activeSuspects.slice(0, visibleSuspects).map((s, i) => {
+              const theme = SUSPECT_COLORS[s.level] ?? SUSPECT_COLORS.low!;
 
-            return (
-              <div
-                key={s.id}
-                style={{
-                  padding: "8px 12px",
-                  borderBottom: "1px solid #111822",
-                  background: theme.bg,
-                  borderLeft: `3px solid ${theme.dot}`,
-                  animation: `fadeIn 0.3s ease forwards`,
-                  animationDelay: `${i * 0.05}s`,
-                  opacity: 1,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    padding: "8px 12px",
+                    borderBottom: "1px solid #111822",
+                    background: theme.bg,
+                    borderLeft: `3px solid ${theme.dot}`,
+                    animation: `fadeIn 0.3s ease forwards`,
+                    animationDelay: `${i * 0.05}s`,
+                    opacity: 1,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span
+                      style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: "#C8D8E8",
+                      }}
+                    >
+                      {s.name}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 8,
+                        color: theme.dot,
+                        border: `1px solid ${theme.border}`,
+                        background: theme.bg,
+                        padding: "1px 5px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      {theme.label}
+                    </span>
+                  </div>
+                  <div
                     style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: "#C8D8E8",
-                    }}
-                  >
-                    {s.name}
-                  </span>
-                  <span
-                    style={{
+                      marginTop: 2,
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: 8,
-                      color: theme.dot,
-                      border: `1px solid ${theme.border}`,
-                      background: theme.bg,
-                      padding: "1px 5px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
+                      color: "#5A7A94",
+                      display: "flex",
+                      gap: 8,
                     }}
                   >
-                    {theme.label}
-                  </span>
+                    <span>{s.type}</span>
+                    <span style={{ color: "#3A5268" }}>·</span>
+                    <span>{s.flag}</span>
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 2,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 8,
+                      color: s.level === "high" ? "#EF4444" : "#5A7A94",
+                    }}
+                  >
+                    {s.note}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    marginTop: 2,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: "#5A7A94",
-                    display: "flex",
-                    gap: 8,
-                  }}
-                >
-                  <span>{s.type}</span>
-                  <span style={{ color: "#3A5268" }}>·</span>
-                  <span>{s.flag}</span>
-                </div>
-                <div
-                  style={{
-                    marginTop: 2,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: level === "high" ? "#EF4444" : level === "moderate" ? "#F59E0B" : "#3A5268",
-                  }}
-                >
-                  {s.note}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
     </>

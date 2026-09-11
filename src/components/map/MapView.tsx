@@ -21,7 +21,7 @@ import type { MapTooltipInfo } from "@/lib/map/types";
 import { DarkVesselPulse } from "./DarkVesselPulse";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import type { MissionStage } from "@/lib/mission/missionState";
-import type { SwarmVessel } from "@/lib/mission/swarmData";
+import { type SwarmVessel, swarmVesselColor } from "@/lib/mission/swarmData";
 import {
   getMasterShipAtlasDataUri,
   SHIP_ICON_MAPPING,
@@ -89,9 +89,13 @@ export default function MapView({
   const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
 
   const handleSelectVessel = useCallback(
-    (vessel: SwarmVessel | VesselTrack | null) => {
+    (vessel: SwarmVessel | VesselTrack | any | null) => {
+      if (!vessel) {
+        setSelectedVessel(null);
+        return;
+      }
       setSelectedVessel(vessel);
-      if (vessel && "vesselId" in vessel && onSelectVessel) {
+      if ("vesselId" in vessel && onSelectVessel) {
         onSelectVessel(vessel as VesselTrack);
       }
     },
@@ -135,7 +139,7 @@ export default function MapView({
       followTrack,
       primarySuspectVesselId,
       onHover: (info) => setTooltip(info),
-      onSelectVessel: handleSelectVessel,
+      onSelectVessel: (vessel) => handleSelectVessel(vessel),
       onClickHex: (cell, coord) => {
         let k = 0;
         try {
@@ -149,7 +153,7 @@ export default function MapView({
 
     const extraLayers: (ScatterplotLayer | PathLayer | IconLayer<SwarmVessel>)[] = [];
 
-    // Add synthetic swarm ship icons for maritime traffic (interactive blue/cyan ship markers)
+    // Add synthetic swarm ship icons for maritime traffic (interactive ship-shaped markers)
     if (swarmVessels.length > 0) {
       const shipAtlas = getMasterShipAtlasDataUri();
 
@@ -392,12 +396,10 @@ export default function MapView({
       overlayRef.current = overlay;
       map.addControl(overlay as unknown as IControl);
       setMapReady(true);
-      // Fire onMapReady so the mission controller can issue flyTo
       onMapReady?.(map);
     });
 
     map.on("click", (e) => {
-      // Check if click was on background
       const features = map.queryRenderedFeatures(e.point);
       if (!features || features.length === 0) {
         setSelectedVessel(null);
@@ -414,7 +416,6 @@ export default function MapView({
       setMapReady(false);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
 
   // Update style when theme changes
   useEffect(() => {
@@ -446,7 +447,7 @@ export default function MapView({
 
   // Collect dark vessels from p5Data
   const darkVessels = useMemo(() => {
-    return p5Data.vessels.filter((v) => v.isDarkVessel);
+    return (p5Data?.vessels || []).filter((v) => v.isDarkVessel);
   }, [p5Data]);
 
   return (
@@ -470,8 +471,8 @@ export default function MapView({
               label={v.vesselName}
               statusText={
                 v.darkAnomaly?.notes ??
-                (v.darkAnomaly?.radarSignature
-                  ? `RCS ${v.darkAnomaly.radarSignature}m² · SOG ${v.darkAnomaly.estimatedTransitSpeedKnots} kn`
+                (v.darkAnomaly?.estimatedTransitSpeedKnots
+                  ? `SOG ${v.darkAnomaly.estimatedTransitSpeedKnots} kn · GAP ${v.darkAnomaly.gapDurationHours || 14}h`
                   : "AIS: BLACKOUT · NO SIGNAL")
               }
               onClick={() => handleSelectVessel(v)}
@@ -581,7 +582,7 @@ export default function MapView({
         </div>
       )}
 
-      {/* Compact docked hover tooltip card — styled like reference card */}
+      {/* Compact docked hover tooltip card */}
       {tooltip && (
         <div
           className="pointer-events-none absolute z-30"
@@ -602,7 +603,6 @@ export default function MapView({
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            {/* Title row */}
             <div
               style={{
                 display: "flex",
@@ -639,7 +639,6 @@ export default function MapView({
               </span>
             </div>
 
-            {/* Data rows — monospace, tight line spacing */}
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               {tooltip.items.map((item, idx) => (
                 <div
