@@ -130,13 +130,13 @@ function getLayerVisibility(stage: MissionStage): Record<LayerId, boolean> {
 
   switch (stage) {
     case "STANDBY":
-      return { ...base, "slick-polygon": false, "sar-raster": false, "ais-tracks": false, "h3-corridor": true };
+      return { ...base, "slick-polygon": false, "sar-raster": false, "ais-tracks": false, "h3-corridor": false };
     case "SAR_ACQUISITION":
-      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": true };
+      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": false };
     case "VALIDATION_AUDIT":
-      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": true };
+      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": false };
     case "AIS_SWARM":
-      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
+      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": false };
     case "BACKTRACK_CORRIDOR":
       return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
     case "CULPRIT_LOCK":
@@ -146,7 +146,7 @@ function getLayerVisibility(stage: MissionStage): Record<LayerId, boolean> {
     case "CASE_FILE":
       return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": false, "h3-corridor": true };
     default:
-      return { ...base, "h3-corridor": true };
+      return { ...base, "h3-corridor": false };
   }
 }
 

@@ -74,7 +74,7 @@ export const LAYER_META: LayerMeta[] = [
 export const DEFAULT_VISIBILITY: Record<LayerId, boolean> = {
   [LAYER_IDS.sarRaster]: true,
   [LAYER_IDS.slickPolygon]: true,
-  [LAYER_IDS.h3Corridor]: true,
+  [LAYER_IDS.h3Corridor]: false,
   [LAYER_IDS.aisTracks]: true,
 };
 
