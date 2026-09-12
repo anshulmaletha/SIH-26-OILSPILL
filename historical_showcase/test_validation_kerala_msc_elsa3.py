@@ -34,6 +34,7 @@ from validation_kerala_msc_elsa3 import (
     DRIFT_SPEED_KMH,
     DRIFT_BEARING_DEG,
     destination_point,
+    haversine_km,
     build_polygon_ring,
     lat_lon_to_h3_index,
     construct_synthetic_polygon,
@@ -41,7 +42,6 @@ from validation_kerala_msc_elsa3 import (
     generate_backward_corridor,
     compute_validation_metrics,
 )
-from pipeline_integrator import haversine_km
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -220,7 +220,7 @@ class TestBearingAndDistanceMath:
             start_lat, start_lon, bearing, distance_km
         )
         computed_dist = haversine_km(
-            start_lon, start_lat, dest_lon, dest_lat
+            start_lat, start_lon, dest_lat, dest_lon
         )
         assert abs(computed_dist - distance_km) < 0.5
 
@@ -518,9 +518,9 @@ class TestHaversineConsistency:
             construct_synthetic_polygon()
         )
         dist = haversine_km(
-            GROUND_TRUTH["origin_lon"],
             GROUND_TRUTH["origin_lat"],
-            obs_lon, obs_lat
+            GROUND_TRUTH["origin_lon"],
+            obs_lat, obs_lon
         )
         expected_drift = DRIFT_SPEED_KMH * DRIFT_DURATION_HOURS
         assert abs(dist - expected_drift) < 2.0
