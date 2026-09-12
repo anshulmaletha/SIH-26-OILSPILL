@@ -50,6 +50,7 @@ export function buildLayers({
   onHover,
   onSelectVessel,
   onClickHex,
+  missionStage,
 }: BuildLayersOptions): Layer[] {
   const layers: Layer[] = [];
 
