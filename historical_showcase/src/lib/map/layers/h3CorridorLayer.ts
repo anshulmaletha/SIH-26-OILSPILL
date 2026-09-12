@@ -1,6 +1,6 @@
-import { H3HexagonLayer } from "@deck.gl/geo-layers";
+import { H3HexagonLayer, PathLayer } from "@deck.gl/geo-layers";
 import { LAYER_IDS } from "../config";
-import type { H3CellDensity } from "../../contracts/p4";
+import type { H3CellDensityWithAge, H3CellDensity } from "../../adapters/p4Adapter";
 import { getDensityColor } from "../../adapters/p4Adapter";
 import type { MapTooltipInfo } from "../types";
 
@@ -18,28 +18,69 @@ const MATCH_LINE_COLOR: [number, number, number, number] = [240, 253, 255, 255];
 const MATCH_HEX_INDEX = "8742da54effffff";
 
 export function createH3CorridorLayer(
-  cells: H3CellDensity[],
+  cells: H3CellDensityWithAge[],
   visible: boolean,
   relativeHour: number,
+  missionStage?: string,
   onHover?: ((info: MapTooltipInfo | null) => void) | undefined,
   onClickHex?: ((cell: H3CellDensity, coordinate: [number, number], x: number, y: number) => void) | undefined
 ) {
-  return new H3HexagonLayer<H3CellDensity>({
+  // In Kerala scenario, AIS_SWARM is the drift modeling stage where it animates backwards
+  const isModeling = missionStage === "AIS_SWARM" || missionStage === "DRIFT_MODELING";
+
+  // Compute centroid of each timestep to draw connection paths
+  // Group by timestepHour
+  const timestepGroups = new Map<number, { lat: number, lng: number, count: number, ageRatio: number }>();
+  for (const cell of cells) {
+    if (!timestepGroups.has(cell.timestepHour)) {
+      timestepGroups.set(cell.timestepHour, { lat: 0, lng: 0, count: 0, ageRatio: cell.ageRatio });
+    }
+    const group = timestepGroups.get(cell.timestepHour)!;
+    // Weight by density/particleCount for a more accurate center of mass
+    const weight = cell.particleCount || 1;
+    group.lng += cell.centerCoordinates[0] * weight;
+    group.lat += cell.centerCoordinates[1] * weight;
+    group.count += weight;
+  }
+  
+  const pathCoords: [number, number][] = [];
+  // Sort by timestepHour descending (from newest to oldest: 0, -6, -12, etc)
+  const sortedHours = Array.from(timestepGroups.keys()).sort((a, b) => b - a);
+  for (const hour of sortedHours) {
+    const group = timestepGroups.get(hour)!;
+    pathCoords.push([group.lng / group.count, group.lat / group.count]);
+  }
+
+  const h3Layer = new H3HexagonLayer<H3CellDensityWithAge>({
     id: LAYER_IDS.h3Corridor,
     visible,
     data: cells,
-    getHexagon: (d) => d.h3Index,
+    getHexagon: (d) => d.h3Index.split('_')[0], // Extract raw h3Index
 
     // Always filled — discrete opacity per density band (no blur, no blend)
     filled: true,
-    getFillColor: (d) => getDensityColor(d.density, 1.0),
+    getFillColor: (d) => getDensityColor(d.density, 1.0, d.ageRatio),
 
     // Always stroked — crisp 1px light cyan/white border on every hex
+    // Highlight state: during DRIFT_MODELING, all hexes get a brighter, slightly thicker cyan border
     stroked: true,
-    getLineColor: (d) =>
-      d.h3Index === MATCH_HEX_INDEX ? MATCH_LINE_COLOR : HEX_LINE_COLOR,
-    getLineWidth: (d) =>
-      d.h3Index === MATCH_HEX_INDEX ? 2.5 : 1,
+    getLineColor: (d) => {
+      const rawHex = d.h3Index.split('_')[0];
+      if (rawHex === MATCH_HEX_INDEX) return MATCH_LINE_COLOR;
+      if (isModeling) return [34, 211, 238, 255]; // Bright cyan during modeling
+      // Blend line color to purple for older steps too
+      return [
+        HEX_LINE_COLOR[0] * (1 - d.ageRatio) + 139 * d.ageRatio,
+        HEX_LINE_COLOR[1] * (1 - d.ageRatio) + 92 * d.ageRatio,
+        HEX_LINE_COLOR[2] * (1 - d.ageRatio) + 246 * d.ageRatio,
+        HEX_LINE_COLOR[3]
+      ];
+    },
+    getLineWidth: (d) => {
+      const rawHex = d.h3Index.split('_')[0];
+      if (rawHex === MATCH_HEX_INDEX) return 2.5;
+      return isModeling ? 1.5 : 1;
+    },
     lineWidthMinPixels: 1,
     lineWidthUnits: "pixels",
 
@@ -48,8 +89,8 @@ export function createH3CorridorLayer(
     // Triggers re-evaluation when hour or cells change
     updateTriggers: {
       getFillColor: [cells, relativeHour],
-      getLineColor: [cells, relativeHour],
-      getLineWidth: [cells],
+      getLineColor: [cells, relativeHour, missionStage],
+      getLineWidth: [cells, missionStage],
     },
 
     onClick: (info) => {
@@ -59,8 +100,8 @@ export function createH3CorridorLayer(
           info.coordinate &&
           typeof info.coordinate[0] === "number" &&
           typeof info.coordinate[1] === "number"
-            ? [info.coordinate[0], info.coordinate[1]]
-            : c.centerCoordinates;
+            ? (info.coordinate as [number, number])
+            : [0, 0];
         onClickHex(c, coord, info.x, info.y);
       }
     },
@@ -94,4 +135,18 @@ export function createH3CorridorLayer(
       });
     },
   });
+
+  // To avoid require issues in frontend, I will just make it a solid thick line with lower opacity
+  const pathLayer = new PathLayer({
+    id: `${LAYER_IDS.h3Corridor}-path`,
+    visible,
+    data: pathCoords.length > 1 ? [{ path: pathCoords }] : [],
+    getPath: (d: any) => d.path,
+    getColor: [167, 139, 250, 180], // Soft purple/magenta trail matching the oldest hex color
+    getWidth: 2.5,
+    widthMinPixels: 2.5,
+    widthUnits: "pixels",
+  });
+
+  return [h3Layer, pathLayer];
 }

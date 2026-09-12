@@ -231,7 +231,7 @@ function MissionControllerInner() {
       case "VALIDATION_AUDIT":
         return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": false };
       case "AIS_SWARM":
-        return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": false };
+        return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": isKerala };
       case "BACKTRACK_CORRIDOR":
         return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
       case "CULPRIT_LOCK":
@@ -268,13 +268,19 @@ function MissionControllerInner() {
   const swarmPhase =
     currentStage === "BACKTRACK_CORRIDOR" ? "backtrack" : "swarm";
 
-  // Relative hour for the map (backtrack shows T-12 at corridor midpoint)
+  // Relative hour for the map
+  // For Kerala, AIS_SWARM is "Bi-Directional Drift Modeling", where we backtrack to -48h.
+  // We use a sweep down to -48 over 5000ms.
   const relativeHour =
-    currentStage === "BACKTRACK_CORRIDOR"
-      ? Math.round(-12 * Math.min(1, state.stageElapsedMs / 5000))
-      : currentStage === "CULPRIT_LOCK"
-        ? -9
-        : 0;
+    state.scenario === "kerala" && currentStage === "AIS_SWARM"
+      ? Math.round(-48 * Math.min(1, state.stageElapsedMs / 5000))
+      : state.scenario === "kerala" && (currentStage === "BACKTRACK_CORRIDOR" || currentStage === "CULPRIT_LOCK" || currentStage === "CASE_FILE")
+        ? -48
+        : currentStage === "BACKTRACK_CORRIDOR"
+          ? Math.round(-12 * Math.min(1, state.stageElapsedMs / 5000))
+          : currentStage === "CULPRIT_LOCK"
+            ? -9
+            : 0;
 
   // Map ref callback so we can issue flyTo
   const handleMapReady = useCallback((map: MapLibreMap) => {

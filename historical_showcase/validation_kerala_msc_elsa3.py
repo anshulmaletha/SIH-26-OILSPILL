@@ -36,7 +36,17 @@ from lookalike_filter import (
     WIND_MAX_MS,
     DAMPING_THRESHOLD,
 )
-from pipeline_integrator import haversine_km
+import argparse
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2)**2 + 
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -104,31 +114,72 @@ OUTPUT_FILE = "validation_report_kerala_msc_elsa3.json"
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  CONFIGURATION — Estimated values for monsoon conditions
-#  These are explicitly flagged as assumptions.
+#  OIL SPREAD AREA CALCULATION (Task 2 — auditable, PRD §5 compliant)
+#
+#  Convention: RECTANGLE.  The documented slick dimensions are reported
+#  as width × length (1 NM × 2 NM, then 2 NM × 2 NM).  We treat these
+#  as rectangle side lengths, not ellipse semi-axes, because the source
+#  reports (Indian Coast Guard, ITOPF) describe the slick extent as a
+#  bounding footprint, not a fitted ellipse.
+#
+#  We do NOT fabricate a spreading physics model (e.g. Fay's gravity-
+#  viscous-surface tension regimes) because we have only two documented
+#  measurement points.  Linear interpolation between them is more
+#  defensible and honest for a demo than an unverified spreading law.
 # ═══════════════════════════════════════════════════════════════════════
 
 # [ESTIMATE] ERA5-equivalent wind speed for Kerala coast, late May 2025
 # Southwest monsoon onset: strong westerly winds, typical 8-12 m/s.
-# Conservative estimate within the SAR-detectable window.
 ESTIMATED_WIND_SPEED_MS = 8.5
 
 # [ESTIMATE] Damping ratio for heavy furnace oil (VLSFO)
-# 367 MT of viscous bunker fuel produces strong damping.
 ESTIMATED_DAMPING_RATIO = 0.78
 
 # [ESTIMATE] Eccentricity — large spill drifting with current
-# Drift-elongated slick from a stationary wreck source.
 ESTIMATED_ECCENTRICITY = 0.88
 
 # [ESTIMATE] Slick orientation under SSE monsoon drift
 ESTIMATED_ORIENTATION_DEG = 157.5
 
-# [ESTIMATE] Approximate slick dimensions after 2 days of drift
-# Documented initial: 1 NM x 2 NM, expanded to 2 NM x 2 NM
-ESTIMATED_AREA_KM2 = 13.7       # ~2 NM x 2 NM
-ESTIMATED_MAJOR_AXIS_KM = 7.4   # ~2 NM elongated axis
-ESTIMATED_MINOR_AXIS_KM = 3.7   # ~1 NM width after expansion
+NM_TO_KM = 1.852  # 1 international nautical mile = 1.852 km (exact)
+
+# Documented initial footprint at T0 (sinking, 2025-05-25 07:50 IST):
+#   1 nautical mile × 2 nautical miles (rectangle)
+INITIAL_WIDTH_NM  = 1.0
+INITIAL_LENGTH_NM = 2.0
+INITIAL_WIDTH_KM  = INITIAL_WIDTH_NM  * NM_TO_KM   # 1.852 km
+INITIAL_LENGTH_KM = INITIAL_LENGTH_NM * NM_TO_KM   # 3.704 km
+INITIAL_AREA_KM2  = INITIAL_WIDTH_KM * INITIAL_LENGTH_KM  # 6.861 km²
+
+# Documented expanded footprint at T_final (EOS-4 SAR, ~2025-05-27):
+#   2 nautical miles × 2 nautical miles (rectangle)
+FINAL_WIDTH_NM  = 2.0
+FINAL_LENGTH_NM = 2.0
+FINAL_WIDTH_KM  = FINAL_WIDTH_NM  * NM_TO_KM   # 3.704 km
+FINAL_LENGTH_KM = FINAL_LENGTH_NM * NM_TO_KM   # 3.704 km
+FINAL_AREA_KM2  = FINAL_WIDTH_KM * FINAL_LENGTH_KM  # 13.719 km²
+
+# Elapsed time between sinking and EOS-4 SAR acquisition.
+# Sinking:      2025-05-25 07:50 IST (02:20 UTC)
+# EOS-4 pass:   2025-05-27 06:00 UTC (placeholder — exact EOS-4 pass
+#               time over Kerala coast not publicly documented; 06:00 UTC
+#               is a reasonable descending-node dawn pass estimate for a
+#               sun-synchronous SAR satellite.  This assumption is
+#               explicitly flagged per PRD §5.)
+ELAPSED_HOURS = DRIFT_DURATION_HOURS  # computed above from actual datetimes
+
+# Spread rate: linear interpolation between the two documented data points.
+# This is NOT a physics model — it is a simple average rate from two real
+# measurements.  See convention note above.
+SPREAD_RATE_KM2_PER_HOUR = (
+    (FINAL_AREA_KM2 - INITIAL_AREA_KM2) / ELAPSED_HOURS
+    if ELAPSED_HOURS > 0 else 0.0
+)
+
+# Legacy aliases (keep for backward compat with polygon builder)
+ESTIMATED_AREA_KM2      = FINAL_AREA_KM2
+ESTIMATED_MAJOR_AXIS_KM = FINAL_LENGTH_KM   # ~3.704 km (2 NM)
+ESTIMATED_MINOR_AXIS_KM = FINAL_WIDTH_KM    # ~3.704 km (2 NM, expanded)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -731,6 +782,15 @@ def main():
             "estimated_wind_speed_ms": ESTIMATED_WIND_SPEED_MS,
             "estimated_damping_ratio": ESTIMATED_DAMPING_RATIO,
             "estimated_eccentricity": ESTIMATED_ECCENTRICITY,
+        },
+        "oil_spread_calculations": {
+            "initial_footprint_nm": f"{INITIAL_WIDTH_NM} x {INITIAL_LENGTH_NM}",
+            "initial_area_km2": round(INITIAL_AREA_KM2, 3),
+            "final_footprint_nm": f"{FINAL_WIDTH_NM} x {FINAL_LENGTH_NM}",
+            "final_area_km2": round(FINAL_AREA_KM2, 3),
+            "elapsed_hours": round(ELAPSED_HOURS, 2),
+            "spread_rate_km2_per_hour": round(SPREAD_RATE_KM2_PER_HOUR, 4),
+            "convention": "Rectangle area based on bounding dimensions from incident reports. Linear interpolation for spread rate."
         },
         "gate_evaluation": gate_details,
         "gate_passed": gate_passed,

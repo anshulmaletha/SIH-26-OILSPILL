@@ -26,6 +26,7 @@ export interface BuildLayersOptions {
   onHover?: ((info: MapTooltipInfo | null) => void) | undefined;
   onSelectVessel?: ((vessel: VesselTrack) => void) | undefined;
   onClickHex?: ((cell: H3CellDensity, coordinate: [number, number], x: number, y: number) => void) | undefined;
+  missionStage?: string;
 }
 
 /**
@@ -67,14 +68,14 @@ export function buildLayers({
       relativeHour
     );
     if (h3Cells && h3Cells.length > 0) {
-      const h3Layer = createH3CorridorLayer(h3Cells, true, relativeHour, onHover, onClickHex);
-      layers.push(h3Layer);
+      const h3Layers = createH3CorridorLayer(h3Cells, true, relativeHour, missionStage, onHover, onClickHex);
+      layers.push(...h3Layers);
     }
   }
 
   // 3. Oil Slick Polygon Layer (P1)
   if (visibility["slick-polygon"] && p1Data.slicks && p1Data.slicks.length > 0) {
-    const slickLayer = createSlickPolygonLayer(p1Data.slicks, true, onHover);
+    const slickLayer = createSlickPolygonLayer(p1Data.slicks, true, missionStage, onHover);
     layers.push(slickLayer);
   }
 

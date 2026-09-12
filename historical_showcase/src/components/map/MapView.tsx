@@ -88,6 +88,7 @@ export default function MapView({
   } | null>(null);
   const [hexScreenPos, setHexScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [shipMarkerPos, setShipMarkerPos] = useState<{ x: number; y: number } | null>(null);
+  const [slickScreenPos, setSlickScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedSwarmVessel, setSelectedSwarmVessel] = useState<SwarmVessel | null>(null);
 
   const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
@@ -98,6 +99,7 @@ export default function MapView({
     if (!map) {
       setHexScreenPos(null);
       setShipMarkerPos(null);
+      setSlickScreenPos(null);
       return;
     }
 
@@ -109,6 +111,26 @@ export default function MapView({
       if (scenario === "kerala") {
         const pt = map.project([76.1360, 9.3125]);
         setShipMarkerPos({ x: pt.x, y: pt.y });
+        
+        // Track the current slick centroid for the segmentation label overlay
+        if (p1Data?.slicks?.[0]) {
+          // Re-implement the slick interpolation centroid logic here to track it accurately
+          let t = 1.0;
+          if (missionStage === "SAR_ACQUISITION") {
+            const raw_t = Math.min(1, Math.max(0, (stageElapsedMs - 3500) / 2500));
+            t = raw_t * raw_t * (3 - 2 * raw_t);
+          } else if (missionStage === "STANDBY") {
+            t = 0.0;
+          }
+          const origin = [76.1360, 9.3125];
+          const target = p1Data.slicks[0].centroid;
+          const currentCentroid = [
+            origin[0] * (1-t) + target[0] * t,
+            origin[1] * (1-t) + target[1] * t
+          ];
+          const slickPt = map.project(currentCentroid as [number, number]);
+          setSlickScreenPos({ x: slickPt.x, y: slickPt.y });
+        }
       }
     };
 
@@ -180,11 +202,15 @@ export default function MapView({
 
     let finalP1Data = p1Data;
     if (scenario === "kerala" && p1Data?.slicks?.[0]) {
+      // ── TASK 3: Smooth, Continuous Slick Interpolation ──
       // Interpolate the slick drifting and growing over time
-      // 0ms-3500ms: T0 (sinking). 3500ms-6000ms: drifting toward T+2day.
+      // 0ms-3500ms: T0 (sinking). 3500ms-6000ms: drifting toward T+2day (EOS-4 pass).
       let t = 1.0;
       if (missionStage === "SAR_ACQUISITION") {
-        t = Math.min(1, Math.max(0, (stageElapsedMs - 3500) / 2500));
+        // Linear time progress between 3.5s and 6.0s
+        const raw_t = Math.min(1, Math.max(0, (stageElapsedMs - 3500) / 2500));
+        // Simple ease-in-out (smoothstep) for organic movement matching UI style
+        t = raw_t * raw_t * (3 - 2 * raw_t);
       } else if (missionStage === "STANDBY") {
         t = 0.0;
       }
@@ -193,14 +219,21 @@ export default function MapView({
       const targetSlick = p1Data.slicks[0];
       const targetCentroid = targetSlick.centroid;
       
+      // Interpolate centroid (3 km/h SSE drift displacement)
       const currCentroid = [
         originCentroid[0] * (1-t) + targetCentroid[0] * t,
         originCentroid[1] * (1-t) + targetCentroid[1] * t
       ];
 
-      // At t=0, size is tight (e.g. 0.2x). At t=1, size is 1x.
-      const scale = 0.2 + 0.8 * t;
+      // Area-based scale factor
+      // Initial area = 6.86 km² (1nm x 2nm)
+      // Final area = 13.72 km² (2nm x 2nm)
+      // Area scales with the square of linear dimension. 
+      // initial_scale = sqrt(initial_area / final_area) = sqrt(0.5) ≈ 0.707
+      const initialScale = Math.sqrt(6.861 / 13.719);
+      const scale = initialScale + (1.0 - initialScale) * t;
       
+      // Preserve irregular/organic base shape by scaling raw vertices rather than swapping arrays
       const newCoords = targetSlick.coordinates.map(v => [
         currCentroid[0] + (v[0] - targetCentroid[0]) * scale,
         currCentroid[1] + (v[1] - targetCentroid[1]) * scale
@@ -227,6 +260,7 @@ export default function MapView({
       selectedTrackColor,
       followTrack,
       primarySuspectVesselId,
+      missionStage,
       onHover: (info) => setTooltip(info),
       onSelectVessel: (vessel) => handleSelectVessel(vessel),
       onClickHex: (cell, coord) => {
@@ -655,14 +689,105 @@ export default function MapView({
           </div>
         </div>
       )}
-      {/* SHIP DETECTED / SHIP SANK MARKER (Kerala Validation) */}
-      {scenario === "kerala" && missionStage === "SAR_ACQUISITION" && stageElapsedMs > 2000 && shipMarkerPos && (
+      {/* SHIP / WRECK MARKER (Kerala Validation) — Persistent across ALL stages after detection */}
+      {scenario === "kerala" && missionStage !== "STANDBY" && shipMarkerPos && (() => {
+        // The icon appears at 2000ms into SAR_ACQUISITION, transitions to "sunk" at 3500ms,
+        // and then persists in the sunk state through every subsequent stage.
+        const isFirstStage = missionStage === "SAR_ACQUISITION";
+        const showIcon = !isFirstStage || stageElapsedMs > 2000;
+        const isSunk = !isFirstStage || stageElapsedMs > 3500;
+        
+        // Task 1: Distinct "hit" indicator when corridor reaches the wreck
+        const showHitIndicator = 
+          missionStage === "BACKTRACK_CORRIDOR" || 
+          missionStage === "CULPRIT_LOCK" || 
+          missionStage === "CASE_FILE" ||
+          (missionStage === "AIS_SWARM" && relativeHour <= -45);
+
+        if (!showIcon) return null;
+        return (
+          <div
+            className="absolute z-20 pointer-events-none"
+            style={{
+              left: shipMarkerPos.x,
+              top: shipMarkerPos.y,
+              transform: "translate(-50%, -100%)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {showHitIndicator && (
+              <div
+                style={{
+                  backgroundColor: "#EF4444",
+                  color: "#fff",
+                  padding: "3px 6px",
+                  borderRadius: "2px",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "9px",
+                  fontWeight: "bold",
+                  marginBottom: "4px",
+                  boxShadow: "0 0 10px rgba(239, 68, 68, 0.6)",
+                  animation: "pulse 1s infinite"
+                }}
+              >
+                H3 CORRIDOR HIT
+              </div>
+            )}
+            <div
+              style={{
+                backgroundColor: "rgba(13, 17, 23, 0.9)",
+                border: showHitIndicator ? "1px solid #EF4444" : isSunk ? "1px solid #9CA3AF" : "1px solid #22D3EE",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                color: showHitIndicator ? "#EF4444" : isSunk ? "#9CA3AF" : "#22D3EE",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "10px",
+                whiteSpace: "nowrap",
+                marginBottom: "4px",
+                boxShadow: showHitIndicator ? "0 0 10px rgba(239, 68, 68, 0.3)" : isSunk ? "none" : "0 0 10px rgba(34, 211, 238, 0.3)",
+              }}
+            >
+              {isSunk
+                ? "MSC Elsa 3 — Capsized and Sank, 2025-05-25 07:50 IST"
+                : "Ship Detected: Target Confirmed (MSC Elsa 3)"}
+            </div>
+            <div style={{
+              background: showHitIndicator ? "#991B1B" : isSunk ? "#4B5563" : "#22D3EE",
+              borderRadius: "50%",
+              width: "28px",
+              height: "28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: showHitIndicator ? "0 0 20px #EF4444" : isSunk ? "none" : "0 0 15px #22D3EE",
+              animation: showHitIndicator ? "pulse-ring 1.5s infinite" : isSunk ? "none" : "pulse-ring 2s infinite",
+              position: "relative",
+              border: showHitIndicator ? "2px solid #EF4444" : "none"
+            }}>
+              <Ship size={16} color={showHitIndicator ? "#FECACA" : "#000"} strokeWidth={2.5} />
+              {isSunk && (
+                <ChevronDown
+                  size={14}
+                  color={showHitIndicator ? "#FECACA" : "#EF4444"}
+                  strokeWidth={3}
+                  style={{ position: "absolute", bottom: "-10px" }}
+                />
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* TASK 2: Look-Alike Filter Badge anchored to slick centroid */}
+      {scenario === "kerala" && slickScreenPos && (missionStage === "VALIDATION_AUDIT" || missionStage === "AIS_SWARM" || missionStage === "BACKTRACK_CORRIDOR" || missionStage === "CULPRIT_LOCK" || missionStage === "CASE_FILE") && (
         <div
           className="absolute z-20 pointer-events-none"
           style={{
-            left: shipMarkerPos.x,
-            top: shipMarkerPos.y,
-            transform: "translate(-50%, -100%)",
+            left: slickScreenPos.x,
+            top: slickScreenPos.y,
+            transform: "translate(-50%, -50%)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -671,44 +796,35 @@ export default function MapView({
           <div
             style={{
               backgroundColor: "rgba(13, 17, 23, 0.9)",
-              border: stageElapsedMs > 3500 ? "1px solid #9CA3AF" : "1px solid #22D3EE",
+              border: "1px solid #10B981", // Green for CONFIRMED
               padding: "4px 8px",
               borderRadius: "4px",
-              color: stageElapsedMs > 3500 ? "#9CA3AF" : "#22D3EE",
+              color: "#10B981",
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "10px",
+              fontSize: "11px",
+              fontWeight: "bold",
               whiteSpace: "nowrap",
-              marginBottom: "4px",
-              boxShadow: stageElapsedMs > 3500 ? "none" : "0 0 10px rgba(34, 211, 238, 0.3)",
-              animation: "fadeIn 0.3s ease-out"
+              boxShadow: "0 0 10px rgba(16, 185, 129, 0.4)",
+              animation: "fadeIn 0.5s ease-out"
             }}
           >
-            {stageElapsedMs > 3500 
-              ? "MSC Elsa 3 — Capsized and Sank, 2025-05-25 07:50 IST"
-              : "Ship Detected: Target Confirmed (MSC Elsa 3)"}
+            CONFIRMED: OIL SPILL
           </div>
-          <div style={{
-            background: stageElapsedMs > 3500 ? "#4B5563" : "#22D3EE",
-            borderRadius: "50%",
-            width: "28px",
-            height: "28px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: stageElapsedMs > 3500 ? "none" : "0 0 15px #22D3EE",
-            animation: stageElapsedMs > 3500 ? "none" : "pulse-ring 2s infinite",
-            position: "relative"
-          }}>
-            <Ship size={16} color="#000" strokeWidth={2.5} />
-            {stageElapsedMs > 3500 && (
-              <ChevronDown 
-                size={14} 
-                color="#EF4444" 
-                strokeWidth={3}
-                style={{ position: "absolute", bottom: "-10px", animation: "bounce 2s infinite" }} 
-              />
-            )}
-          </div>
+          {missionStage === "VALIDATION_AUDIT" && (
+            <div
+              style={{
+                backgroundColor: "rgba(13, 17, 23, 0.8)",
+                padding: "2px 6px",
+                borderRadius: "2px",
+                color: "#9CA3AF",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "9px",
+                marginTop: "2px"
+              }}
+            >
+              Wind: 8.5m/s | Damping: 0.78
+            </div>
+          )}
         </div>
       )}
 

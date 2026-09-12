@@ -162,7 +162,14 @@ export function convertCorridorResponseToP4(data: any): P4Output {
   };
 
   const timesteps: H3CorridorTimestep[] = Object.entries(data.corridor).map(([key, stepData]: [string, any]) => {
-    const meta = keyToRelHour[key] ?? { hour: 0, iso: "2026-05-15T06:00:00Z" };
+    let hour = 0;
+    if (keyToRelHour[key]) {
+      hour = keyToRelHour[key].hour;
+    } else if (key.startsWith("t_minus_") && key.endsWith("h")) {
+      const parsedHour = parseInt(key.replace("t_minus_", "").replace("h", ""), 10);
+      if (!isNaN(parsedHour)) hour = -parsedHour;
+    }
+    const meta = { hour, iso: "2026-05-15T06:00:00Z" };
     const hexIds: string[] = stepData.hex_ids || [];
     const densityMap: Record<string, number> = stepData.particle_density || {};
 
@@ -217,9 +224,8 @@ export function getH3CorridorForTrackAndHour(
   _p5?: P5Output,
   _selectedTrackId: string = "all",
   relativeHour: number = 0
-): H3CellDensity[] {
-  const ts = getH3TimestepForHour(p4, relativeHour);
-  return ts?.cells || [];
+): H3CellDensityWithAge[] {
+  return getAccumulatedH3Corridor(p4, relativeHour);
 }
 
 export function getH3TimestepForHour(p4: P4Output, relativeHour: number): H3CorridorTimestep | null {
@@ -243,6 +249,55 @@ export function getH3TimestepForHour(p4: P4Output, relativeHour: number): H3Corr
   return closest ?? null;
 }
 
+export interface H3CellDensityWithAge extends H3CellDensity {
+  ageRatio: number; // 0.0 (newest/T0) to 1.0 (oldest/T-48)
+  timestepHour: number;
+}
+
+export function getAccumulatedH3Corridor(
+  p4: P4Output,
+  relativeHour: number
+): H3CellDensityWithAge[] {
+  const timesteps = p4?.timesteps || DEFAULT_P4_DATA.timesteps;
+  if (!timesteps || timesteps.length === 0) return [];
+
+  // relativeHour is negative (e.g. 0 to -48). We want all timesteps >= relativeHour
+  const activeTimesteps = timesteps.filter(ts => ts.relativeHour >= relativeHour);
+  
+  if (activeTimesteps.length === 0) return [];
+  
+  const minHour = Math.min(...timesteps.map(t => t.relativeHour)); // e.g. -48
+  const maxHour = Math.max(...timesteps.map(t => t.relativeHour)); // e.g. 0
+  const hourRange = maxHour - minHour || 1;
+
+  const accumulated: H3CellDensityWithAge[] = [];
+  const seenHexes = new Set<string>();
+
+  // Process from oldest to newest so newest (T0) overwrites older ones if they overlap
+  // Or vice versa? If we want older ones to render behind, DeckGL handles it via array order if no depth test
+  // Let's sort oldest first (most negative relativeHour first)
+  const sorted = [...activeTimesteps].sort((a, b) => a.relativeHour - b.relativeHour);
+
+  for (const ts of sorted) {
+    const ageRatio = (maxHour - ts.relativeHour) / hourRange; // 0 at T0, 1 at T-48
+    
+    for (const cell of ts.cells) {
+      // Allow overlaps to render by appending all, or keep only one per hex?
+      // Since we want to color code them, we should probably just return them all and let Deck GL draw them.
+      // Wait, H3HexagonLayer might only draw unique hex IDs. We can append the hour to the ID to force unique rendering.
+      accumulated.push({
+        ...cell,
+        // Make ID unique per timestep so they all render and overlap
+        h3Index: `${cell.h3Index}_${ts.relativeHour}`,
+        ageRatio,
+        timestepHour: ts.relativeHour
+      });
+    }
+  }
+
+  return accumulated;
+}
+
 /**
  * Maps particle density (0.0 to 1.0) to a cyan RGBA color with discrete opacity steps.
  *
@@ -256,14 +311,18 @@ export function getH3TimestepForHour(p4: P4Output, relativeHour: number): H3Corr
  */
 export function getDensityColor(
   density: number,
-  alphaMultiplier: number = 1
+  alphaMultiplier: number = 1,
+  ageRatio: number = 0 // 0.0 (newest) to 1.0 (oldest)
 ): [number, number, number, number] {
   const d = Math.max(0, Math.min(1, density));
+  const age = Math.max(0, Math.min(1, ageRatio));
 
-  // Consistent Cyan RGB: #22D3EE = [34, 211, 238]
-  const r = 34;
-  const g = 211;
-  const b = 238;
+  // Task 3: Color-code by timestep age, Opacity by density
+  // Newest (age 0) = Cyan: [34, 211, 238]
+  // Oldest (age 1) = Purple: [139, 92, 246]
+  const r = 34 + (139 - 34) * age;
+  const g = 211 + (92 - 211) * age;
+  const b = 238 + (246 - 238) * age;
 
   let alpha: number;
   if (d >= 0.85) {

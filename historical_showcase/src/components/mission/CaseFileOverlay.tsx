@@ -94,6 +94,126 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
     document.body.removeChild(a);
   }
 
+  if (state.scenario === "kerala") {
+    // Task 4: Kerala Historical Validation Summary Panel
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: 68,
+          right: 24,
+          width: "480px",
+          background: "rgba(13, 17, 23, 0.85)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid #1C2A38",
+          borderLeft: "2px solid #22D3EE",
+          display: "flex",
+          flexDirection: "column",
+          color: "#E2E8F0",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.8)",
+          animation: "slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 20,
+        }}
+      >
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #1C2A38", background: "#0A0E14" }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontFamily: "'JetBrains Mono', monospace", color: "#22D3EE", letterSpacing: "0.05em" }}>
+            HISTORICAL VALIDATION RESULTS
+          </h2>
+          <p style={{ margin: "4px 0 0", fontSize: 10, color: "#9CA3AF" }}>
+            MSC Elsa 3 (May 2025) — Physical Drift Geometry Verification
+          </p>
+        </div>
+
+        <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px" }} className="custom-scrollbar">
+          
+          {/* Section 1: Oil Spread Summary */}
+          <div>
+            <h3 style={{ margin: "0 0 10px", fontSize: 11, color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.1em" }}>1. Oil Spread Analysis</h3>
+            <div style={{ background: "#111822", padding: "12px", borderRadius: "4px", border: "1px solid #1C2A38" }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "16px" }}>
+                <div>
+                  <div style={{ fontSize: 9, color: "#9CA3AF", marginBottom: "4px" }}>Initial Area (T0)</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "24px", height: "24px", background: "rgba(34, 211, 238, 0.2)", border: "1px solid #22D3EE" }}></div>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>6.86 km²</span>
+                  </div>
+                </div>
+                <div style={{ color: "#5A7A94", fontSize: 16 }}>→</div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#9CA3AF", marginBottom: "4px" }}>Final Area (T+51.7h)</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {/* Proportionally sized square: sqrt(13.72/6.86) * 24 = 1.414 * 24 ≈ 34px */}
+                    <div style={{ width: "34px", height: "34px", background: "rgba(245, 158, 11, 0.2)", border: "1px solid #F59E0B" }}></div>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#F59E0B" }}>13.72 km²</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, display: "grid", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>Spread Rate:</span>
+                  <span>0.13 km²/hour</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#5A7A94" }}>Time Window:</span>
+                  <span>51.7 Hours</span>
+                </div>
+                <div style={{ fontSize: 9, color: "#9CA3AF", marginTop: "4px" }}>
+                  May 25 02:20 UTC (Sinking) → May 27 06:00 UTC (EOS-4 SAR)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Environmental Forcing */}
+          <div>
+            <h3 style={{ margin: "0 0 10px", fontSize: 11, color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.1em" }}>2. Environmental Forcing (Actual)</h3>
+            <div style={{ background: "#111822", padding: "12px", borderRadius: "4px", border: "1px solid #1C2A38" }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, display: "grid", gap: "8px" }}>
+                <div>
+                  <span style={{ color: "#22D3EE" }}>ERA5 Winds (kerala_era5_winds.nc):</span><br/>
+                  Mean: 3.09 m/s | Range: [0.03 – 9.91] m/s
+                </div>
+                <div>
+                  <span style={{ color: "#22D3EE" }}>HYCOM Currents (kerala_hycom_currents.nc):</span><br/>
+                  Mean: 0.44 m/s | Range: [0.00 – 1.33] m/s
+                </div>
+                <div>
+                  <span style={{ color: "#5A7A94" }}>Wind-Drift Factor:</span> 0.03 (Constant)
+                </div>
+                <div style={{ background: "rgba(245, 158, 11, 0.1)", borderLeft: "2px solid #F59E0B", padding: "6px 8px", fontSize: 9, color: "#D1D5DB", marginTop: "4px" }}>
+                  <strong>Note:</strong> Maximum wind speed (9.91 m/s) approaches the Look-Alike Filter upper bound (12.0 m/s), consistent with heavy pre-monsoon squalls observed in the dataset.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Validation Result */}
+          <div>
+            <h3 style={{ margin: "0 0 10px", fontSize: 11, color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.1em" }}>3. Numeric Validation</h3>
+            <div style={{ background: "#111822", padding: "12px", borderRadius: "4px", border: "1px solid #10B981" }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span>Hex Match Result:</span>
+                <span style={{ color: "#10B981", fontWeight: "bold" }}>[SUCCESS]</span>
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, display: "grid", gap: "4px", color: "#9CA3AF" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Origin Error:</span><span>4.815 km</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Corridor Spread:</span><span>~5.0 km (k=5 ring at T-48h)</span></div>
+              </div>
+              <p style={{ margin: "10px 0 0", fontSize: 9, color: "#C8D8E8", lineHeight: 1.4 }}>
+                The physical drift model successfully encompassed the true wreck coordinates within its stochastic uncertainty bounds. This validates the corridor geometry engine's accuracy, but does not guarantee attribution on its own.
+              </p>
+            </div>
+          </div>
+
+          {/* Section 4: Disclaimer */}
+          <div style={{ padding: "10px", border: "1px solid #374151", borderRadius: "4px", fontSize: 9, color: "#9CA3AF", textAlign: "center", lineHeight: 1.4 }}>
+            <strong>DISCLAIMER:</strong> This panel represents a single historical case-study validation of the drift-corridor physics engine. It is not a statistical accuracy claim and not a live vessel-attribution result (the source vessel is known).
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
