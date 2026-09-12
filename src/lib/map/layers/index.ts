@@ -23,6 +23,9 @@ export interface BuildLayersOptions {
   followTrack?: boolean | undefined;
   /** vesselId of the highest-ranked suspect — receives a subtle cyan halo ring */
   primarySuspectVesselId?: string | undefined;
+  theme?: "light" | "dark" | undefined;
+  missionStage?: string | undefined;
+  stageElapsedMs?: number | undefined;
   onHover?: ((info: MapTooltipInfo | null) => void) | undefined;
   onSelectVessel?: ((vessel: VesselTrack) => void) | undefined;
   onClickHex?: ((cell: H3CellDensity, coordinate: [number, number], x: number, y: number) => void) | undefined;
@@ -46,6 +49,9 @@ export function buildLayers({
   selectedTrackColor = [34, 211, 238],
   followTrack = false,
   primarySuspectVesselId,
+  theme = "light",
+  missionStage,
+  stageElapsedMs = 0,
   onHover,
   onSelectVessel,
   onClickHex,
@@ -58,16 +64,27 @@ export function buildLayers({
     if (sar) layers.push(sar);
   }
 
-  // 2. H3 Density Corridor Layer (P4) — distinct cluster per timestep
+  // 2. H3 Density Corridor Layer (P4) — continuous moving ribbon
   if (visibility["h3-corridor"]) {
+    const isBacktracking = missionStage === "BACKTRACK_CORRIDOR";
     const h3Cells = getH3CorridorForTrackAndHour(
       p4Data,
       p5Data,
       selectedTrackId,
-      relativeHour
+      relativeHour,
+      isBacktracking,
+      stageElapsedMs
     );
     if (h3Cells && h3Cells.length > 0) {
-      const h3Layer = createH3CorridorLayer(h3Cells, true, relativeHour, onHover, onClickHex);
+      const h3Layer = createH3CorridorLayer(
+        h3Cells,
+        true,
+        relativeHour,
+        theme,
+        isBacktracking,
+        onHover,
+        onClickHex
+      );
       layers.push(h3Layer);
     }
   }

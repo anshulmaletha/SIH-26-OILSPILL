@@ -92,6 +92,8 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
     document.body.removeChild(a);
   }
 
+  const isDark = state.theme === "dark";
+
   return (
     <div
       style={{
@@ -101,19 +103,20 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
         bottom: 0,
         zIndex: 25,
         width: 380,
-        background: "#080B0F",
-        borderLeft: "1px solid #1C2A38",
+        background: isDark ? "#0F172A" : "#FFFFFF",
+        borderLeft: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        boxShadow: isDark ? "-4px 0 16px rgba(0, 0, 0, 0.4)" : "-4px 0 16px rgba(0, 0, 0, 0.05)",
       }}
     >
       {/* Panel header */}
       <div
         style={{
           padding: "12px 14px",
-          borderBottom: "1px solid #1C2A38",
-          background: "#0D1117",
+          borderBottom: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
+          background: isDark ? "#1E293B" : "#F8FAFC",
           flexShrink: 0,
         }}
       >
@@ -121,35 +124,37 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
           <div>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "ui-monospace, monospace",
                 fontSize: 10,
                 fontWeight: 700,
-                color: "#22D3EE",
+                color: isDark ? "#F8FAFC" : "#0F172A",
                 textTransform: "uppercase",
-                letterSpacing: "0.12em",
+                letterSpacing: "0.08em",
               }}
             >
               FORENSIC DOSSIER
             </div>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#3A5268",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                color: isDark ? "#94A3B8" : "#64748B",
                 marginTop: 2,
               }}
             >
-              INC-2026-MUM-001  ·  {new Date().toLocaleDateString("en-GB")}
+              INC-2026-MUM-001 · {new Date().toLocaleDateString("en-GB")}
             </div>
           </div>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8,
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 8.5,
+              fontWeight: 700,
               padding: "3px 8px",
-              border: "1px solid #22D3EE30",
-              color: "#22D3EE",
-              background: "#22D3EE08",
+              border: "1px solid #BBF7D0",
+              color: "#16A34A",
+              background: "#F0FDF4",
+              borderRadius: 3,
             }}
           >
             FINALIZED
@@ -161,8 +166,8 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
       <div
         style={{
           padding: "8px 14px",
-          borderBottom: "1px solid #1C2A38",
-          background: "#0A0E14",
+          borderBottom: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
+          background: isDark ? "#0F172A" : "#FFFFFF",
           flexShrink: 0,
         }}
       >
@@ -171,23 +176,23 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, monospace",
             fontSize: 9,
           }}
         >
-          <span style={{ color: "#5A7A94" }}>
+          <span style={{ color: isDark ? "#94A3B8" : "#64748B" }}>
             COMPILING EVIDENCE MATRIX —{" "}
-            <span style={{ color: "#22D3EE" }}>{visibleCount} / {evidenceItems.length}</span>
+            <span style={{ color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 700 }}>{visibleCount} / {evidenceItems.length}</span>
           </span>
-          <span style={{ color: "#22D3EE" }}>
+          <span style={{ color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 700 }}>
             {Math.round((visibleCount / evidenceItems.length) * 100)}%
           </span>
         </div>
-        <div style={{ height: 2, background: "#1C2A38", marginTop: 6 }}>
+        <div style={{ height: 3, background: isDark ? "#1E293B" : "#E2E8F0", marginTop: 6, borderRadius: 2, overflow: "hidden" }}>
           <div
             style={{
               height: "100%",
-              background: "#22D3EE",
+              background: isDark ? "#F8FAFC" : "#0F172A",
               width: `${(visibleCount / evidenceItems.length) * 100}%`,
               transition: "width 0.4s ease",
             }}
@@ -206,16 +211,17 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
             style={{
               display: "flex",
               flexDirection: "column",
-              padding: "6px 0",
-              borderBottom: "1px solid #111822",
+              padding: "7px 0",
+              borderBottom: `1px solid ${isDark ? "#1E293B" : "#F1F5F9"}`,
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span
                 style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 9,
-                  color: "#5A7A94",
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontSize: 9.5,
+                  fontWeight: 600,
+                  color: isDark ? "#94A3B8" : "#64748B",
                 }}
               >
                 {item.label}
@@ -223,11 +229,14 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
               {item.verified && (
                 <span
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 7,
-                    color: "#22D3EE",
-                    border: "1px solid #22D3EE20",
-                    padding: "1px 4px",
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 7.5,
+                    fontWeight: 700,
+                    color: "#16A34A",
+                    border: "1px solid #BBF7D0",
+                    background: isDark ? "#062817" : "#F0FDF4",
+                    padding: "1px 5px",
+                    borderRadius: 2,
                   }}
                 >
                   ✓ VERIFIED
@@ -236,9 +245,9 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
             </div>
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: "#C8D8E8",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 9.5,
+                color: isDark ? "#F8FAFC" : "#0F172A",
                 marginTop: 2,
                 wordBreak: "break-all",
               }}
@@ -252,36 +261,38 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
         {showHash && (
           <div
             style={{
-              marginTop: 10,
+              marginTop: 12,
               padding: "10px",
-              border: "1px solid #22D3EE20",
-              background: "#22D3EE06",
+              border: `1px solid ${isDark ? "#334155" : "#CBD5E1"}`,
+              background: isDark ? "#1E293B" : "#F8FAFC",
+              borderRadius: 3,
             }}
           >
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#22D3EE",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: isDark ? "#F8FAFC" : "#0F172A",
                 marginBottom: 4,
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
               }}
             >
               EVIDENCE INTEGRITY SEAL
             </div>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#5A7A94",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                color: isDark ? "#94A3B8" : "#64748B",
                 wordBreak: "break-all",
-                lineHeight: 1.6,
+                lineHeight: 1.5,
               }}
             >
               SHA-256:
               <br />
-              <span style={{ color: "#C8D8E8" }}>{realHash}</span>
+              <span style={{ color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 600 }}>{realHash}</span>
             </div>
           </div>
         )}
@@ -292,8 +303,8 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
         <div
           style={{
             padding: "12px 14px",
-            borderTop: "1px solid #1C2A38",
-            background: "#0D1117",
+            borderTop: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
+            background: isDark ? "#1E293B" : "#F8FAFC",
             flexShrink: 0,
           }}
         >
@@ -303,39 +314,42 @@ export function CaseFileOverlay({ p1Data, p3Data }: CaseFileOverlayProps) {
             style={{
               width: "100%",
               padding: "11px",
-              background: "#111822",
-              border: "1px solid #22D3EE",
-              color: "#22D3EE",
-              fontFamily: "'JetBrains Mono', monospace",
+              background: isDark ? "#F8FAFC" : "#0F172A",
+              border: "none",
+              borderRadius: 4,
+              color: isDark ? "#0F172A" : "#FFFFFF",
+              fontFamily: "ui-monospace, monospace",
               fontSize: 11,
+              fontWeight: 700,
               textTransform: "uppercase",
-              letterSpacing: "0.1em",
+              letterSpacing: "0.08em",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
+              transition: "background 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#22D3EE10";
+              (e.currentTarget as HTMLButtonElement).style.background = isDark ? "#E2E8F0" : "#1E293B";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#111822";
+              (e.currentTarget as HTMLButtonElement).style.background = isDark ? "#F8FAFC" : "#0F172A";
             }}
           >
-            <span style={{ fontSize: 14 }}>↓</span>
+            <span style={{ fontSize: 13 }}>↓</span>
             EXPORT FORENSIC REPORT
           </button>
           <div
             style={{
               marginTop: 6,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8,
-              color: "#3A5268",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 8.5,
+              color: isDark ? "#94A3B8" : "#64748B",
               textAlign: "center",
             }}
           >
-            Ready for Indian Coast Guard  ·  DG Shipping  ·  ITOPF
+            Ready for Indian Coast Guard · DG Shipping · ITOPF
           </div>
         </div>
       )}

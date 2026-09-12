@@ -70,82 +70,78 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Light mode fallback (spec mandates dark; kept minimal) */
+/* ─── Light mode (Default) ─── */
 :root {
-  --radius: 0.25rem;
-  --background: oklch(0.98 0.003 247);
-  --foreground: oklch(0.13 0.04 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.04 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.04 265);
-  --primary: oklch(0.65 0.16 199);   /* cyan */
-  --primary-foreground: oklch(0.07 0.02 255);
-  --secondary: oklch(0.94 0.01 248);
-  --secondary-foreground: oklch(0.13 0.04 265);
-  --muted: oklch(0.94 0.01 248);
-  --muted-foreground: oklch(0.52 0.05 225);
-  --accent: oklch(0.94 0.01 248);
-  --accent-foreground: oklch(0.13 0.04 265);
-  --destructive: oklch(0.57 0.22 27);
-  --destructive-foreground: oklch(0.98 0.003 247);
-  --border: oklch(0.88 0.015 256);
-  --input: oklch(0.88 0.015 256);
-  --ring: oklch(0.65 0.16 199);
-  --chart-1: oklch(0.65 0.16 199);
-  --chart-2: oklch(0.72 0.16 80);
-  --chart-3: oklch(0.57 0.22 27);
-  --chart-4: oklch(0.78 0.14 199);
-  --chart-5: oklch(0.52 0.14 199);
-  --sidebar: oklch(0.94 0.01 248);
-  --sidebar-foreground: oklch(0.13 0.04 265);
-  --sidebar-primary: oklch(0.65 0.16 199);
-  --sidebar-primary-foreground: oklch(0.07 0.02 255);
-  --sidebar-accent: oklch(0.90 0.01 248);
-  --sidebar-accent-foreground: oklch(0.13 0.04 265);
-  --sidebar-border: oklch(0.88 0.015 256);
-  --sidebar-ring: oklch(0.65 0.16 199);
+  --radius: 2px;
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #0F172A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #0F172A;
+  --chart-1: #0F172A;
+  --chart-2: #334155;
+  --chart-3: #64748B;
+  --chart-4: #94A3B8;
+  --chart-5: #DC2626;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #0F172A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #0F172A;
 }
 
-/* Dark mode — primary design target */
+/* Dark mode fallback if explicitly selected */
 .dark {
-  --radius: 0.25rem;
-
-  /* #0A0E14 */ --background: oklch(0.07 0.022 255);
-  /* #E2E8F0 */ --foreground: oklch(0.925 0.012 240);
-  /* #0D1117 */ --card: oklch(0.085 0.022 255);
-  /* #E2E8F0 */ --card-foreground: oklch(0.925 0.012 240);
-  /* #0D1117 */ --popover: oklch(0.085 0.022 255);
-  /* #E2E8F0 */ --popover-foreground: oklch(0.925 0.012 240);
-  /* #22D3EE */ --primary: oklch(0.78 0.14 199);
-  /* #0A0E14 */ --primary-foreground: oklch(0.07 0.022 255);
-  /* #111822 */ --secondary: oklch(0.11 0.028 250);
-  /* #C8D8E8 */ --secondary-foreground: oklch(0.86 0.025 228);
-  /* #111822 */ --muted: oklch(0.11 0.028 250);
-  /* #5A7A94 */ --muted-foreground: oklch(0.52 0.055 225);
-  /* #111822 */ --accent: oklch(0.13 0.03 250);
-  /* #22D3EE */ --accent-foreground: oklch(0.78 0.14 199);
-  /* #EF4444 */ --destructive: oklch(0.57 0.22 27);
-  /* #E2E8F0 */ --destructive-foreground: oklch(0.925 0.012 240);
-  /* #1C2A38 */ --border: oklch(0.20 0.042 238);
-  /* #1C2A38 */ --input: oklch(0.20 0.042 238);
-  /* #22D3EE */ --ring: oklch(0.78 0.14 199);
-
-  /* Charts reused for density/track indicators */
-  /* cyan bright */    --chart-1: oklch(0.78 0.14 199);
-  /* cyan mid */       --chart-2: oklch(0.65 0.12 199);
-  /* amber (caution)*/ --chart-3: oklch(0.72 0.16 80);
-  /* cyan dim */       --chart-4: oklch(0.50 0.09 199);
-  /* red (alert) */    --chart-5: oklch(0.57 0.22 27);
-
-  --sidebar: oklch(0.085 0.022 255);
-  --sidebar-foreground: oklch(0.925 0.012 240);
-  --sidebar-primary: oklch(0.78 0.14 199);
-  --sidebar-primary-foreground: oklch(0.07 0.022 255);
-  --sidebar-accent: oklch(0.13 0.03 250);
-  --sidebar-accent-foreground: oklch(0.78 0.14 199);
-  --sidebar-border: oklch(0.20 0.042 238);
-  --sidebar-ring: oklch(0.78 0.14 199);
+  --radius: 2px;
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --card: #1E293B;
+  --card-foreground: #F8FAFC;
+  --popover: #1E293B;
+  --popover-foreground: #F8FAFC;
+  --primary: #F8FAFC;
+  --primary-foreground: #0F172A;
+  --secondary: #334155;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #334155;
+  --accent-foreground: #F8FAFC;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #334155;
+  --input: #334155;
+  --ring: #F8FAFC;
+  --chart-1: #F8FAFC;
+  --chart-2: #CBD5E1;
+  --chart-3: #94A3B8;
+  --chart-4: #64748B;
+  --chart-5: #EF4444;
+  --sidebar: #1E293B;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #F8FAFC;
+  --sidebar-primary-foreground: #0F172A;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #334155;
+  --sidebar-ring: #F8FAFC;
 }
 
 @layer base {
@@ -157,76 +153,33 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     overflow: hidden;
-    font-family: "Inter", "Space Grotesk", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
   /* Monospace class for all data readouts */
   .font-mono {
-    font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   }
 }
 
-/* ─── Custom scrollbar — thin dark track ─── */
+/* ─── Custom scrollbar — clean minimal track ─── */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
+  width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #1C2A38;
-  border-radius: 0;
+  background: #CBD5E1;
+  border-radius: 2px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #22D3EE40;
+  background: #94A3B8;
 }
 
-/* ─── Dark Vessel Sonar Radar Pulse Animation ─── */
-@keyframes sonar-pulse {
-  0% {
-    transform: scale(0.35);
-    opacity: 0.95;
-  }
-  50% {
-    opacity: 0.70;
-  }
-  100% {
-    transform: scale(2.8);
-    opacity: 0;
-  }
-}
-
-@keyframes pulse-ring-inner {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.75;
-    transform: scale(1.15);
-  }
-}
-
-.dark-vessel-sonar-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1.5px dashed #EF4444;
-  animation: sonar-pulse 2.4s cubic-bezier(0.15, 0.5, 0.4, 1) infinite;
-  pointer-events: none;
-}
-
-.dark-vessel-pulse-core {
-  position: absolute;
-  border-radius: 50%;
-  background: #EF4444;
-  box-shadow: 0 0 6px #EF444499;
-  animation: pulse-ring-inner 1.8s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* ─── Basemap Canvas Contrast & Darkening Polish ─── */
+/* ─── Basemap Canvas Polish (Natural crisp light rendering) ─── */
 .maplibregl-canvas {
-  filter: brightness(0.78) contrast(1.22) saturate(0.8);
+  filter: none;
 }
 
 /* ─── Layer fade/slide transition ─── */
@@ -237,7 +190,7 @@
 .layer-body-visible {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition: opacity 150ms ease, transform 150ms ease;
 }
 
 /* ─── Offset MapLibre controls to clear the top header bar ─── */
@@ -251,18 +204,17 @@
   right: 12px !important;
 }
 
-/* Flat MapLibre control style — no glassmorphism */
+/* Minimal MapLibre control style — clean monochrome */
 .maplibregl-ctrl-group {
-  background: #0D1117 !important;
-  border: 1px solid #1C2A38 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
   border-radius: 2px !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
   overflow: hidden !important;
-  backdrop-filter: none !important;
 }
 
 .maplibregl-ctrl-group button {
-  border-bottom: 1px solid #1C2A38 !important;
+  border-bottom: 1px solid #E2E8F0 !important;
   background: transparent !important;
   width: 28px !important;
   height: 28px !important;
@@ -273,49 +225,49 @@
 }
 
 .maplibregl-ctrl-group button:hover {
-  background: #111822 !important;
+  background: #F1F5F9 !important;
 }
 
 .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(0.7) sepia(1) saturate(2) hue-rotate(165deg) brightness(1.1);
+  filter: none;
 }
 
-/* MapLibre popup — flat panel */
+/* MapLibre popup — clean minimal panel */
 .maplibregl-popup-content {
-  background: #0D1117 !important;
-  border: 1px solid #1C2A38 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1 !important;
   border-radius: 2px !important;
-  box-shadow: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   padding: 8px 10px !important;
-  font-family: "JetBrains Mono", monospace !important;
+  font-family: ui-monospace, monospace !important;
   font-size: 11px !important;
-  color: #C8D8E8 !important;
+  color: #0F172A !important;
 }
 
 .maplibregl-popup-tip {
-  border-top-color: #1C2A38 !important;
-  border-bottom-color: #1C2A38 !important;
+  border-top-color: #CBD5E1 !important;
+  border-bottom-color: #CBD5E1 !important;
 }
 
-/* ─── Shadcn Slider — override to flat style ─── */
+/* ─── Shadcn Slider — clean minimal style ─── */
 [data-slot="slider-track"] {
-  background: #1C2A38 !important;
-  border-radius: 0 !important;
-  height: 2px !important;
+  background: #E2E8F0 !important;
+  border-radius: 1px !important;
+  height: 3px !important;
 }
 
 [data-slot="slider-range"] {
-  background: #22D3EE !important;
-  border-radius: 0 !important;
+  background: #0F172A !important;
+  border-radius: 1px !important;
 }
 
 [data-slot="slider-thumb"] {
-  background: #0D1117 !important;
-  border: 1px solid #22D3EE !important;
-  border-radius: 0 !important;
-  width: 10px !important;
-  height: 10px !important;
-  box-shadow: none !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #0F172A !important;
+  border-radius: 50% !important;
+  width: 12px !important;
+  height: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ─── Range input (native scrubber) — flat ─── */

@@ -29,7 +29,7 @@ const ATLAS_CELL = 128; // px per icon cell in 512x256 atlas
  * - ship-teal (General Teal Traffic)
  */
 export function getMasterShipAtlasDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="256" viewBox="0 0 512 256">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="384" viewBox="0 0 512 384">
     <defs>
       <!-- Drop shadow filter for maximum vessel pop against dark water -->
       <filter id="ship-shadow" x="-30%" y="-30%" width="160%" height="160%">
@@ -238,6 +238,102 @@ export function getMasterShipAtlasDataUri(): string {
       <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#14B8A6" stroke="#CCFBF1" stroke-width="1.2" />
       <circle cx="0" cy="30" r="2.2" fill="#FFFFFF" />
     </g>
+
+    <!-- ROW 2: HIGH-VISIBILITY FORENSIC CULPRIT & SUSPECT ICONS (y = 256..384) -->
+
+    <!-- (0,256): Primary Attributed Culprit - VLCC Crude Tanker (High-Contrast Amber/Gold #F59E0B) -->
+    <g transform="translate(64,320)" filter="url(#ship-shadow)">
+      <!-- Heavy Crude Tanker Hull with Bold White Naval Outline -->
+      <path
+        d="M 0,-53 C 15,-43 25,-12 24,25 L 19,49 L -19,49 L -24,25 C -25,-12 -15,-43 0,-53 Z"
+        fill="#F59E0B"
+        stroke="#FFFFFF"
+        stroke-width="3.5"
+        stroke-linejoin="round"
+      />
+      <!-- Inset Deck -->
+      <path
+        d="M 0,-45 C 11,-36 18,-10 17,23 L 14,43 L -14,43 L -17,23 C -18,-10 -11,-36 0,-45 Z"
+        fill="#120A03"
+        stroke="#FBBF24"
+        stroke-width="1.5"
+      />
+      <!-- Keel Line -->
+      <line x1="0" y1="-41" x2="0" y2="10" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Bow Alert Chevron -->
+      <path d="M -7,-35 L 0,-43 L 7,-35" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Cargo Oil Tank Hatches / Manifold Pipes -->
+      <rect x="-9" y="-27" width="18" height="6.5" rx="1.5" fill="#FBBF24" opacity="0.95" />
+      <rect x="-9" y="-15" width="18" height="6.5" rx="1.5" fill="#FBBF24" opacity="0.95" />
+      <rect x="-9" y="-3" width="18" height="6.5" rx="1.5" fill="#FBBF24" opacity="0.95" />
+      <rect x="-9" y="9" width="18" height="6.5" rx="1.5" fill="#FBBF24" opacity="0.95" />
+      <!-- Alert Crimson Superstructure / Bridge -->
+      <rect x="-11" y="21" width="22" height="19" rx="2.5" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.8" />
+      <!-- Illuminated Wheelhouse Windows -->
+      <rect x="-8" y="24" width="16" height="4.5" rx="1" fill="#FEF08A" />
+      <!-- Navigation Radar Mast with Alert Beacon -->
+      <circle cx="0" cy="34" r="3.2" fill="#FFFFFF" stroke="#DC2626" stroke-width="1" />
+    </g>
+
+    <!-- (128,256): Primary Culprit Crimson Variant (Alert Red #EF4444) -->
+    <g transform="translate(192,320)" filter="url(#ship-shadow)">
+      <path
+        d="M 0,-53 C 15,-43 25,-12 24,25 L 19,49 L -19,49 L -24,25 C -25,-12 -15,-43 0,-53 Z"
+        fill="#EF4444"
+        stroke="#FFFFFF"
+        stroke-width="3.5"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M 0,-45 C 11,-36 18,-10 17,23 L 14,43 L -14,43 L -17,23 C -18,-10 -11,-36 0,-45 Z"
+        fill="#1A0707"
+        stroke="#FCA5A5"
+        stroke-width="1.5"
+      />
+      <line x1="0" y1="-41" x2="0" y2="10" stroke="#FCA5A5" stroke-width="2.5" stroke-linecap="round" />
+      <path d="M -7,-35 L 0,-43 L 7,-35" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <rect x="-9" y="-27" width="18" height="6.5" rx="1.5" fill="#EF4444" opacity="0.95" />
+      <rect x="-9" y="-15" width="18" height="6.5" rx="1.5" fill="#EF4444" opacity="0.95" />
+      <rect x="-9" y="-3" width="18" height="6.5" rx="1.5" fill="#EF4444" opacity="0.95" />
+      <rect x="-9" y="9" width="18" height="6.5" rx="1.5" fill="#EF4444" opacity="0.95" />
+      <rect x="-11" y="21" width="22" height="19" rx="2.5" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.8" />
+      <rect x="-8" y="24" width="16" height="4.5" rx="1" fill="#FCA5A5" />
+      <circle cx="0" cy="34" r="3.2" fill="#FFFFFF" stroke="#EF4444" stroke-width="1" />
+    </g>
+
+    <!-- (256,256): Suspect Candidate Vessel (High-Contrast Warning Amber #F59E0B) -->
+    <g transform="translate(320,320)" filter="url(#ship-shadow)">
+      <path
+        d="M 0,-52 C 14,-42 24,-12 23,24 L 18,48 L -18,48 L -23,24 C -24,-12 -14,-42 0,-52 Z"
+        fill="#F59E0B"
+        stroke="#FFFFFF"
+        stroke-width="3"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M 0,-44 C 10,-35 17,-10 16,22 L 13,42 L -13,42 L -16,22 C -17,-10 -10,-35 0,-44 Z"
+        fill="#140D04"
+        stroke="#F59E0B"
+        stroke-width="1.4"
+      />
+      <line x1="0" y1="-40" x2="0" y2="8" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" />
+      <rect x="-8" y="-20" width="16" height="6" rx="1" fill="#F59E0B" opacity="0.9" />
+      <rect x="-8" y="-6" width="16" height="6" rx="1" fill="#F59E0B" opacity="0.9" />
+      <rect x="-10" y="18" width="20" height="18" rx="2.5" fill="#F59E0B" stroke="#FFFFFF" stroke-width="1.5" />
+      <rect x="-7" y="22" width="14" height="4" rx="1" fill="#140D04" />
+      <circle cx="0" cy="30" r="2.5" fill="#FFFFFF" />
+    </g>
+
+    <!-- (384,256): Tactical Target Reticle (Cyan & Amber crosshair) -->
+    <g transform="translate(448,320)">
+      <circle cx="0" cy="0" r="44" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="8 6" opacity="0.85" />
+      <circle cx="0" cy="0" r="28" fill="none" stroke="#22D3EE" stroke-width="2" opacity="0.9" />
+      <circle cx="0" cy="0" r="6" fill="#F59E0B" />
+      <line x1="0" y1="-48" x2="0" y2="-32" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="0" y1="32" x2="0" y2="48" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="-48" y1="0" x2="-32" y2="0" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="32" y1="0" x2="48" y2="0" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" />
+    </g>
   </svg>`;
 
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -328,6 +424,42 @@ export const SHIP_ICON_MAPPING = {
   "ship-teal": {
     x: ATLAS_CELL * 3,
     y: ATLAS_CELL,
+    width: ATLAS_CELL,
+    height: ATLAS_CELL,
+    anchorX: ATLAS_CELL / 2,
+    anchorY: ATLAS_CELL / 2,
+    mask: false,
+  },
+  "ship-culprit": {
+    x: 0,
+    y: ATLAS_CELL * 2,
+    width: ATLAS_CELL,
+    height: ATLAS_CELL,
+    anchorX: ATLAS_CELL / 2,
+    anchorY: ATLAS_CELL / 2,
+    mask: false,
+  },
+  "ship-culprit-red": {
+    x: ATLAS_CELL,
+    y: ATLAS_CELL * 2,
+    width: ATLAS_CELL,
+    height: ATLAS_CELL,
+    anchorX: ATLAS_CELL / 2,
+    anchorY: ATLAS_CELL / 2,
+    mask: false,
+  },
+  "ship-suspect-amber": {
+    x: ATLAS_CELL * 2,
+    y: ATLAS_CELL * 2,
+    width: ATLAS_CELL,
+    height: ATLAS_CELL,
+    anchorX: ATLAS_CELL / 2,
+    anchorY: ATLAS_CELL / 2,
+    mask: false,
+  },
+  "target-reticle": {
+    x: ATLAS_CELL * 3,
+    y: ATLAS_CELL * 2,
     width: ATLAS_CELL,
     height: ATLAS_CELL,
     anchorX: ATLAS_CELL / 2,

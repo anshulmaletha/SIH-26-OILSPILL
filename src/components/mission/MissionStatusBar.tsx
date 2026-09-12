@@ -20,6 +20,7 @@ function formatZulu(date: Date | string | number): string {
 
 const MissionStatusBar: React.FC = () => {
   const { state, dispatch } = useMission();
+  const isDark = state.theme === 'dark';
 
   const currentStageIndex = STAGE_ORDER.indexOf(state.currentStage as MissionStage);
   const stageProgress = useMemo(() => {
@@ -45,14 +46,17 @@ const MissionStatusBar: React.FC = () => {
         right: 0,
         height: '52px',
         zIndex: 25,
-        backgroundColor: '#0D1117',
-        borderBottom: '1px solid #1C2A38',
+        backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+        borderBottom: isDark ? '1px solid #1E293B' : '1px solid #E2E8F0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingLeft: '16px',
         paddingRight: '16px',
         boxSizing: 'border-box',
+        boxShadow: isDark ? '0 1px 4px 0 rgba(0, 0, 0, 0.4)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+        color: isDark ? '#F8FAFC' : '#0F172A',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
       }}
     >
       {/* LEFT SECTION */}
@@ -62,20 +66,20 @@ const MissionStatusBar: React.FC = () => {
           style={{
             width: '28px',
             height: '28px',
-            border: '1px solid #1C2A38',
-            backgroundColor: '#111822',
+            border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
+            backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            borderRadius: '2px',
+            borderRadius: '3px',
           }}
         >
           <svg width="16" height="14" viewBox="0 0 16 14">
             <polygon
               points="8,2 14,12 2,12"
-              stroke="#22D3EE"
-              strokeWidth="1.2"
+              stroke={isDark ? '#F8FAFC' : '#0F172A'}
+              strokeWidth="1.5"
               fill="none"
             />
           </svg>
@@ -85,10 +89,10 @@ const MissionStatusBar: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           <span
             style={{
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontSize: '13px',
               fontWeight: 800,
-              color: '#E2E8F0',
+              color: isDark ? '#F8FAFC' : '#0F172A',
               lineHeight: 1,
             }}
           >
@@ -96,9 +100,9 @@ const MissionStatusBar: React.FC = () => {
           </span>
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "ui-monospace, monospace",
               fontSize: '8px',
-              color: '#3A5268',
+              color: isDark ? '#94A3B8' : '#64748B',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
               lineHeight: 1,
@@ -113,7 +117,7 @@ const MissionStatusBar: React.FC = () => {
           style={{
             width: '1px',
             height: '24px',
-            backgroundColor: '#1C2A38',
+            backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
             marginLeft: '12px',
             marginRight: '12px',
             flexShrink: 0,
@@ -124,11 +128,12 @@ const MissionStatusBar: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "ui-monospace, monospace",
               fontSize: '11px',
-              color: '#22D3EE',
+              fontWeight: 700,
+              color: isDark ? '#F8FAFC' : '#0F172A',
               textTransform: 'uppercase',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.08em',
               lineHeight: 1,
             }}
           >
@@ -138,9 +143,9 @@ const MissionStatusBar: React.FC = () => {
           <div
             style={{
               width: '120px',
-              height: '2px',
-              backgroundColor: '#1C2A38',
-              borderRadius: '1px',
+              height: '3px',
+              backgroundColor: isDark ? '#334155' : '#E2E8F0',
+              borderRadius: '2px',
               overflow: 'hidden',
             }}
           >
@@ -148,7 +153,7 @@ const MissionStatusBar: React.FC = () => {
               style={{
                 height: '100%',
                 width: `${stageProgress * 100}%`,
-                backgroundColor: '#22D3EE',
+                backgroundColor: isDark ? '#F8FAFC' : '#0F172A',
                 transition: 'width 0.3s linear',
               }}
             />
@@ -160,7 +165,7 @@ const MissionStatusBar: React.FC = () => {
           style={{
             width: '1px',
             height: '24px',
-            backgroundColor: '#1C2A38',
+            backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
             marginLeft: '8px',
             marginRight: '8px',
             flexShrink: 0,
@@ -171,9 +176,9 @@ const MissionStatusBar: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "ui-monospace, monospace",
               fontSize: '8px',
-              color: '#5A7A94',
+              color: isDark ? '#94A3B8' : '#64748B',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               lineHeight: 1,
@@ -185,11 +190,11 @@ const MissionStatusBar: React.FC = () => {
             value={state.scenario}
             onChange={(e) => dispatch({ type: 'SET_SCENARIO', scenario: e.target.value as any })}
             style={{
-              backgroundColor: '#111822',
-              color: '#22D3EE',
-              border: '1px solid #1C2A38',
-              borderRadius: '2px',
-              fontFamily: "'JetBrains Mono', monospace",
+              backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+              color: isDark ? '#F8FAFC' : '#0F172A',
+              border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
+              borderRadius: '3px',
+              fontFamily: "ui-monospace, monospace",
               fontSize: '10px',
               padding: '2px 6px',
               outline: 'none',
@@ -217,9 +222,9 @@ const MissionStatusBar: React.FC = () => {
       >
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, monospace",
             fontSize: '8px',
-            color: '#3A5268',
+            color: isDark ? '#94A3B8' : '#64748B',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
             lineHeight: 1,
@@ -229,9 +234,10 @@ const MissionStatusBar: React.FC = () => {
         </span>
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, monospace",
             fontSize: '12px',
-            color: '#C8D8E8',
+            fontWeight: 600,
+            color: isDark ? '#F8FAFC' : '#0F172A',
             lineHeight: 1,
             letterSpacing: '0.05em',
           }}
@@ -242,6 +248,86 @@ const MissionStatusBar: React.FC = () => {
 
       {/* RIGHT SECTION */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        {/* Search Vessel trigger */}
+        <button
+          onClick={() => dispatch({ type: 'SET_SEARCH_OPEN', open: true })}
+          style={{
+            height: '28px',
+            paddingLeft: '10px',
+            paddingRight: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontFamily: "ui-monospace, monospace",
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderRadius: '3px',
+            backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+            border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
+            color: isDark ? '#F8FAFC' : '#0F172A',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          title="Search Vessel by ID / Name (Ctrl+K)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span>SEARCH VESSEL</span>
+          <span
+            style={{
+              fontSize: '9px',
+              padding: '1px 5px',
+              borderRadius: '2px',
+              backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+              border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`,
+              color: isDark ? '#94A3B8' : '#64748B',
+            }}
+          >
+            ⌘K
+          </span>
+        </button>
+
+        {/* Theme toggle button */}
+        <button
+          onClick={() => dispatch({ type: 'TOGGLE_THEME' })}
+          style={{
+            height: '28px',
+            paddingLeft: '8px',
+            paddingRight: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontFamily: "ui-monospace, monospace",
+            fontSize: '10px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderRadius: '3px',
+            backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+            border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
+            color: isDark ? '#F8FAFC' : '#0F172A',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          <span>{isDark ? '☾ DARK' : '☀ LIGHT'}</span>
+        </button>
+
+        {/* Separator */}
+        <div
+          style={{
+            width: '1px',
+            height: '24px',
+            backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+            marginLeft: '2px',
+            marginRight: '2px',
+            flexShrink: 0,
+          }}
+        />
+
         {/* Speed buttons */}
         {SPEEDS.map((s) => {
           const isActive = state.playbackSpeed === s;
@@ -255,13 +341,14 @@ const MissionStatusBar: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "ui-monospace, monospace",
                 fontSize: '10px',
+                fontWeight: isActive ? 700 : 500,
                 cursor: 'pointer',
-                borderRadius: '2px',
-                backgroundColor: isActive ? 'rgba(34,211,238,0.08)' : 'transparent',
-                border: isActive ? '1px solid #22D3EE' : '1px solid #1C2A38',
-                color: isActive ? '#22D3EE' : '#3A5268',
+                borderRadius: '3px',
+                backgroundColor: isActive ? (isDark ? '#F8FAFC' : '#0F172A') : (isDark ? '#0F172A' : '#FFFFFF'),
+                border: isActive ? (isDark ? '1px solid #F8FAFC' : '1px solid #0F172A') : (isDark ? '1px solid #334155' : '1px solid #CBD5E1'),
+                color: isActive ? (isDark ? '#0F172A' : '#FFFFFF') : (isDark ? '#94A3B8' : '#64748B'),
                 transition: 'all 0.15s ease',
                 padding: 0,
               }}
@@ -276,18 +363,19 @@ const MissionStatusBar: React.FC = () => {
           onClick={() => dispatch({ type: 'TOGGLE_AUTOPLAY' })}
           style={{
             height: '28px',
-            paddingLeft: '8px',
-            paddingRight: '8px',
+            paddingLeft: '10px',
+            paddingRight: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '9px',
+            fontFamily: "ui-monospace, monospace",
+            fontSize: '10px',
+            fontWeight: 600,
             cursor: 'pointer',
-            borderRadius: '2px',
-            backgroundColor: state.autoPlay ? 'rgba(34,211,238,0.08)' : 'transparent',
-            border: state.autoPlay ? '1px solid #22D3EE' : '1px solid #1C2A38',
-            color: state.autoPlay ? '#22D3EE' : '#5A7A94',
+            borderRadius: '3px',
+            backgroundColor: state.autoPlay ? (isDark ? '#F8FAFC' : '#0F172A') : (isDark ? '#0F172A' : '#FFFFFF'),
+            border: state.autoPlay ? (isDark ? '1px solid #F8FAFC' : '1px solid #0F172A') : (isDark ? '1px solid #334155' : '1px solid #CBD5E1'),
+            color: state.autoPlay ? (isDark ? '#0F172A' : '#FFFFFF') : (isDark ? '#94A3B8' : '#475569'),
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
           }}
@@ -300,7 +388,7 @@ const MissionStatusBar: React.FC = () => {
           style={{
             width: '1px',
             height: '24px',
-            backgroundColor: '#1C2A38',
+            backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
             marginLeft: '2px',
             marginRight: '2px',
             flexShrink: 0,
@@ -317,16 +405,16 @@ const MissionStatusBar: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, monospace",
             fontSize: '10px',
             cursor: isPrevDisabled ? 'not-allowed' : 'pointer',
-            borderRadius: '2px',
-            backgroundColor: '#111822',
-            border: '1px solid #1C2A38',
-            color: isPrevDisabled ? '#1C2A38' : '#5A7A94',
+            borderRadius: '3px',
+            backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+            border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
+            color: isPrevDisabled ? (isDark ? '#334155' : '#CBD5E1') : (isDark ? '#F8FAFC' : '#0F172A'),
             transition: 'all 0.15s ease',
             padding: 0,
-            opacity: isPrevDisabled ? 0.4 : 1,
+            opacity: isPrevDisabled ? 0.35 : 1,
           }}
         >
           ◀
@@ -342,16 +430,16 @@ const MissionStatusBar: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "ui-monospace, monospace",
             fontSize: '10px',
             cursor: isNextDisabled ? 'not-allowed' : 'pointer',
-            borderRadius: '2px',
-            backgroundColor: '#111822',
-            border: isNextDisabled ? '1px solid #1C2A38' : '1px solid #22D3EE',
-            color: isNextDisabled ? '#1C2A38' : '#22D3EE',
+            borderRadius: '3px',
+            backgroundColor: isNextDisabled ? (isDark ? '#0F172A' : '#FFFFFF') : (isDark ? '#F8FAFC' : '#0F172A'),
+            border: isNextDisabled ? (isDark ? '1px solid #334155' : '1px solid #CBD5E1') : (isDark ? '1px solid #F8FAFC' : '1px solid #0F172A'),
+            color: isNextDisabled ? (isDark ? '#334155' : '#CBD5E1') : (isDark ? '#0F172A' : '#FFFFFF'),
             transition: 'all 0.15s ease',
             padding: 0,
-            opacity: isNextDisabled ? 0.4 : 1,
+            opacity: isNextDisabled ? 0.35 : 1,
           }}
         >
           ▶

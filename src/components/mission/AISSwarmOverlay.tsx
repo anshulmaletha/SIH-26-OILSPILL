@@ -63,6 +63,7 @@ const AISSwarmOverlay: React.FC = () => {
 
   if (state.currentStage !== ('AIS_SWARM' as MissionStage)) return null;
 
+  const isDark = state.theme === "dark";
   const showBreakdown = state.stageElapsedMs > 1800;
   const showStatus = state.stageElapsedMs > 3000;
 
@@ -70,30 +71,35 @@ const AISSwarmOverlay: React.FC = () => {
     <div
       style={{
         position: 'absolute',
-        top: '80px',
-        left: '12px',
+        top: '76px',
+        left: '14px',
         zIndex: 15,
-        width: '300px',
-        backgroundColor: '#0D1117',
-        border: '1px solid #1C2A38',
-        borderRadius: '2px',
+        width: '310px',
+        backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+        border: isDark ? '1px solid #1E293B' : '1px solid #E2E8F0',
+        borderTop: isDark ? '3px solid #F8FAFC' : '3px solid #0F172A',
+        borderRadius: '4px',
+        boxShadow: isDark ? '0 4px 14px rgba(0, 0, 0, 0.4)' : '0 4px 12px rgba(0, 0, 0, 0.08)',
         overflow: 'hidden',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: '10px 12px',
-          borderBottom: '1px solid #1C2A38',
+          padding: '10px 14px',
+          borderBottom: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+          backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
         }}
       >
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '9px',
-            color: '#22D3EE',
+            fontFamily: "ui-monospace, monospace",
+            fontSize: '9.5px',
+            fontWeight: 700,
+            color: isDark ? '#F8FAFC' : '#0F172A',
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.08em',
             lineHeight: 1,
             marginBottom: '3px',
           }}
@@ -102,9 +108,9 @@ const AISSwarmOverlay: React.FC = () => {
         </div>
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '8px',
-            color: '#5A7A94',
+            fontFamily: "ui-monospace, monospace",
+            fontSize: '8.5px',
+            color: isDark ? '#94A3B8' : '#64748B',
             lineHeight: 1,
           }}
         >
@@ -113,15 +119,15 @@ const AISSwarmOverlay: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '10px 12px' }}>
+      <div style={{ padding: '12px 14px' }}>
         {/* Rolling records counter */}
-        <div style={{ marginBottom: '8px' }}>
+        <div style={{ marginBottom: '10px' }}>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '32px',
+              fontFamily: "ui-monospace, monospace",
+              fontSize: '34px',
               fontWeight: 700,
-              color: '#E2E8F0',
+              color: isDark ? '#F8FAFC' : '#0F172A',
               lineHeight: 1,
               letterSpacing: '-0.02em',
             }}
@@ -130,11 +136,11 @@ const AISSwarmOverlay: React.FC = () => {
           </div>
           <div
             style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '8px',
-              color: '#5A7A94',
+              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontSize: '8.5px',
+              color: isDark ? '#94A3B8' : '#64748B',
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.06em',
               marginTop: '4px',
               lineHeight: 1.3,
             }}
@@ -145,7 +151,7 @@ const AISSwarmOverlay: React.FC = () => {
 
         {/* Query metrics breakdown */}
         {showBreakdown && (
-          <div style={{ marginTop: '8px' }}>
+          <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {AIS_QUERY_METRICS.map((m, i) => (
               <div
                 key={m.label}
@@ -155,23 +161,24 @@ const AISSwarmOverlay: React.FC = () => {
                   alignItems: 'center',
                   paddingTop: '3px',
                   paddingBottom: '3px',
-                  borderBottom: i < AIS_QUERY_METRICS.length - 1 ? '1px solid #111822' : 'none',
+                  borderBottom: i < AIS_QUERY_METRICS.length - 1 ? (isDark ? '1px solid #1E293B' : '1px solid #F1F5F9') : 'none',
                 }}
               >
                 <span
                   style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '9px',
-                    color: '#5A7A94',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    fontSize: '9.5px',
+                    color: isDark ? '#94A3B8' : '#64748B',
                   }}
                 >
                   {m.label}
                 </span>
                 <span
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '9px',
-                    color: '#C8D8E8',
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    color: isDark ? '#F8FAFC' : '#0F172A',
                   }}
                 >
                   {m.value}
@@ -184,15 +191,15 @@ const AISSwarmOverlay: React.FC = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                paddingTop: '3px',
-                paddingBottom: '3px',
+                paddingTop: '4px',
+                paddingBottom: '2px',
               }}
             >
               <span
                 style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '9px',
-                  color: '#EF4444',
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontSize: '9.5px',
+                  color: '#DC2626',
                   fontWeight: 600,
                 }}
               >
@@ -200,9 +207,9 @@ const AISSwarmOverlay: React.FC = () => {
               </span>
               <span
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '10px',
-                  color: '#EF4444',
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: '11px',
+                  color: '#DC2626',
                   fontWeight: 700,
                 }}
               >
@@ -216,21 +223,22 @@ const AISSwarmOverlay: React.FC = () => {
         {showStatus && (
           <div
             style={{
-              backgroundColor: 'rgba(34,211,238,0.03)',
-              border: '1px solid rgba(34,211,238,0.13)',
+              backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+              border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
               padding: '6px 10px',
-              marginTop: '8px',
-              borderRadius: '2px',
+              marginTop: '10px',
+              borderRadius: '3px',
             }}
           >
             <span
               className="ais-dots"
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: '8px',
-                color: '#22D3EE',
+                fontFamily: "ui-monospace, monospace",
+                fontSize: '8.5px',
+                fontWeight: 600,
+                color: isDark ? '#F8FAFC' : '#0F172A',
                 textTransform: 'uppercase',
-                letterSpacing: '0.08em',
+                letterSpacing: '0.06em',
               }}
             >
               H3 SPATIAL-TEMPORAL HASH LOOKUP READY

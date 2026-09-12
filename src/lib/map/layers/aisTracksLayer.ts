@@ -163,16 +163,29 @@ export function createAisTrackLayers({
     },
   });
 
-  // ── 3. Normal AIS Vessels: Subtle Clean Blue Dots (ScatterplotLayer) ──────
+  // Separate suspect candidate vessels from normal background dots
+  const candidatePositions = aisPositions.filter(
+    (p) =>
+      p.vessel.isCandidate ||
+      p.vessel.vesselId === primarySuspectVesselId ||
+      p.vessel.mmsi === "419000101"
+  );
+  const normalPositions = aisPositions.filter(
+    (p) =>
+      !p.vessel.isCandidate &&
+      p.vessel.vesselId !== primarySuspectVesselId &&
+      p.vessel.mmsi !== "419000101"
+  );
+
+  // ── 3. Normal AIS Vessels: Subtle Clean Dots (ScatterplotLayer) ──────────
   const aisDots = new ScatterplotLayer<ActiveVesselPosition>({
     id: `${LAYER_IDS.aisTracks}-dots`,
     visible,
-    data: aisPositions,
+    data: normalPositions,
     getPosition: (d) => d.currentPosition,
     getRadius: (d) => {
       const isThisSelected = d.vessel.vesselId === selectedTrackId;
       if (isThisSelected) return 6.5;
-      if (d.vessel.isCandidate) return 5.0;
       return 4.0;
     },
     radiusUnits: "pixels",
@@ -181,7 +194,6 @@ export function createAisTrackLayers({
     getFillColor: (d) => {
       const isThisSelected = d.vessel.vesselId === selectedTrackId;
       if (isThisSelected) return [255, 255, 255, 255];
-      if (d.vessel.isCandidate) return [245, 158, 11, 230];
       const typeLower = (d.vessel.vesselType || "").toLowerCase();
       if (typeLower.includes("tanker")) return [56, 189, 248, 205];
       if (typeLower.includes("bulk")) return [20, 184, 166, 205];
@@ -230,7 +242,87 @@ export function createAisTrackLayers({
     },
   });
 
-  // ── 3. Suspect halo ring (IconLayer) — subtle ring for primary suspect ──────
+  // ── 4. Suspect Candidate Vessels: Prominent Top-Down Ship Icons (IconLayer) ──
+  const shipIconAtlas = getMasterShipAtlasDataUri();
+
+  const candidateShipLayer = new IconLayer<ActiveVesselPosition>({
+    id: `${LAYER_IDS.aisTracks}-candidate-ships`,
+    visible,
+    data: candidatePositions,
+    getPosition: (d) => d.currentPosition,
+    getIcon: (d) =>
+      d.vessel.vesselId === primarySuspectVesselId || d.vessel.mmsi === "419000101"
+        ? "ship-culprit"
+        : "ship-amber",
+    getSize: (d) => {
+      const isPrimary =
+        d.vessel.vesselId === primarySuspectVesselId || d.vessel.mmsi === "419000101";
+      const isThisSelected = d.vessel.vesselId === selectedTrackId;
+      if (isPrimary) return isThisSelected ? SHIP_ICON_SIZE * 1.7 : SHIP_ICON_SIZE * 1.5;
+      return isThisSelected ? SHIP_ICON_SIZE * 1.4 : SHIP_ICON_SIZE * 1.25;
+    },
+    getAngle: (d) => -(d.heading ?? 0),
+    iconAtlas: shipIconAtlas,
+    iconMapping: SHIP_ICON_MAPPING,
+    sizeUnits: "pixels",
+    pickable: true,
+    updateTriggers: {
+      getPosition: [candidatePositions],
+      getAngle: [candidatePositions],
+      getSize: [selectedTrackId, primarySuspectVesselId],
+    },
+    onHover: (info) => {
+      if (!onHover) return;
+      if (!info.object) { onHover(null); return; }
+      const p = info.object as ActiveVesselPosition;
+      const isPrimary =
+        p.vessel.vesselId === primarySuspectVesselId || p.vessel.mmsi === "419000101";
+      onHover({
+        x: info.x, y: info.y,
+        type: isPrimary ? "candidate" : "vessel",
+        title: isPrimary ? `⚠ PRIMARY CULPRIT: ${p.vessel.vesselName}` : p.vessel.vesselName,
+        items: [
+          { label: "MMSI",    value: p.vessel.mmsi || "—" },
+          { label: "Status",  value: isPrimary ? "ATTRIBUTED CULPRIT (94.2%)" : "SUSPECT CANDIDATE" },
+          { label: "Type",    value: p.vessel.vesselType || "Crude Oil Tanker" },
+          { label: "Speed",   value: `${p.speedKnots.toFixed(1)} kn (Anomaly Drop)` },
+          { label: "Heading", value: `${p.heading.toFixed(0)}°` },
+          { label: "Coord",   value: `${p.currentPosition[1].toFixed(4)}°N, ${p.currentPosition[0].toFixed(4)}°E` },
+        ],
+        vesselData: p.vessel,
+      });
+    },
+    onClick: (info) => {
+      if (info.object && onSelectVessel) onSelectVessel((info.object as ActiveVesselPosition).vessel);
+    },
+  });
+
+  // ── 5. Candidate Target Reticle Rings (ScatterplotLayer) ───────────────────
+  const candidateReticleLayer = new ScatterplotLayer<ActiveVesselPosition>({
+    id: `${LAYER_IDS.aisTracks}-candidate-reticles`,
+    visible,
+    data: candidatePositions,
+    getPosition: (d) => d.currentPosition,
+    getRadius: (d) =>
+      d.vessel.vesselId === primarySuspectVesselId || d.vessel.mmsi === "419000101" ? 1100 : 750,
+    radiusUnits: "meters",
+    radiusMinPixels: 14,
+    stroked: true,
+    filled: false,
+    lineWidthMinPixels: 2,
+    getLineColor: (d) =>
+      d.vessel.vesselId === primarySuspectVesselId || d.vessel.mmsi === "419000101"
+        ? [245, 158, 11, 240]
+        : [245, 158, 11, 190],
+    pickable: false,
+    updateTriggers: {
+      getPosition: [candidatePositions],
+      getRadius: [primarySuspectVesselId],
+      getLineColor: [primarySuspectVesselId],
+    },
+  });
+
+  // ── 6. Suspect halo ring (IconLayer) — subtle ring for primary suspect ──────
   const haloLayers: IconLayer<ActiveVesselPosition>[] = [];
   if (primarySuspectVesselId) {
     const suspectPos = aisPositions.filter((p) => p.vessel.vesselId === primarySuspectVesselId);
@@ -244,7 +336,7 @@ export function createAisTrackLayers({
           getPosition: (d) => d.currentPosition,
           getIcon: () => "halo",
           getSize: () => SHIP_ICON_SIZE * 2.5,
-          getColor: () => [34, 211, 238, 100] as [number, number, number, number],
+          getColor: () => [245, 158, 11, 140] as [number, number, number, number],
           iconAtlas: haloAtlas,
           iconMapping: HALO_ICON_MAPPING,
           sizeUnits: "pixels",
@@ -255,8 +347,7 @@ export function createAisTrackLayers({
     }
   }
 
-  // ── 4. Dark vessel marker (IconLayer) — red ship hull silhouette rotated to heading ─────
-  const shipIconAtlas = getMasterShipAtlasDataUri();
+  // ── 7. Dark vessel marker (IconLayer) — red ship hull silhouette rotated to heading ─────
   const darkVesselLayer = new IconLayer<ActiveVesselPosition>({
     id: `${LAYER_IDS.aisTracks}-dark-vessel`,
     visible,
@@ -292,5 +383,13 @@ export function createAisTrackLayers({
     },
   });
 
-  return [tracks, motionTrailLayer, ...haloLayers, aisDots, darkVesselLayer];
+  return [
+    tracks,
+    motionTrailLayer,
+    ...haloLayers,
+    aisDots,
+    candidateReticleLayer,
+    candidateShipLayer,
+    darkVesselLayer,
+  ];
 }

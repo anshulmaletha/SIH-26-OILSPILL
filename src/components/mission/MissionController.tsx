@@ -49,6 +49,8 @@ import { ContainmentRoom } from "./ContainmentRoom";
 import { CaseFileOverlay } from "./CaseFileOverlay";
 import TelemetryTerminal from "./TelemetryTerminal";
 import MissionStatusBar from "./MissionStatusBar";
+import VesselSearchModal from "./VesselSearchModal";
+import type { SearchableVessel } from "@/lib/mission/vesselSearch";
 
 const MapView = lazy(() => import("@/components/map/MapView"));
 
@@ -128,23 +130,23 @@ function getLayerVisibility(stage: MissionStage): Record<LayerId, boolean> {
 
   switch (stage) {
     case "STANDBY":
-      return { ...base, "slick-polygon": false, "sar-raster": false, "ais-tracks": false, "h3-corridor": false };
+      return { ...base, "slick-polygon": false, "sar-raster": false, "ais-tracks": false, "h3-corridor": true };
     case "SAR_ACQUISITION":
-      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": false };
+      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": true };
     case "VALIDATION_AUDIT":
-      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": false };
+      return { ...base, "slick-polygon": true, "sar-raster": true, "ais-tracks": false, "h3-corridor": true };
     case "AIS_SWARM":
-      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": false };
+      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
     case "BACKTRACK_CORRIDOR":
       return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
     case "CULPRIT_LOCK":
       return { ...base, "slick-polygon": false, "sar-raster": false, "ais-tracks": true, "h3-corridor": true };
     case "CONTAINMENT_ROOM":
-      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": false, "h3-corridor": false };
+      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": false, "h3-corridor": true };
     case "CASE_FILE":
-      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": false, "h3-corridor": false };
+      return { ...base, "slick-polygon": true, "sar-raster": false, "ais-tracks": false, "h3-corridor": true };
     default:
-      return base;
+      return { ...base, "h3-corridor": true };
   }
 }
 
@@ -217,27 +219,7 @@ function MissionControllerInner() {
     };
   }, [state.scenario]);
 
-  // Trigger camera flyTo on stage change
-  useEffect(() => {
-    if (prevStageRef.current === currentStage) return;
-    prevStageRef.current = currentStage;
-
-    const cam = STAGE_CAMERAS[currentStage];
-    if (!cam || !mapRef.current) return;
-
-    const tid = setTimeout(() => {
-      mapRef.current?.flyTo({
-        center: cam.center,
-        zoom: cam.zoom,
-        pitch: cam.pitch,
-        bearing: cam.bearing ?? 0,
-        duration: cam.duration,
-        essential: true,
-      });
-    }, 200);
-
-    return () => clearTimeout(tid);
-  }, [currentStage]);
+  // Camera is intentionally kept still across all stage transitions (no flyTo / camera jumps)
 
   // Derive map display options from current stage
   const visibility = getLayerVisibility(currentStage);
@@ -266,39 +248,48 @@ function MissionControllerInner() {
   const swarmPhase =
     currentStage === "BACKTRACK_CORRIDOR" ? "backtrack" : "swarm";
 
-  // Relative hour for the map
+  // Relative hour for the map: continuously winds from 0 to -24h during backtracking
+  const backtrackProgress = Math.min(1, state.stageElapsedMs / 5000);
   const relativeHour =
     currentStage === "BACKTRACK_CORRIDOR"
-      ? Math.round(-12 * Math.min(1, state.stageElapsedMs / 5000))
+      ? -24 * backtrackProgress
       : currentStage === "CULPRIT_LOCK"
-        ? -9
-        : 0;
+        ? -24
+        : currentStage === "CONTAINMENT_ROOM" || currentStage === "CASE_FILE"
+          ? -24
+          : 0;
 
-  // Map ref callback so we can issue flyTo
+  // Map ref callback — camera remains still
   const handleMapReady = useCallback((map: MapLibreMap) => {
     mapRef.current = map;
-    const cam = STAGE_CAMERAS[currentStage] ?? STAGE_CAMERAS.STANDBY!;
-    map.flyTo({
-      center: cam.center,
-      zoom: cam.zoom,
-      pitch: cam.pitch,
-      bearing: cam.bearing ?? 0,
-      duration: cam.duration,
-      essential: true,
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Vessel search selection: select vessel and smoothly pan still camera to position
+  const handleSearchSelectVessel = useCallback(
+    (item: SearchableVessel) => {
+      dispatch({ type: "SELECT_VESSEL", vessel: item.raw });
+      if (mapRef.current && item.position) {
+        mapRef.current.easeTo({
+          center: item.position,
+          zoom: Math.max(mapRef.current.getZoom(), 11),
+          duration: 1000,
+        });
+      }
+    },
+    [dispatch]
+  );
 
   return (
     <div
-      className="dark"
+      className={`h-screen w-screen overflow-hidden relative select-none ${state.theme === "dark" ? "dark" : "light"}`}
       style={{
         position: "relative",
         height: "100vh",
         width: "100vw",
         overflow: "hidden",
         userSelect: "none",
-        background: "#05070A",
-        color: "#C8D8E8",
+        background: state.theme === "dark" ? "#0F172A" : "#F8FAFC",
+        color: state.theme === "dark" ? "#F8FAFC" : "#0F172A",
       }}
     >
       <h1 className="sr-only">SIH 26143 — Maritime Situation Dashboard</h1>
@@ -321,12 +312,14 @@ function MissionControllerInner() {
             relativeHour={relativeHour}
             sarOpacity={sarOpacity}
             selectedTrackId={selectedTrackId}
-            selectedTrackColor={[34, 211, 238]}
+            selectedTrackColor={state.theme === "dark" ? [241, 245, 249] : [15, 23, 42]}
             followTrack={false}
-            theme="dark"
+            theme={state.theme}
             primarySuspectVesselId={primarySuspect}
-            onSelectVessel={() => {}}
+            selectedVessel={state.selectedVessel}
+            onSelectVessel={(v) => dispatch({ type: "SELECT_VESSEL", vessel: v })}
             missionStage={currentStage}
+            stageElapsedMs={state.stageElapsedMs}
             swarmVessels={swarmVessels}
             swarmPhase={swarmPhase}
             onMapReady={handleMapReady}
@@ -345,6 +338,13 @@ function MissionControllerInner() {
 
         {/* ── Telemetry terminal (always visible after initiation) ── */}
         <TelemetryTerminal />
+
+        {/* ── Vessel Search Modal (Cmd/Ctrl + K or Header Trigger) ── */}
+        <VesselSearchModal
+          swarmVessels={swarmVessels}
+          p5Tracks={p5Data.tracks}
+          onSelectVessel={handleSearchSelectVessel}
+        />
       </ClientOnly>
     </div>
   );
@@ -359,10 +359,10 @@ function MapLoadFallback() {
         width: "100%",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "ui-monospace, monospace",
         fontSize: "11px",
-        color: "#3A5268",
-        background: "#05070A",
+        color: "#64748B",
+        background: "#F8FAFC",
       }}
     >
       Initializing geospatial renderer…

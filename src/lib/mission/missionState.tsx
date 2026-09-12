@@ -65,6 +65,7 @@ export const STAGE_LABELS: Record<MissionStage, string> = {
 // ─── State & Actions ─────────────────────────────────────────────────────────
 
 export type MissionScenario = "active" | "rejected_lookalike" | "no_candidates";
+export type ThemeMode = "light" | "dark";
 
 export interface MissionState {
   currentStage: MissionStage;
@@ -78,6 +79,12 @@ export interface MissionState {
   initiated: boolean;
   /** Active demonstration scenario */
   scenario: MissionScenario;
+  /** UI & basemap theme mode (default: "light") */
+  theme: ThemeMode;
+  /** Currently selected vessel for inspection */
+  selectedVessel: any | null;
+  /** Whether the vessel search tool modal is open */
+  isSearchOpen: boolean;
 }
 
 export type MissionAction =
@@ -88,6 +95,11 @@ export type MissionAction =
   | { type: "TOGGLE_AUTOPLAY" }
   | { type: "SET_SPEED"; speed: 1 | 2 | 4 }
   | { type: "SET_SCENARIO"; scenario: MissionScenario }
+  | { type: "TOGGLE_THEME" }
+  | { type: "SET_THEME"; theme: ThemeMode }
+  | { type: "SELECT_VESSEL"; vessel: any | null }
+  | { type: "CLEAR_SELECTED_VESSEL" }
+  | { type: "SET_SEARCH_OPEN"; open: boolean }
   | { type: "TICK"; deltaMs: number };
 
 const MISSION_START_ISO = "2026-05-15T06:00:00Z";
@@ -123,6 +135,36 @@ function reducer(state: MissionState, action: MissionAction): MissionState {
         ...state,
         scenario: action.scenario,
         stageElapsedMs: 0,
+      };
+
+    case "TOGGLE_THEME":
+      return {
+        ...state,
+        theme: state.theme === "light" ? "dark" : "light",
+      };
+
+    case "SET_THEME":
+      return {
+        ...state,
+        theme: action.theme,
+      };
+
+    case "SELECT_VESSEL":
+      return {
+        ...state,
+        selectedVessel: action.vessel,
+      };
+
+    case "CLEAR_SELECTED_VESSEL":
+      return {
+        ...state,
+        selectedVessel: null,
+      };
+
+    case "SET_SEARCH_OPEN":
+      return {
+        ...state,
+        isSearchOpen: action.open,
       };
 
     case "NEXT_STAGE": {
@@ -205,7 +247,21 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     simulatedTime: MISSION_START_ISO,
     initiated: false,
     scenario: "active",
+    theme: "light",
+    selectedVessel: null,
+    isSearchOpen: false,
   });
+
+  // Sync document root class with selected theme
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (state.theme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  }, [state.theme]);
 
   // Tick loop: 16ms intervals (~60fps)
   const lastTickRef = useRef<number | null>(null);

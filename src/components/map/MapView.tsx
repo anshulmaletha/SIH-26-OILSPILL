@@ -7,7 +7,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { ScatterplotLayer, PathLayer, IconLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, PathLayer, IconLayer, TextLayer } from "@deck.gl/layers";
 
 import { INITIAL_VIEW_STATE, type LayerId, BASEMAP_STYLES, type ThemeMode } from "@/lib/map/config";
 import { buildLayers } from "@/lib/map/layers";
@@ -39,9 +39,13 @@ export interface MapViewProps {
   followTrack?: boolean | undefined;
   theme?: ThemeMode | undefined;
   primarySuspectVesselId?: string | undefined;
-  onSelectVessel?: ((vessel: VesselTrack) => void) | undefined;
+  onSelectVessel?: ((vessel: any) => void) | undefined;
+  /** Currently selected vessel (controlled) */
+  selectedVessel?: SwarmVessel | VesselTrack | any | null;
   /** Current mission stage — controls swarm layer visibility */
   missionStage?: MissionStage | undefined;
+  /** Elapsed ms in current mission stage for animations */
+  stageElapsedMs?: number | undefined;
   /** Synthetic swarm vessels for phases 3 & 4 */
   swarmVessels?: SwarmVessel[] | undefined;
   /** Which color scheme to use for swarm vessels */
@@ -62,12 +66,14 @@ export default function MapView({
   relativeHour = 0,
   sarOpacity = 0.55,
   selectedTrackId = "all",
-  selectedTrackColor = [34, 211, 238],
+  selectedTrackColor = [15, 23, 42],
   followTrack = false,
-  theme = "dark",
+  theme = "light",
   primarySuspectVesselId,
   onSelectVessel,
+  selectedVessel: propsSelectedVessel,
   missionStage,
+  stageElapsedMs = 0,
   swarmVessels = [],
   swarmPhase = "swarm",
   onMapReady,
@@ -86,19 +92,16 @@ export default function MapView({
     ringK: number;
   } | null>(null);
   const [hexScreenPos, setHexScreenPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedVessel, setSelectedVessel] = useState<SwarmVessel | VesselTrack | null>(null);
+  const [internalSelectedVessel, setInternalSelectedVessel] = useState<SwarmVessel | VesselTrack | null>(null);
 
-  const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.dark;
+  const selectedVessel = propsSelectedVessel !== undefined ? propsSelectedVessel : internalSelectedVessel;
+  const styleUrl = BASEMAP_STYLES[theme] ?? BASEMAP_STYLES.light;
 
   const handleSelectVessel = useCallback(
     (vessel: SwarmVessel | VesselTrack | any | null) => {
-      if (!vessel) {
-        setSelectedVessel(null);
-        return;
-      }
-      setSelectedVessel(vessel);
-      if ("vesselId" in vessel && onSelectVessel) {
-        onSelectVessel(vessel as VesselTrack);
+      setInternalSelectedVessel(vessel);
+      if (onSelectVessel) {
+        onSelectVessel(vessel);
       }
     },
     [onSelectVessel]
@@ -197,6 +200,9 @@ export default function MapView({
       selectedTrackColor,
       followTrack,
       primarySuspectVesselId,
+      theme,
+      missionStage,
+      stageElapsedMs,
       onHover: (info) => setTooltip(info),
       onSelectVessel: (vessel) => handleSelectVessel(vessel),
       onClickHex: (cell, coord) => {
@@ -210,13 +216,51 @@ export default function MapView({
       },
     });
 
-    const extraLayers: (ScatterplotLayer | PathLayer | IconLayer<SwarmVessel>)[] = [];
+    const extraLayers: (ScatterplotLayer | PathLayer | IconLayer<SwarmVessel> | TextLayer<any>)[] = [];
 
-    // Separate normal vessels (rendered as subtle blue dots) from dark vessels (ship-shaped icons)
-    const normalVessels = visibleSwarmVessels.filter((d) => !d.isDarkVessel);
+    const isSuspectStage =
+      missionStage === "BACKTRACK_CORRIDOR" ||
+      missionStage === "CULPRIT_LOCK" ||
+      missionStage === "CONTAINMENT_ROOM" ||
+      missionStage === "CASE_FILE";
+
+    // Suspect candidate vessels (e.g. cand-001 / MT IND_TANKER_412, cand-005, cand-006, etc.)
+    const candidateSuspectVessels = visibleSwarmVessels.filter(
+      (d) =>
+        !d.isDarkVessel &&
+        (d.isCandidate ||
+          d.id === "cand-001" ||
+          d.mmsi === "419000101" ||
+          d.id === primarySuspectVesselId ||
+          d.name?.includes("IND_TANKER_412") ||
+          d.suspicionLevel === "high" ||
+          d.suspicionLevel === "moderate")
+    );
+
+    // Primary culprit vessel (cand-001 / MT IND_TANKER_412)
+    const primaryCulprit =
+      candidateSuspectVessels.find(
+        (d) =>
+          d.id === primarySuspectVesselId ||
+          d.id === "cand-001" ||
+          d.mmsi === "419000101" ||
+          d.name?.includes("IND_TANKER_412")
+      ) || candidateSuspectVessels[0];
+
+    const otherCandidates = candidateSuspectVessels.filter(
+      (d) => d.id !== primaryCulprit?.id
+    );
+
     const darkVesselsInSwarm = visibleSwarmVessels.filter((d) => d.isDarkVessel);
 
-    // 1. Normal vessel dots (ScatterplotLayer) - small, clean, subtle blue dots
+    // Normal background traffic: during suspect stages, candidate vessels are NOT small dots (rendered as prominent ship icons)
+    const normalVessels = visibleSwarmVessels.filter(
+      (d) =>
+        !d.isDarkVessel &&
+        (!isSuspectStage || !candidateSuspectVessels.some((c) => c.id === d.id))
+    );
+
+    // 1. Normal vessel dots (ScatterplotLayer) - small, clean, subtle dots
     if (normalVessels.length > 0) {
       const normalDotsLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-swarm-dots",
@@ -239,23 +283,31 @@ export default function MapView({
             selectedVessel &&
             (("id" in selectedVessel && selectedVessel.id === d.id) ||
               ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
-          if (isSelected) return [255, 255, 255, 255];
-          if (d.isCandidate || d.suspicionLevel === "moderate") return [245, 158, 11, 230];
-          if (swarmPhase === "backtrack" && !d.isCandidate) return [90, 122, 148, 70];
+          if (isSelected) return theme === "dark" ? [255, 255, 255, 255] : [15, 23, 42, 255];
+          if (swarmPhase === "backtrack" || isSuspectStage) {
+            return theme === "dark" ? [71, 85, 105, 75] : [148, 163, 184, 85];
+          }
 
-          if (d.vesselType === "tanker") return [56, 189, 248, 205];
-          if (d.vesselType === "bulk") return [20, 184, 166, 205];
-          if (d.vesselType === "container") return [96, 165, 250, 205];
-          if (d.vesselType === "misc") return [148, 163, 184, 180];
-          return [34, 211, 238, 200];
+          if (theme === "dark") {
+            if (d.vesselType === "tanker") return [56, 189, 248, 200];
+            if (d.vesselType === "bulk") return [20, 184, 166, 200];
+            if (d.vesselType === "container") return [96, 165, 250, 200];
+            return [148, 163, 184, 180];
+          }
+
+          if (d.vesselType === "tanker") return [30, 41, 59, 210];
+          if (d.vesselType === "bulk") return [51, 65, 85, 210];
+          if (d.vesselType === "container") return [71, 85, 105, 210];
+          if (d.vesselType === "misc") return [100, 116, 139, 180];
+          return [51, 65, 85, 200];
         },
         getLineColor: (d: SwarmVessel) => {
           const isSelected =
             selectedVessel &&
             (("id" in selectedVessel && selectedVessel.id === d.id) ||
               ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
-          if (isSelected) return [34, 211, 238, 255];
-          return [10, 15, 26, 220];
+          if (isSelected) return theme === "dark" ? [245, 158, 11, 255] : [15, 23, 42, 255];
+          return theme === "dark" ? [15, 23, 42, 220] : [255, 255, 255, 220];
         },
         lineWidthMinPixels: 1,
         stroked: true,
@@ -263,8 +315,8 @@ export default function MapView({
         pickable: true,
         updateTriggers: {
           getRadius: [selectedVessel],
-          getFillColor: [swarmPhase, selectedVessel],
-          getLineColor: [selectedVessel],
+          getFillColor: [swarmPhase, isSuspectStage, selectedVessel, theme],
+          getLineColor: [selectedVessel, theme],
         },
         onClick: (info) => {
           if (info.object) {
@@ -295,10 +347,251 @@ export default function MapView({
       extraLayers.push(normalDotsLayer);
     }
 
-    // 2. Dark Vessel Ship Markers (IconLayer) - PROMINENT RED SHIP SILHOUETTES
-    if (darkVesselsInSwarm.length > 0) {
-      const shipAtlas = getMasterShipAtlasDataUri();
+    const shipAtlas = getMasterShipAtlasDataUri();
 
+    // 2. Suspect Candidate Ships (IconLayer) - PROMINENT HIGH-VISIBILITY SHIP SILHOUETTES
+    if (candidateSuspectVessels.length > 0 && isSuspectStage) {
+      // 2a. Target Beacon Reticle Rings (ScatterplotLayer)
+      const suspectReticleLayer = new ScatterplotLayer<SwarmVessel>({
+        id: "mission-suspect-beacon-rings",
+        data: candidateSuspectVessels,
+        getPosition: (d: SwarmVessel) => d.position,
+        getRadius: (d: SwarmVessel) => (d.id === primaryCulprit?.id ? 1250 : 800),
+        radiusUnits: "meters",
+        radiusMinPixels: (d: SwarmVessel) => (d.id === primaryCulprit?.id ? 16 : 12),
+        radiusMaxPixels: 38,
+        stroked: true,
+        filled: false,
+        lineWidthMinPixels: (d: SwarmVessel) => (d.id === primaryCulprit?.id ? 2.5 : 1.8),
+        getLineColor: (d: SwarmVessel) =>
+          d.id === primaryCulprit?.id
+            ? theme === "dark"
+              ? [254, 240, 138, 255]
+              : [220, 38, 38, 255]
+            : [245, 158, 11, 210],
+        pickable: false,
+        updateTriggers: {
+          getRadius: [primaryCulprit],
+          getLineColor: [primaryCulprit, theme],
+        },
+      });
+      extraLayers.push(suspectReticleLayer);
+
+      // 2b. Primary Culprit Inner Concentric Alert Ring & Pulse Core
+      if (primaryCulprit) {
+        const innerBeaconLayer = new ScatterplotLayer<SwarmVessel>({
+          id: "mission-culprit-inner-beacon",
+          data: [primaryCulprit],
+          getPosition: (d: SwarmVessel) => d.position,
+          getRadius: 600,
+          radiusUnits: "meters",
+          radiusMinPixels: 10,
+          radiusMaxPixels: 22,
+          stroked: true,
+          filled: true,
+          getFillColor: [245, 158, 11, 28],
+          getLineColor: theme === "dark" ? [245, 158, 11, 240] : [220, 38, 38, 240],
+          lineWidthMinPixels: 2,
+          pickable: false,
+          updateTriggers: { getLineColor: [theme] },
+        });
+        extraLayers.push(innerBeaconLayer);
+
+        const centerPipLayer = new ScatterplotLayer<SwarmVessel>({
+          id: "mission-culprit-center-pip",
+          data: [primaryCulprit],
+          getPosition: (d: SwarmVessel) => d.position,
+          getRadius: 200,
+          radiusUnits: "meters",
+          radiusMinPixels: 3.5,
+          radiusMaxPixels: 8,
+          stroked: true,
+          filled: true,
+          getFillColor: theme === "dark" ? [255, 255, 255, 255] : [220, 38, 38, 255],
+          getLineColor: [255, 255, 255, 255],
+          lineWidthMinPixels: 1,
+          pickable: false,
+          updateTriggers: { getFillColor: [theme] },
+        });
+        extraLayers.push(centerPipLayer);
+
+        // 2c. Culprit Historical Corridor Trajectory & Heading Velocity Vector
+        if (primaryCulprit.trajectory && primaryCulprit.trajectory.length > 1) {
+          extraLayers.push(
+            new PathLayer({
+              id: "mission-culprit-traj-glow",
+              data: [{ path: primaryCulprit.trajectory }],
+              getPath: (d: { path: [number, number][] }) => d.path,
+              getColor: () => [245, 158, 11, 55],
+              getWidth: 6,
+              widthUnits: "pixels",
+              pickable: false,
+              parameters: { depthTest: false },
+            }),
+            new PathLayer({
+              id: "mission-culprit-traj-line",
+              data: [{ path: primaryCulprit.trajectory }],
+              getPath: (d: { path: [number, number][] }) => d.path,
+              getColor: () => [245, 158, 11, 240],
+              getWidth: 2.4,
+              widthUnits: "pixels",
+              pickable: false,
+              parameters: { depthTest: false },
+            })
+          );
+        }
+
+        // Forward velocity course vector (heading 135° ~3.5km)
+        const headingRad = ((primaryCulprit.heading ?? 135) * Math.PI) / 180;
+        const cosLat = Math.cos((primaryCulprit.position[1] * Math.PI) / 180) || 1;
+        const vecLen = 0.032;
+        const forwardPt: [number, number] = [
+          primaryCulprit.position[0] + (Math.sin(headingRad) * vecLen) / cosLat,
+          primaryCulprit.position[1] + Math.cos(headingRad) * vecLen,
+        ];
+        extraLayers.push(
+          new PathLayer({
+            id: "mission-culprit-heading-vector",
+            data: [{ path: [primaryCulprit.position, forwardPt] }],
+            getPath: (d: { path: [number, number][] }) => d.path,
+            getColor: () => (theme === "dark" ? [254, 240, 138, 240] : [220, 38, 38, 240]),
+            getWidth: 2.2,
+            widthUnits: "pixels",
+            pickable: false,
+            parameters: { depthTest: false },
+          })
+        );
+      }
+
+      // 2d. Suspect Candidate Vessels - PROMINENT SHIP ICONS
+      const suspectShipsLayer = new IconLayer<SwarmVessel>({
+        id: "mission-suspect-ships",
+        data: candidateSuspectVessels,
+        getPosition: (d: SwarmVessel) => d.position,
+        getIcon: (d: SwarmVessel) =>
+          d.id === primaryCulprit?.id ? "ship-culprit" : "ship-amber",
+        getSize: (d: SwarmVessel) => {
+          const isSelected =
+            selectedVessel &&
+            (("id" in selectedVessel && selectedVessel.id === d.id) ||
+              ("vesselId" in selectedVessel && selectedVessel.vesselId === d.id));
+          const isPrimary = d.id === primaryCulprit?.id;
+          if (isPrimary) return isSelected ? dynamicIconSize * 1.85 : dynamicIconSize * 1.65;
+          return isSelected ? dynamicIconSize * 1.45 : dynamicIconSize * 1.3;
+        },
+        getAngle: (d: SwarmVessel) => -(d.heading ?? d.course ?? 0),
+        iconAtlas: shipAtlas,
+        iconMapping: SHIP_ICON_MAPPING,
+        sizeUnits: "pixels",
+        pickable: true,
+        updateTriggers: {
+          getSize: [dynamicIconSize, selectedVessel, primaryCulprit],
+          getIcon: [primaryCulprit],
+        },
+        onClick: (info) => {
+          if (info.object) {
+            handleSelectVessel(info.object as SwarmVessel);
+          }
+        },
+        onHover: (info) => {
+          if (!info.object) {
+            setTooltip(null);
+            return;
+          }
+          const v = info.object as SwarmVessel;
+          const isPrimary = v.id === primaryCulprit?.id;
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            type: isPrimary ? "candidate" : "vessel",
+            title: isPrimary ? `⚠ PRIMARY CULPRIT: ${v.name}` : v.name,
+            items: [
+              { label: "MMSI", value: v.mmsi || "—" },
+              {
+                label: "Status",
+                value: isPrimary ? "ATTRIBUTED CULPRIT (94.2%)" : (v.threatTag || "CORRIDOR CANDIDATE"),
+              },
+              { label: "Type", value: v.typeLabel || "Crude Oil Tanker" },
+              {
+                label: "Speed",
+                value: `${(v.speedKnots ?? 0).toFixed(1)} kn ${isPrimary ? "(Anomaly Drop)" : ""}`,
+              },
+              { label: "Heading", value: `${(v.heading ?? 0).toFixed(0)}°` },
+              {
+                label: "Reason",
+                value: v.suspiciousReason || "Discharge corridor intersection at T-12h",
+              },
+            ],
+          });
+        },
+      });
+      extraLayers.push(suspectShipsLayer);
+
+      // 2e. Floating Tactical HUD Callout Badges (TextLayer)
+      if (primaryCulprit) {
+        extraLayers.push(
+          new TextLayer<SwarmVessel>({
+            id: "mission-culprit-text-callout",
+            data: [primaryCulprit],
+            getPosition: (d: SwarmVessel) => d.position,
+            getText: () => "▲ PRIMARY CULPRIT · IND_TANKER_412 (94.2%)",
+            getSize: 11.5,
+            getColor: theme === "dark" ? [254, 240, 138, 255] : [15, 23, 42, 255],
+            getTextAnchor: "middle",
+            getAlignmentBaseline: "bottom",
+            getPixelOffset: [0, -34],
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            fontWeight: 700,
+            background: true,
+            getBackgroundColor: theme === "dark" ? [15, 23, 42, 240] : [255, 255, 255, 245],
+            getBorderColor: theme === "dark" ? [245, 158, 11, 240] : [220, 38, 38, 240],
+            getBorderWidth: 1.5,
+            backgroundPadding: [8, 4, 8, 4],
+            pickable: true,
+            onClick: () => handleSelectVessel(primaryCulprit),
+            updateTriggers: {
+              getColor: [theme],
+              getBackgroundColor: [theme],
+              getBorderColor: [theme],
+            },
+          })
+        );
+      }
+
+      if (otherCandidates.length > 0) {
+        extraLayers.push(
+          new TextLayer<SwarmVessel>({
+            id: "mission-candidate-text-callouts",
+            data: otherCandidates,
+            getPosition: (d: SwarmVessel) => d.position,
+            getText: (d: SwarmVessel) => `● CANDIDATE · ${d.name}`,
+            getSize: 9.5,
+            getColor: theme === "dark" ? [226, 232, 240, 240] : [51, 65, 85, 240],
+            getTextAnchor: "middle",
+            getAlignmentBaseline: "bottom",
+            getPixelOffset: [0, -28],
+            fontFamily: "ui-monospace, monospace",
+            fontWeight: 600,
+            background: true,
+            getBackgroundColor: theme === "dark" ? [15, 23, 42, 215] : [255, 255, 255, 230],
+            getBorderColor: [245, 158, 11, 180],
+            getBorderWidth: 1,
+            backgroundPadding: [6, 3, 6, 3],
+            pickable: true,
+            onClick: (info) => {
+              if (info.object) handleSelectVessel(info.object as SwarmVessel);
+            },
+            updateTriggers: {
+              getColor: [theme],
+              getBackgroundColor: [theme],
+            },
+          })
+        );
+      }
+    }
+
+    // 3. Dark Vessel Ship Markers (IconLayer) - PROMINENT RED SHIP SILHOUETTES
+    if (darkVesselsInSwarm.length > 0) {
       const darkVesselsLayer = new IconLayer<SwarmVessel>({
         id: "mission-dark-vessel-ships",
         data: darkVesselsInSwarm,
@@ -495,6 +788,9 @@ export default function MapView({
     dynamicIconSize,
     swarmPhase,
     selectedVessel,
+    theme,
+    missionStage,
+    stageElapsedMs,
   ]);
 
   // Initialize Map
@@ -581,21 +877,9 @@ export default function MapView({
     overlayRef.current?.setProps({ layers });
   }, [layers]);
 
-  // Follow Selected Track Camera Movement
+  // Follow Selected Track (Camera is kept still per user requirement)
   useEffect(() => {
-    if (!mapRef.current || !followTrack || selectedTrackId === "all") return;
-
-    const positions = getVesselPositionsAtHour(p5Data, relativeHour);
-    const target = positions.find((p) => p.vessel.vesselId === selectedTrackId);
-
-    if (target && target.currentPosition) {
-      mapRef.current.flyTo({
-        center: target.currentPosition,
-        zoom: Math.max(12, mapRef.current.getZoom()),
-        essential: true,
-        duration: 900,
-      });
-    }
+    // Camera is intentionally kept still across all interactions
   }, [followTrack, selectedTrackId, relativeHour, p5Data]);
 
   // Collect dark vessels from p5Data
@@ -636,25 +920,25 @@ export default function MapView({
       {/* Dark Maritime HUD Panel for Selected Vessel */}
       <VesselInfoPanel
         vessel={selectedVessel}
-        onClose={() => setSelectedVessel(null)}
+        onClose={() => handleSelectVessel(null)}
       />
 
       {/* Docked H3 Cell Details Popover (Click Interactivity) */}
       {selectedHexCell && hexScreenPos && (
         <div
+          className="absolute z-30"
           style={{
-            position: "absolute",
             left: hexScreenPos.x + 16,
             top: hexScreenPos.y - 30,
             zIndex: 35,
             width: "215px",
-            background: "#0D1117",
-            border: "1px solid #1C2A38",
-            borderLeft: "2px solid #22D3EE",
+            background: theme === "dark" ? "#0F172A" : "#FFFFFF",
+            border: `1px solid ${theme === "dark" ? "#1E293B" : "#CBD5E1"}`,
+            borderLeft: `2px solid ${theme === "dark" ? "#F8FAFC" : "#0F172A"}`,
             borderRadius: "2px",
             padding: "8px 10px",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.65)",
-            fontFamily: "'JetBrains Mono', monospace",
+            boxShadow: theme === "dark" ? "0 4px 16px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.08)",
+            fontFamily: "ui-monospace, monospace",
           }}
         >
           <div
@@ -662,7 +946,7 @@ export default function MapView({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              borderBottom: "1px solid #1C2A38",
+              borderBottom: `1px solid ${theme === "dark" ? "#1E293B" : "#E2E8F0"}`,
               paddingBottom: "4px",
               marginBottom: "6px",
             }}
@@ -671,8 +955,8 @@ export default function MapView({
               style={{
                 fontSize: "9px",
                 fontWeight: 700,
-                color: "#22D3EE",
-                letterSpacing: "0.1em",
+                color: theme === "dark" ? "#F8FAFC" : "#0F172A",
+                letterSpacing: "0.08em",
                 textTransform: "uppercase",
               }}
             >
@@ -684,7 +968,7 @@ export default function MapView({
               style={{
                 background: "none",
                 border: "none",
-                color: "#5A7A94",
+                color: theme === "dark" ? "#94A3B8" : "#64748B",
                 cursor: "pointer",
                 padding: "0 2px",
                 fontSize: "12px",
@@ -698,32 +982,32 @@ export default function MapView({
 
           <div style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "9px" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Hex ID</span>
-              <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{selectedHexCell.cell.h3Index}</span>
+              <span style={{ color: theme === "dark" ? "#94A3B8" : "#64748B" }}>Hex ID</span>
+              <span style={{ color: theme === "dark" ? "#F8FAFC" : "#0F172A", fontWeight: 600 }}>{selectedHexCell.cell.h3Index}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Particle Count</span>
-              <span style={{ color: "#C8D8E8" }}>{selectedHexCell.cell.particleCount}</span>
+              <span style={{ color: theme === "dark" ? "#94A3B8" : "#64748B" }}>Particle Count</span>
+              <span style={{ color: theme === "dark" ? "#CBD5E1" : "#334155" }}>{selectedHexCell.cell.particleCount}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Ring (k)</span>
-              <span style={{ color: selectedHexCell.ringK === 0 ? "#22D3EE" : "#C8D8E8", fontWeight: 700 }}>
+              <span style={{ color: theme === "dark" ? "#94A3B8" : "#64748B" }}>Ring (k)</span>
+              <span style={{ color: theme === "dark" ? "#F8FAFC" : "#0F172A", fontWeight: 700 }}>
                 k = {selectedHexCell.ringK}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Weight / Density</span>
-              <span style={{ color: "#22D3EE", fontWeight: 700 }}>
+              <span style={{ color: theme === "dark" ? "#94A3B8" : "#64748B" }}>Weight / Density</span>
+              <span style={{ color: theme === "dark" ? "#F8FAFC" : "#0F172A", fontWeight: 700 }}>
                 {selectedHexCell.cell.density.toFixed(2)} ({(selectedHexCell.cell.density * 100).toFixed(0)}%)
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#5A7A94" }}>Risk Level</span>
+              <span style={{ color: theme === "dark" ? "#94A3B8" : "#64748B" }}>Risk Level</span>
               <span
                 style={{
                   color: selectedHexCell.cell.riskLevel === "critical" || selectedHexCell.cell.riskLevel === "high"
-                    ? "#F59E0B"
-                    : "#5A7A94",
+                    ? "#DC2626"
+                    : (theme === "dark" ? "#CBD5E1" : "#334155"),
                   fontWeight: 600,
                   textTransform: "uppercase",
                 }}
@@ -747,13 +1031,13 @@ export default function MapView({
         >
           <div
             style={{
-              background: "#0D1117",
-              border: "1px solid #1C2A38",
-              borderLeft: `2px solid ${tooltip.type === "dark-vessel" ? "#EF4444" : "#22D3EE"}`,
+              background: theme === "dark" ? "#0F172A" : "#FFFFFF",
+              border: `1px solid ${theme === "dark" ? "#1E293B" : "#CBD5E1"}`,
+              borderLeft: `2px solid ${tooltip.type === "dark-vessel" ? "#DC2626" : (theme === "dark" ? "#F8FAFC" : "#0F172A")}`,
               borderRadius: "2px",
               padding: "6px 9px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
-              fontFamily: "'JetBrains Mono', monospace",
+              boxShadow: theme === "dark" ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 8px rgba(0,0,0,0.08)",
+              fontFamily: "ui-monospace, monospace",
             }}
           >
             <div
@@ -762,7 +1046,7 @@ export default function MapView({
                 alignItems: "baseline",
                 justifyContent: "space-between",
                 gap: "8px",
-                borderBottom: "1px solid #1C2A38",
+                borderBottom: `1px solid ${theme === "dark" ? "#1E293B" : "#E2E8F0"}`,
                 paddingBottom: "3px",
                 marginBottom: "4px",
               }}
@@ -770,7 +1054,7 @@ export default function MapView({
               <span
                 style={{
                   fontSize: "10px",
-                  color: tooltip.type === "dark-vessel" ? "#EF4444" : "#22D3EE",
+                  color: tooltip.type === "dark-vessel" ? "#DC2626" : (theme === "dark" ? "#F8FAFC" : "#0F172A"),
                   fontWeight: 700,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -782,7 +1066,7 @@ export default function MapView({
               <span
                 style={{
                   fontSize: "7.5px",
-                  color: tooltip.type === "dark-vessel" ? "#EF4444" : "#5A7A94",
+                  color: tooltip.type === "dark-vessel" ? "#DC2626" : (theme === "dark" ? "#94A3B8" : "#64748B"),
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                   flexShrink: 0,
@@ -806,7 +1090,7 @@ export default function MapView({
                   <span
                     style={{
                       fontSize: "9px",
-                      color: "#5A7A94",
+                      color: theme === "dark" ? "#94A3B8" : "#5A7A94",
                     }}
                   >
                     {item.label}
@@ -814,7 +1098,7 @@ export default function MapView({
                   <span
                     style={{
                       fontSize: "9px",
-                      color: "#C8D8E8",
+                      color: theme === "dark" ? "#F8FAFC" : "#0F172A",
                       fontWeight: 500,
                     }}
                   >

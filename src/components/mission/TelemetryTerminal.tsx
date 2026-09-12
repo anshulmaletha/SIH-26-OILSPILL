@@ -26,8 +26,28 @@ if (typeof document !== 'undefined' && !document.getElementById(BLINK_STYLE_ID))
   document.head.appendChild(style);
 }
 
+function getLevelColor(level: string, isDark: boolean): string {
+  if (isDark) {
+    switch (level) {
+      case "ok":   return "#4ADE80";
+      case "warn": return "#FBBF24";
+      case "crit": return "#F87171";
+      case "data": return "#F1F5F9";
+      default:     return "#94A3B8";
+    }
+  }
+  switch (level) {
+    case "ok":   return "#15803D";
+    case "warn": return "#B45309";
+    case "crit": return "#DC2626";
+    case "data": return "#0F172A";
+    default:     return "#475569";
+  }
+}
+
 const TelemetryTerminal: React.FC = () => {
   const { state } = useMission();
+  const isDark = state.theme === "dark";
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const lines = getVisibleLogs(state.currentStage, state.stageElapsedMs);
@@ -50,23 +70,26 @@ const TelemetryTerminal: React.FC = () => {
         zIndex: 15,
         width: '420px',
         height: '200px',
-        backgroundColor: 'rgba(5, 7, 10, 0.88)',
-        border: '1px solid #1C2A38',
-        borderLeft: '2px solid #22D3EE',
-        borderRadius: '2px',
+        backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+        border: isDark ? '1px solid #1E293B' : '1px solid #E2E8F0',
+        borderLeft: isDark ? '3px solid #F8FAFC' : '3px solid #0F172A',
+        borderRadius: '3px',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        boxShadow: isDark ? '0 4px 14px rgba(0, 0, 0, 0.4)' : '0 4px 12px rgba(0, 0, 0, 0.08)',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
       }}
     >
       {/* Header */}
       <div
         style={{
-          height: '24px',
-          minHeight: '24px',
-          borderBottom: '1px solid #1C2A38',
-          paddingLeft: '8px',
-          paddingRight: '8px',
+          height: '26px',
+          minHeight: '26px',
+          borderBottom: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+          backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+          paddingLeft: '10px',
+          paddingRight: '10px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -81,17 +104,18 @@ const TelemetryTerminal: React.FC = () => {
               width: '5px',
               height: '5px',
               borderRadius: '50%',
-              backgroundColor: '#22D3EE',
+              backgroundColor: isDark ? '#F8FAFC' : '#0F172A',
               flexShrink: 0,
             }}
           />
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "ui-monospace, monospace",
               fontSize: '9px',
-              color: '#22D3EE',
+              fontWeight: 700,
+              color: isDark ? '#F8FAFC' : '#0F172A',
               textTransform: 'uppercase',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.08em',
               lineHeight: 1,
             }}
           >
@@ -106,15 +130,16 @@ const TelemetryTerminal: React.FC = () => {
               width: '5px',
               height: '5px',
               borderRadius: '50%',
-              backgroundColor: '#EF4444',
+              backgroundColor: '#DC2626',
               flexShrink: 0,
             }}
           />
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "ui-monospace, monospace",
               fontSize: '8px',
-              color: '#EF4444',
+              fontWeight: 700,
+              color: '#DC2626',
               lineHeight: 1,
               letterSpacing: '0.05em',
             }}
@@ -131,9 +156,9 @@ const TelemetryTerminal: React.FC = () => {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '6px 8px',
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '9px',
+          padding: '8px 10px',
+          fontFamily: "ui-monospace, monospace",
+          fontSize: '9.5px',
           lineHeight: 1.5,
           boxSizing: 'border-box',
         }}
@@ -152,7 +177,7 @@ const TelemetryTerminal: React.FC = () => {
               {/* Timestamp */}
               <span
                 style={{
-                  color: '#3A5268',
+                  color: isDark ? '#64748B' : '#94A3B8',
                   flexShrink: 0,
                   marginRight: '8px',
                   userSelect: 'none',
@@ -163,7 +188,7 @@ const TelemetryTerminal: React.FC = () => {
               {/* Message */}
               <span
                 style={{
-                  color: levelColor(line.level),
+                  color: getLevelColor(line.level, isDark),
                   wordBreak: 'break-word',
                   flex: 1,
                 }}
@@ -173,7 +198,7 @@ const TelemetryTerminal: React.FC = () => {
                   <span
                     className="telemetry-blink"
                     style={{
-                      color: '#22D3EE',
+                      color: isDark ? '#F8FAFC' : '#0F172A',
                       marginLeft: '2px',
                     }}
                   >
@@ -190,7 +215,7 @@ const TelemetryTerminal: React.FC = () => {
           <div style={{ display: 'flex' }}>
             <span
               className="telemetry-blink"
-              style={{ color: '#22D3EE' }}
+              style={{ color: isDark ? '#F8FAFC' : '#0F172A' }}
             >
               _
             </span>

@@ -12,21 +12,21 @@ const CLOCK_HOURS = [0, -6, -12, -24];
 
 const SUSPECT_COLORS: Record<string, { bg: string; border: string; dot: string; label: string }> = {
   high: {
-    bg: "#EF444410",
-    border: "#EF444430",
-    dot: "#EF4444",
+    bg: "#FEF2F2",
+    border: "#FECACA",
+    dot: "#DC2626",
     label: "HIGH",
   },
   moderate: {
-    bg: "#F59E0B10",
-    border: "#F59E0B30",
-    dot: "#F59E0B",
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    dot: "#D97706",
     label: "MODERATE",
   },
   low: {
-    bg: "#22D3EE08",
-    border: "#22D3EE20",
-    dot: "#5A7A94",
+    bg: "#F8FAFC",
+    border: "#E2E8F0",
+    dot: "#64748B",
     label: "LOW",
   },
 };
@@ -43,19 +43,20 @@ export function BacktrackOverlay() {
   if (state.currentStage !== "BACKTRACK_CORRIDOR") return null;
 
   const isNullResult = state.scenario === "no_candidates";
-  const activeSuspects = isNullResult ? [] : SUSPECT_LABELS;
-
+  const activeSuspects = isNullResult ? [] : (getCandidateVessels().length > 0 ? getCandidateVessels() : SUSPECT_LABELS);
   const elapsed = state.stageElapsedMs;
-  const candidates = isNullResult ? [] : getCandidateVessels().filter(c => c.id === "cand-001" || c.id === "cand-002" || c.id === "cand-006");
 
   // Clock animation: starts at T=0, winds to T-24 over 5s
   const clockProgress = Math.min(1, elapsed / 5000);
   const clockHour = Math.round(-24 * clockProgress);
 
-  // How many suspects are visible (stagger reveal)
+  // How many suspects are visible (revealed after backward simulation reaches corridor)
+  const isSimulationRunning = elapsed < 3500;
   const visibleSuspects = isNullResult
     ? (elapsed > 4000 ? 1 : 0)
-    : Math.min(activeSuspects.length, elapsed > 4500 ? Math.ceil((elapsed - 4500) / 600) : 0);
+    : (isSimulationRunning ? 0 : Math.min(activeSuspects.length, Math.ceil((elapsed - 3500) / 700)));
+
+  const isDark = state.theme === "dark";
 
   return (
     <>
@@ -63,14 +64,16 @@ export function BacktrackOverlay() {
       <div
         style={{
           position: "absolute",
-          top: 70,
+          top: 68,
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 20,
-          background: "#0D1117",
-          border: "1px solid #1C2A38",
-          padding: "8px 20px",
-          fontFamily: "'JetBrains Mono', monospace",
+          background: isDark ? "#0F172A" : "#FFFFFF",
+          border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
+          borderRadius: 2,
+          padding: "6px 16px",
+          boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.4)" : "0 2px 8px rgba(0,0,0,0.06)",
+          fontFamily: "ui-monospace, monospace",
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -79,40 +82,40 @@ export function BacktrackOverlay() {
       >
         {/* Rewinding label */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 9, color: "#5A7A94", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            BACKTRACK
+          <span style={{ fontSize: 9, color: isDark ? "#94A3B8" : "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+            LAGRANGIAN REWIND
           </span>
           <span
             style={{
-              fontSize: 9,
-              color: "#F59E0B",
+              fontSize: 8.5,
+              color: isDark ? "#F8FAFC" : "#0F172A",
               fontWeight: 700,
-              letterSpacing: "0.05em",
-              animation: "pulse-ring-inner 1s ease-in-out infinite",
+              letterSpacing: "0.04em",
             }}
           >
-            ◀◀ REWINDING
+            ◀◀ T-24H WINDOW
           </span>
         </div>
 
         {/* Clock display */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#22D3EE", letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: isDark ? "#F8FAFC" : "#0F172A", letterSpacing: "-0.02em" }}>
             T{clockHour === 0 ? "±0" : clockHour}h
           </span>
         </div>
 
         {/* Timeline ticks */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
           {CLOCK_HOURS.map((h) => (
             <div
               key={h}
               style={{
                 fontSize: 8,
-                padding: "2px 6px",
-                background: clockHour <= h ? "#22D3EE15" : "#111822",
-                border: `1px solid ${clockHour <= h ? "#22D3EE40" : "#1C2A38"}`,
-                color: clockHour <= h ? "#22D3EE" : "#3A5268",
+                padding: "2px 5px",
+                background: clockHour <= h ? (isDark ? "#F8FAFC" : "#0F172A") : (isDark ? "#1E293B" : "#F1F5F9"),
+                border: `1px solid ${clockHour <= h ? (isDark ? "#F8FAFC" : "#0F172A") : (isDark ? "#334155" : "#E2E8F0")}`,
+                color: clockHour <= h ? (isDark ? "#0F172A" : "#FFFFFF") : (isDark ? "#94A3B8" : "#64748B"),
+                borderRadius: 1,
               }}
             >
               T{h}h
@@ -121,159 +124,139 @@ export function BacktrackOverlay() {
         </div>
       </div>
 
-      {/* ── Dimming notice — bottom center ── */}
-      {elapsed > 4000 && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 80,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 20,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-            color: "#5A7A94",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            textAlign: "center",
-            pointerEvents: "none",
-          }}
-        >
-          {isNullResult ? (
-            <span style={{ color: "#22D3EE" }}>0 corridor intersections detected · Judicial restraint invoked</span>
-          ) : (
-            <>
-              Corridor filter applied ·{" "}
-              <span style={{ color: "#F59E0B" }}>
-                {Math.min(activeSuspects.length, visibleSuspects)} candidate targets evaluated
-              </span>
-            </>
-          )}
-        </div>
-      )}
-
       {/* ── Suspect narrowing panel — right side ── */}
-      {visibleSuspects > 0 && (
+      <div
+        style={{
+          position: "absolute",
+          top: 72,
+          right: 16,
+          zIndex: 20,
+          width: 320,
+          background: isDark ? "#0F172A" : "#FFFFFF",
+          border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
+          borderRadius: 2,
+          boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.4)" : "0 4px 12px rgba(0,0,0,0.08)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
         <div
           style={{
-            position: "absolute",
-            top: 80,
-            right: 12,
-            zIndex: 20,
-            width: 320,
-            background: "#0D1117",
-            border: "1px solid #1C2A38",
+            padding: "8px 12px",
+            background: isDark ? "#1E293B" : "#F8FAFC",
+            borderBottom: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {/* Header */}
-          <div
+          <span
             style={{
-              padding: "8px 12px",
-              borderBottom: "1px solid #1C2A38",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 9,
+              color: isDark ? "#F8FAFC" : "#0F172A",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
             }}
           >
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: isNullResult ? "#5A7A94" : "#22D3EE",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              {isNullResult ? "CORRIDOR CANDIDATES (NULL-RESULT)" : "CORRIDOR SUSPECT TARGETS"}
-            </span>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#5A7A94" }}>
-              {isNullResult ? "0 Intersections" : `${Math.min(visibleSuspects, activeSuspects.length)} / ${activeSuspects.length}`}
-            </span>
-          </div>
+            {isNullResult ? "CORRIDOR CANDIDATES (NULL-RESULT)" : "CORRIDOR SUSPECT TARGETS"}
+          </span>
+          <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 8.5, color: isDark ? "#94A3B8" : "#64748B" }}>
+            {isNullResult ? "0 Intersections" : (isSimulationRunning ? "Advecting…" : `${Math.min(visibleSuspects, activeSuspects.length)} / ${activeSuspects.length}`)}
+          </span>
+        </div>
 
-          {isNullResult ? (
-            <div style={{ padding: "12px", backgroundColor: "rgba(34, 211, 238, 0.04)" }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#22D3EE", fontWeight: 700, marginBottom: 4 }}>
-                ✓ JUDICIAL RESTRAINT ENFORCED
-              </div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: "#8DA2B5", lineHeight: 1.4 }}>
-                Zero AIS tracks intersected the backward particle advection corridor above minimum confidence threshold. System correctly declines to nominate an innocent vessel.
-              </div>
+        {isSimulationRunning && !isNullResult ? (
+          <div style={{ padding: "12px", background: isDark ? "#0F172A" : "#FFFFFF" }}>
+            <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 8.5, color: isDark ? "#94A3B8" : "#64748B", lineHeight: 1.4 }}>
+              Simulating reverse ocean drift (OpenDrift + ERA5 winds)…
             </div>
-          ) : (
-            /* Suspect rows */
-            activeSuspects.slice(0, visibleSuspects).map((s, i) => {
-              const theme = SUSPECT_COLORS[s.level] ?? SUSPECT_COLORS.low!;
+            <div style={{ marginTop: 6, height: 2, backgroundColor: isDark ? "#1E293B" : "#E2E8F0", borderRadius: 1, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(100, (elapsed / 3500) * 100)}%`, backgroundColor: isDark ? "#F8FAFC" : "#0F172A" }} />
+            </div>
+          </div>
+        ) : isNullResult ? (
+          <div style={{ padding: "12px", backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }}>
+            <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 9, color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 700, marginBottom: 4 }}>
+              ✓ JUDICIAL RESTRAINT ENFORCED
+            </div>
+            <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontSize: 9.5, color: isDark ? "#94A3B8" : "#64748B", lineHeight: 1.4 }}>
+              Zero AIS tracks intersected the backward particle advection corridor above minimum confidence threshold. System declines to nominate an innocent vessel.
+            </div>
+          </div>
+        ) : (
+          /* Suspect rows */
+          activeSuspects.slice(0, visibleSuspects).map((s) => {
+            const theme = SUSPECT_COLORS[s.level] ?? SUSPECT_COLORS['low']!;
+            const rowBg = isDark
+              ? (s.level === "high" ? "#281216" : s.level === "moderate" ? "#2A2415" : "#1E293B")
+              : theme.bg;
 
-              return (
+            return (
+              <div
+                key={s.id}
+                style={{
+                  padding: "8px 12px",
+                  borderBottom: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
+                  background: rowBg,
+                  borderLeft: `3px solid ${theme.dot}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: isDark ? "#F8FAFC" : "#0F172A",
+                    }}
+                  >
+                    {s.name}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: 8,
+                      fontWeight: 700,
+                      padding: "1px 5px",
+                      borderRadius: "2px",
+                      background: isDark ? "#0F172A" : "#FFFFFF",
+                      border: `1px solid ${theme.border}`,
+                      color: theme.dot,
+                    }}
+                  >
+                    {theme.label}
+                  </span>
+                </div>
+
                 <div
-                  key={s.id}
                   style={{
-                    padding: "8px 12px",
-                    borderBottom: "1px solid #111822",
-                    background: theme.bg,
-                    borderLeft: `3px solid ${theme.dot}`,
-                    animation: `fadeIn 0.3s ease forwards`,
-                    animationDelay: `${i * 0.05}s`,
-                    opacity: 1,
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 8.5,
+                    color: isDark ? "#94A3B8" : "#64748B",
+                    marginTop: 2,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span
-                      style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: "#C8D8E8",
-                      }}
-                    >
-                      {s.name}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 8,
-                        color: theme.dot,
-                        border: `1px solid ${theme.border}`,
-                        background: theme.bg,
-                        padding: "1px 5px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {theme.label}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 2,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      color: "#5A7A94",
-                      display: "flex",
-                      gap: 8,
-                    }}
-                  >
-                    <span>{s.type}</span>
-                    <span style={{ color: "#3A5268" }}>·</span>
-                    <span>{s.flag}</span>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 2,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      color: s.level === "high" ? "#EF4444" : "#5A7A94",
-                    }}
-                  >
-                    {s.note}
-                  </div>
+                  {s.type} · {s.flag}
                 </div>
-              );
-            })
-          )}
-        </div>
-      )}
+
+                <div
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    fontSize: 8.5,
+                    color: isDark ? "#CBD5E1" : "#334155",
+                    marginTop: 4,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {s.note}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </>
   );
 }

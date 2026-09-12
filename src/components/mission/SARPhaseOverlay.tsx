@@ -34,10 +34,9 @@ export const SARPhaseOverlay: React.FC = () => {
 
   if (!isActive) return null;
 
-  const scanPct = Math.min(elapsed / 3000, 1);
-  const showScanLine = elapsed < 3000;
+  const isDark = state.theme === "dark";
   const showAnomalyLock = elapsed > 3500;
-  const showAlertBox = elapsed > 4000;
+  const showAlertBox = elapsed > 3800;
 
   return (
     <div
@@ -49,226 +48,78 @@ export const SARPhaseOverlay: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      {/* ── 1. RADAR SWEEP ──────────────────────────────────── */}
+      {/* ── Status Indicator (Top Center) ── */}
       <div
         style={{
           position: "absolute",
-          top: 80,
+          top: 68,
           left: "50%",
           transform: "translateX(-50%)",
-          width: 180,
-          height: 180,
-          border: "2px dashed rgba(34,211,238,0.25)",
-          borderRadius: "50%",
+          background: isDark ? "#0F172A" : "#FFFFFF",
+          border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
+          borderRadius: 2,
+          padding: "6px 14px",
+          boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.4)" : "0 2px 6px rgba(0,0,0,0.06)",
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 9,
+          color: isDark ? "#F8FAFC" : "#0F172A",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          gap: 8,
         }}
       >
-        {/* Rotating conic gradient sweep */}
-        <div
+        <span
           style={{
-            position: "absolute",
-            inset: 0,
+            width: 6,
+            height: 6,
             borderRadius: "50%",
-            background: "conic-gradient(transparent 270deg, rgba(34,211,238,0.13) 360deg)",
-            animation: "radar-sweep-rotate 3s linear infinite",
+            background: showAnomalyLock ? "#DC2626" : (isDark ? "#F8FAFC" : "#0F172A"),
           }}
         />
-        {/* Center crosshair dot */}
-        <div
-          style={{
-            position: "relative",
-            width: 4,
-            height: 4,
-            borderRadius: "50%",
-            backgroundColor: "#22D3EE",
-            zIndex: 1,
-          }}
-        />
+        <span>
+          {showAnomalyLock
+            ? "ANOMALY IDENTIFIED · U-Net Segmentation Complete"
+            : "Sentinel-1A SAR Ingestion · C-Band VV Speckle Filter (5×5)"}
+        </span>
       </div>
 
-      {/* Radar label */}
-      <div
-        style={{
-          position: "absolute",
-          top: 268,
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 9,
-          color: "#22D3EE",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-          opacity: 0.7,
-        }}
-      >
-        SAR RADAR SWEEP
-      </div>
-
-      {/* ── 2. SCANLINE REVEAL ──────────────────────────────── */}
-      {showScanLine && (
-        <>
-          <div
-            style={{
-              position: "absolute",
-              top: `${scanPct * 100}vh`,
-              left: 0,
-              right: 0,
-              height: 1,
-              background: "rgba(34,211,238,0.19)",
-              animation: "scanline-flash 0.4s ease-in-out infinite",
-            }}
-          />
-          {/* Scanned region fill (above the line) */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: `${scanPct * 100}vh`,
-              background: "rgba(34,211,238,0.025)",
-              pointerEvents: "none",
-            }}
-          />
-          {/* SCANNING label */}
-          <div
-            style={{
-              position: "absolute",
-              top: `calc(${scanPct * 100}vh - 14px)`,
-              right: 16,
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: "#22D3EE",
-              letterSpacing: "0.1em",
-              opacity: 0.9,
-            }}
-          >
-            ▶ SCANNING
-          </div>
-        </>
-      )}
-
-      {/* ── 3. ANOMALY DETECTION LOCK ───────────────────────── */}
-      {showAnomalyLock && (
-        <div
-          style={{
-            position: "absolute",
-            top: "45%",
-            left: "55%",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          {/* Outer pulse ring */}
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              border: "1px solid #EF4444",
-              borderRadius: "50%",
-              animation: "pulse-ring 1.5s ease-in-out infinite alternate",
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {/* Center dot */}
-            <div
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: "50%",
-                backgroundColor: "#EF4444",
-              }}
-            />
-            {/* Tick — top */}
-            <div
-              style={{
-                position: "absolute",
-                top: -5,
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: 1,
-                height: 5,
-                backgroundColor: "#EF4444",
-              }}
-            />
-            {/* Tick — bottom */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: -5,
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: 1,
-                height: 5,
-                backgroundColor: "#EF4444",
-              }}
-            />
-            {/* Tick — left */}
-            <div
-              style={{
-                position: "absolute",
-                left: -5,
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: 5,
-                height: 1,
-                backgroundColor: "#EF4444",
-              }}
-            />
-            {/* Tick — right */}
-            <div
-              style={{
-                position: "absolute",
-                right: -5,
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: 5,
-                height: 1,
-                backgroundColor: "#EF4444",
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ── 4. ALERT BOX ────────────────────────────────────── */}
+      {/* ── Anomaly Reticle & Alert Box (Only revealed after detection) ── */}
       {showAlertBox && (
         <div
           style={{
             position: "absolute",
-            top: "42%",
-            left: "calc(55% + 42px)",
-            background: "#0D1117",
-            border: "1px solid #EF4444",
-            borderLeft: "3px solid #EF4444",
-            padding: "8px 12px",
-            fontFamily: "'JetBrains Mono', monospace",
-            minWidth: 220,
+            top: 110,
+            right: 16,
+            background: isDark ? "#0F172A" : "#FFFFFF",
+            border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
+            borderLeft: "3px solid #DC2626",
+            borderRadius: 2,
+            padding: "10px 14px",
+            fontFamily: "ui-monospace, monospace",
+            minWidth: 260,
             zIndex: 501,
+            boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.08)",
           }}
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 700,
-              color: "#EF4444",
-              letterSpacing: "0.08em",
-              marginBottom: 6,
+              color: "#DC2626",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              marginBottom: 4,
             }}
           >
-            ANOMALY DETECTED
+            ANOMALY DETECTED (STAGE 1)
           </div>
-          <div style={{ fontSize: 9, color: "#C8D8E8", lineHeight: 1.7 }}>
-            <div>Centroid: 19.350°N  71.853°E</div>
-            <div>σ° = -18.6 dB (VV)&nbsp;&nbsp;|&nbsp;&nbsp;Area: 4.82 km²</div>
-            <div>Model Confidence: 94.0%</div>
-            <div style={{ color: "#22D3EE", marginTop: 2 }}>
-              Classification: CRUDE PETROLEUM SLICK
+          <div style={{ fontSize: 9, color: isDark ? "#F8FAFC" : "#0F172A", lineHeight: 1.6 }}>
+            <div>Centroid: 19.350°N, 71.853°E</div>
+            <div>Backscatter: σ° = -18.6 dB (VV)</div>
+            <div>Vectorized Area: 4.82 km² · Perimeter: 14.8 km</div>
+            <div>PyTorch U-Net Confidence: 94.0%</div>
+            <div style={{ color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 700, marginTop: 4 }}>
+              Classification: Potential Crude Petroleum Slick
             </div>
           </div>
         </div>

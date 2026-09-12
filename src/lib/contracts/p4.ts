@@ -11,6 +11,13 @@ export interface H3CellDensity {
   density: number;
   riskLevel: "low" | "medium" | "high" | "critical";
   centerCoordinates: [longitude: number, latitude: number];
+  hour?: number | undefined;
+  ringK?: number | undefined;
+  spineIndex?: number | undefined;
+  isActive?: boolean | undefined;
+  isWavefront?: boolean | undefined;
+  isMatch?: boolean | undefined;
+  sectorName?: string | undefined;
 }
 
 export interface H3CorridorTimestep {

@@ -52,6 +52,8 @@ export function ContainmentRoom() {
   // Response readiness indicator
   const responseProgress = Math.min(100, Math.round(elapsed / 200));
 
+  const isDark = state.theme === "dark";
+
   return (
     <>
       {/* ── Side panel (right edge) ── */}
@@ -63,19 +65,21 @@ export function ContainmentRoom() {
           bottom: 0,
           zIndex: 25,
           width: 350,
-          background: "#080B0F",
-          borderLeft: "1px solid #1C3830",
+          background: isDark ? "#0F172A" : "#FFFFFF",
+          borderLeft: isDark ? "1px solid #1E293B" : "1px solid #E2E8F0",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          boxShadow: isDark ? "-4px 0 16px rgba(0, 0, 0, 0.4)" : "-4px 0 16px rgba(0, 0, 0, 0.05)",
+          transition: "background-color 0.2s ease, border-color 0.2s ease",
         }}
       >
-        {/* Panel header — distinct teal/emerald for "response mode" */}
+        {/* Panel header */}
         <div
           style={{
             padding: "12px 14px",
-            borderBottom: "1px solid #1C3830",
-            background: "#0A1A14",
+            borderBottom: isDark ? "1px solid #334155" : "1px solid #E2E8F0",
+            background: isDark ? "#1E293B" : "#F8FAFC",
             flexShrink: 0,
           }}
         >
@@ -83,37 +87,39 @@ export function ContainmentRoom() {
             <div>
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "ui-monospace, monospace",
                   fontSize: 10,
                   fontWeight: 700,
-                  color: "#10B981",
+                  color: isDark ? "#F8FAFC" : "#0F172A",
                   textTransform: "uppercase",
-                  letterSpacing: "0.12em",
+                  letterSpacing: "0.08em",
                 }}
               >
-                ■ SPILL RESPONSE SIMULATION
+                SPILL RESPONSE SIMULATION
               </div>
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 8,
-                  color: "#2D6A5A",
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: 8.5,
+                  color: isDark ? "#94A3B8" : "#64748B",
                   marginTop: 2,
                 }}
               >
-                OpenDrift Forward Advection (ERA5 Atmospheric Forcing)
+                OpenDrift Forward Advection (ERA5 Wind Forcing)
               </div>
             </div>
             <button
               type="button"
               onClick={() => dispatch({ type: "NEXT_STAGE" })}
               style={{
-                background: "transparent",
-                border: "1px solid #1C3830",
-                color: "#5A7A94",
-                fontFamily: "'JetBrains Mono', monospace",
+                background: isDark ? "#F8FAFC" : "#0F172A",
+                border: "none",
+                borderRadius: 3,
+                color: isDark ? "#0F172A" : "#FFFFFF",
+                fontFamily: "ui-monospace, monospace",
                 fontSize: 9,
-                padding: "4px 8px",
+                fontWeight: 600,
+                padding: "5px 10px",
                 cursor: "pointer",
               }}
               title="Proceed to Case File"
@@ -128,10 +134,10 @@ export function ContainmentRoom() {
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "10px 14px",
+            padding: "12px 14px",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: 14,
           }}
           className="custom-scrollbar"
         >
@@ -139,11 +145,12 @@ export function ContainmentRoom() {
           <section>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: isDark ? "#94A3B8" : "#64748B",
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
                 marginBottom: 6,
               }}
             >
@@ -159,29 +166,29 @@ export function ContainmentRoom() {
             >
               <span
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "ui-monospace, monospace",
                   fontSize: 26,
                   fontWeight: 700,
-                  color: "#10B981",
+                  color: isDark ? "#F8FAFC" : "#0F172A",
                   letterSpacing: "-0.02em",
                 }}
               >
                 T+{forwardHours}h
               </span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#2D6A5A" }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: isDark ? "#94A3B8" : "#64748B" }}>
                 {currentDrift.areaKm2} km²
               </span>
             </div>
 
             {/* Timeline bar */}
-            <div style={{ height: 2, background: "#1C3830", marginBottom: 6, position: "relative" }}>
+            <div style={{ height: 3, background: isDark ? "#334155" : "#E2E8F0", marginBottom: 8, position: "relative", borderRadius: 2, overflow: "hidden" }}>
               <div
                 style={{
                   position: "absolute",
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  background: "#10B981",
+                  background: isDark ? "#F8FAFC" : "#0F172A",
                   width: `${(forwardHours / 48) * 100}%`,
                   transition: "width 0.5s linear",
                 }}
@@ -196,26 +203,28 @@ export function ContainmentRoom() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "4px 8px",
-                  marginBottom: 2,
-                  background: forwardHours >= p.hour ? "#10B98108" : "transparent",
-                  border: `1px solid ${forwardHours >= p.hour ? "#10B98120" : "#1C3830"}`,
+                  padding: "5px 8px",
+                  marginBottom: 3,
+                  borderRadius: 3,
+                  background: forwardHours >= p.hour ? (isDark ? "#1E293B" : "#F1F5F9") : (isDark ? "#0F172A" : "#FFFFFF"),
+                  border: `1px solid ${forwardHours >= p.hour ? (isDark ? "#334155" : "#CBD5E1") : (isDark ? "#1E293B" : "#E2E8F0")}`,
                 }}
               >
                 <span
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "ui-monospace, monospace",
                     fontSize: 9,
-                    color: forwardHours >= p.hour ? "#10B981" : "#2D6A5A",
+                    fontWeight: forwardHours >= p.hour ? 600 : 400,
+                    color: forwardHours >= p.hour ? (isDark ? "#F8FAFC" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
                   }}
                 >
                   {p.label}
                 </span>
                 <span
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "ui-monospace, monospace",
                     fontSize: 9,
-                    color: p.hour >= 48 ? "#F59E0B" : "#5A7A94",
+                    color: isDark ? "#F8FAFC" : "#0F172A",
                   }}
                 >
                   {p.areaKm2} km²
@@ -228,11 +237,12 @@ export function ContainmentRoom() {
           <section>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: isDark ? "#94A3B8" : "#64748B",
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
                 marginBottom: 6,
               }}
             >
@@ -241,26 +251,26 @@ export function ContainmentRoom() {
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 24,
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: 22,
                   fontWeight: 700,
-                  color: "#10B981",
+                  color: isDark ? "#F8FAFC" : "#0F172A",
                 }}
               >
                 ~0.45 km/h
               </span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#2D6A5A" }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 9, color: isDark ? "#94A3B8" : "#64748B" }}>
                 Eastward drift velocity (ERA5 3.8 m/s wind)
               </span>
             </div>
-            <div style={{ height: 4, background: "#1C3830", marginTop: 6, position: "relative" }}>
+            <div style={{ height: 3, background: isDark ? "#334155" : "#E2E8F0", marginTop: 6, position: "relative", borderRadius: 2, overflow: "hidden" }}>
               <div
                 style={{
                   position: "absolute",
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  background: "#10B981",
+                  background: isDark ? "#F8FAFC" : "#0F172A",
                   width: `${responseProgress}%`,
                   transition: "width 0.3s linear",
                 }}
@@ -272,11 +282,12 @@ export function ContainmentRoom() {
           <section>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: isDark ? "#94A3B8" : "#64748B",
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
                 marginBottom: 6,
               }}
             >
@@ -291,25 +302,27 @@ export function ContainmentRoom() {
                   alignItems: "center",
                   padding: "6px 8px",
                   marginBottom: 4,
-                  border: "1px solid #1C3830",
-                  background: "#0A1A14",
+                  borderRadius: 3,
+                  border: isDark ? "1px solid #334155" : "1px solid #E2E8F0",
+                  background: isDark ? "#1E293B" : "#F8FAFC",
                 }}
               >
                 <div>
                   <span
                     style={{
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "ui-monospace, monospace",
                       fontSize: 9,
-                      color: "#5A7A94",
+                      fontWeight: 700,
+                      color: isDark ? "#94A3B8" : "#64748B",
                     }}
                   >
                     Sector {sector.id}:
                   </span>
                   <span
                     style={{
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                       fontSize: 10,
-                      color: "#C8D8E8",
+                      color: isDark ? "#F8FAFC" : "#0F172A",
                       marginLeft: 6,
                     }}
                   >
@@ -318,9 +331,10 @@ export function ContainmentRoom() {
                 </div>
                 <span
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: sector.color,
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 8.5,
+                    fontWeight: 700,
+                    color: sector.id === "A" ? "#DC2626" : (isDark ? "#94A3B8" : "#64748B"),
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                   }}
@@ -335,11 +349,12 @@ export function ContainmentRoom() {
           <section>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                color: "#2D6A5A",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: isDark ? "#94A3B8" : "#64748B",
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
                 marginBottom: 6,
               }}
             >
@@ -351,24 +366,25 @@ export function ContainmentRoom() {
                 style={{
                   padding: "6px 8px",
                   marginBottom: 4,
-                  border: "1px solid #1C3830",
-                  background: "#0A1A14",
+                  borderRadius: 3,
+                  border: isDark ? "1px solid #334155" : "1px solid #E2E8F0",
+                  background: isDark ? "#1E293B" : "#F8FAFC",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: "#C8D8E8" }}>
+                  <span style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontSize: 10, fontWeight: 600, color: isDark ? "#F8FAFC" : "#0F172A" }}>
                     {z.name}
                   </span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#10B981" }}>
+                  <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 9, fontWeight: 600, color: isDark ? "#F8FAFC" : "#0F172A" }}>
                     {z.rate}
                   </span>
                 </div>
                 <div
                   style={{
                     marginTop: 2,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8,
-                    color: "#2D6A5A",
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 8.5,
+                    color: isDark ? "#94A3B8" : "#64748B",
                   }}
                 >
                   {z.lat}  {z.lng}
@@ -382,25 +398,26 @@ export function ContainmentRoom() {
             <div
               style={{
                 padding: "8px 10px",
-                border: "1px solid #F59E0B30",
-                background: "#F59E0B08",
+                borderRadius: 3,
+                border: isDark ? "1px solid #78350F" : "1px solid #FDE68A",
+                background: isDark ? "#451A03" : "#FFFBEB",
               }}
             >
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "ui-monospace, monospace",
                   fontSize: 9,
-                  color: "#F59E0B",
+                  color: isDark ? "#FCD34D" : "#92400E",
                   fontWeight: 700,
                 }}
               >
-                ℹ COASTAL PROXIMITY ADVISORY
+                COASTAL PROXIMITY ADVISORY
               </div>
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 8,
-                  color: "#8A6A2A",
+                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontSize: 9,
+                  color: isDark ? "#FDE68A" : "#92400E",
                   marginTop: 4,
                   lineHeight: 1.4,
                 }}

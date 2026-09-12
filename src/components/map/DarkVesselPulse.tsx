@@ -102,95 +102,41 @@ export function DarkVesselPulse({
       onClick={onClick}
       title={`${label} — Click for full radar & SAR telemetry`}
     >
-      {/* ── Concentric radiating dashed sonar rings ── */}
-      <div
-        className="dark-vessel-sonar-ring"
-        style={{
-          width: 34,
-          height: 34,
-          marginLeft: -17,
-          marginTop: -17,
-          animationDelay: "0ms",
-        }}
-      />
-      <div
-        className="dark-vessel-sonar-ring"
-        style={{
-          width: 34,
-          height: 34,
-          marginLeft: -17,
-          marginTop: -17,
-          animationDelay: "800ms",
-        }}
-      />
-      <div
-        className="dark-vessel-sonar-ring"
-        style={{
-          width: 34,
-          height: 34,
-          marginLeft: -17,
-          marginTop: -17,
-          animationDelay: "1600ms",
-        }}
-      />
-
-      {/* Static inner dashed ring */}
-      <div
-        style={{
-          position: "absolute",
-          width: 18,
-          height: 18,
-          marginLeft: -9,
-          marginTop: -9,
-          borderRadius: "50%",
-          border: "1px dashed rgba(239, 68, 68, 0.85)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Red Dark Ship Hull Marker Core */}
+      {/* Crisp Dark Ship Hull Marker Core */}
       <svg
-        width="26"
-        height="26"
+        width="22"
+        height="22"
         viewBox="0 0 32 32"
         style={{
           position: "absolute",
-          left: -13,
-          top: -13,
-          filter: "drop-shadow(0 0 10px #EF4444)",
+          left: -11,
+          top: -11,
           pointerEvents: "none",
         }}
       >
         <path
           d="M 16,3 C 19.5,5.5 22,12 21.5,20 L 19,27 L 13,27 L 10.5,20 C 10,12 12.5,5.5 16,3 Z"
-          fill="#EF4444"
-          stroke="#FCA5A5"
+          fill="#DC2626"
+          stroke="#0F172A"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
-        <path
-          d="M 16,6 C 18,8 20,13 19.5,19 L 17.5,24 L 14.5,24 L 12.5,19 C 12,13 14,8 16,6 Z"
-          fill="#1A0707"
-          stroke="#EF4444"
-          strokeWidth="0.8"
-        />
-        <rect x="13.5" y="16" width="5" height="6" rx="1" fill="#EF4444" stroke="#FCA5A5" strokeWidth="0.8" />
-        <circle cx="16" cy="19" r="1" fill="#FFFFFF" />
+        <circle cx="16" cy="18" r="1.5" fill="#FFFFFF" />
       </svg>
 
       {/* ── Compact docked label card near the marker on the map canvas ── */}
       <div
         style={{
           position: "absolute",
-          left: 20,
-          top: -18,
-          background: "#0D1117",
-          border: "1px solid #1C2A38",
-          borderLeft: "2px solid #EF4444",
+          left: 16,
+          top: -16,
+          background: "#FFFFFF",
+          border: "1px solid #CBD5E1",
+          borderLeft: "2px solid #DC2626",
           borderRadius: "2px",
-          padding: "5px 8px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.75)",
-          fontFamily: "'JetBrains Mono', monospace",
+          padding: "4px 7px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+          fontFamily: "ui-monospace, monospace",
           pointerEvents: "auto",
           whiteSpace: "nowrap",
           userSelect: "none",
@@ -202,7 +148,7 @@ export function DarkVesselPulse({
               width: 5,
               height: 5,
               borderRadius: "50%",
-              background: "#EF4444",
+              background: "#DC2626",
               display: "inline-block",
               flexShrink: 0,
             }}
@@ -211,8 +157,8 @@ export function DarkVesselPulse({
             style={{
               fontSize: "8.5px",
               fontWeight: 700,
-              color: "#EF4444",
-              letterSpacing: "0.08em",
+              color: "#DC2626",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
             }}
           >
@@ -222,7 +168,7 @@ export function DarkVesselPulse({
         <div
           style={{
             fontSize: "8.5px",
-            color: "#C8D8E8",
+            color: "#0F172A",
             marginTop: 2,
             lineHeight: 1.3,
           }}
@@ -232,10 +178,9 @@ export function DarkVesselPulse({
         <div
           style={{
             fontSize: "7px",
-            color: "#EF4444",
-            opacity: 0.85,
+            color: "#64748B",
             marginTop: 1,
-            letterSpacing: "0.04em",
+            letterSpacing: "0.02em",
           }}
         >
           {statusText}

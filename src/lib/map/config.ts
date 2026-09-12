@@ -16,15 +16,15 @@ export type ThemeMode = "dark" | "light";
 
 export const MAP_STYLE_URL =
   (import.meta.env["VITE_MAP_STYLE_URL"] as string | undefined) ??
-  BASEMAP_STYLES.dark;
+  BASEMAP_STYLES.light;
 
-/** Initial camera: Mumbai Offshore Corridor AOI — slick centroid 71.85°E, 19.35°N. */
+/** Initial camera: Flat top-down nautical chart view — still, fixed at AOI center. */
 export const INITIAL_VIEW_STATE = {
-  longitude: 71.85,
-  latitude: 19.35,
-  zoom: 7.5,
-  pitch: 45,
-  bearing: -15,
+  longitude: 72.15,
+  latitude: 19.15,
+  zoom: 8.2,
+  pitch: 0,
+  bearing: 0,
 } as const;
 
 export const LAYER_IDS = {
@@ -49,25 +49,25 @@ export const LAYER_META: LayerMeta[] = [
     id: LAYER_IDS.sarRaster,
     label: "SAR Raster",
     description: "Sentinel-1A backscatter scene (P1)",
-    color: "#6B7F94",   // slate-ish, neutral — informational
+    color: "#64748B",   // neutral slate
   },
   {
     id: LAYER_IDS.slickPolygon,
     label: "Slick Polygon",
     description: "Detected oil slick extent (P1)",
-    color: "#F59E0B",   // amber — caution: oil spill hazard boundary
+    color: "#0F172A",   // crisp high-contrast black/charcoal
   },
   {
     id: LAYER_IDS.h3Corridor,
     label: "H3 Corridor",
     description: "Particle-density hex corridor (P4)",
-    color: "#22D3EE",   // cyan — primary data layer
+    color: "#475569",   // dark slate
   },
   {
     id: LAYER_IDS.aisTracks,
     label: "AIS Tracks",
-    description: "Vessel tracks & interpolated positions (P5)",
-    color: "#22D3EE",   // cyan — same accent family, distinguishable by context
+    description: "Vessel tracks & positions (P5)",
+    color: "#0F172A",   // crisp black/charcoal
   },
 ];
 
@@ -86,12 +86,11 @@ export interface TrackColorOption {
 }
 
 /**
- * Restricted to 4 cyan-family shades only.
- * Pink / orange / purple are banned from the live map per design spec.
+ * Minimal monochrome / high-contrast color palette.
  */
 export const TRACK_COLOR_OPTIONS: TrackColorOption[] = [
-  { id: "cyan",      name: "Cyan",       hex: "#22D3EE", rgb: [34, 211, 238] },
-  { id: "cyan-dim",  name: "Cyan (dim)", hex: "#0E7490", rgb: [14, 116, 144] },
-  { id: "teal",      name: "Teal",       hex: "#14B8A6", rgb: [20, 184, 166] },
-  { id: "white",     name: "White",      hex: "#E2E8F0", rgb: [226, 232, 240] },
+  { id: "black",     name: "Black",      hex: "#0F172A", rgb: [15, 23, 42] },
+  { id: "charcoal",  name: "Charcoal",   hex: "#334155", rgb: [51, 65, 85] },
+  { id: "slate",     name: "Slate",      hex: "#64748B", rgb: [100, 116, 139] },
+  { id: "gray",      name: "Muted Gray", hex: "#94A3B8", rgb: [148, 163, 184] },
 ];
