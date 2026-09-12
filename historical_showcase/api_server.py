@@ -185,12 +185,27 @@ def get_detection(scenario: str = Query("active", description="Scenario: active 
 @app.get("/api/corridor")
 def get_corridor(scenario: str = Query("active", description="Scenario: active | kerala")):
     """
-    Stage 2: H3 Discretization & Lagrangian Physics Backtracking (PRD §7.2).
+    Stage 2: H3 Discretization & Lagrangian Physics Backtracking (PRD A 7.2).
     Returns real hex cells binned from OpenDrift particle advection checkpoints.
     """
     target_file = H3_CORRIDOR_FILE
+    
+    # Task 3: Explicit data source isolation logging
+    print("\n" + "="*60)
+    print(f"[SCENARIO SWITCH] Processing request for scenario: {scenario.upper()}")
+    
     if scenario == "kerala":
         target_file = ROOT_DIR / "h3_corridor_output_kerala.json"
+        print("[DATA SOURCE] Backend serving KERALA Historical Validation")
+        print("[DATA SOURCE] Active NetCDF Currents: k_case_study/u3z_2025.nc4, k_case_study/v3z_2025.nc4")
+        print("[DATA SOURCE] Active NetCDF Winds: k_case_study/data_0.nc")
+        print(f"[DATA SOURCE] Active Ground Truth Route: MSC Elsa 3 (May 2025)")
+    else:
+        print("[DATA SOURCE] Backend serving LIVE MUMBAI Demo")
+        print("[DATA SOURCE] Active NetCDF Currents: mumbai_hycom_currents_2026.nc")
+        print("[DATA SOURCE] Active NetCDF Winds: mumbai_era5_winds_2026.nc")
+        print(f"[DATA SOURCE] Active Target: IND_TANKER_412 (May 2026)")
+    print("="*60 + "\n")
 
     if not target_file.exists():
         raise HTTPException(status_code=404, detail=f"{target_file.name} not found")
