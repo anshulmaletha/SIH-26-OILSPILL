@@ -260,12 +260,36 @@ export default function MapView({
         (!isSuspectStage || !candidateSuspectVessels.some((c) => c.id === d.id))
     );
 
+    // Helper to calculate vessel position interpolated across relativeHour (-24h to 0h)
+    // Allows ALL ships to move along their trajectories during backtracking
+    const getSwarmPosition = (d: SwarmVessel): [number, number] => {
+      if (relativeHour >= 0 || !d.trajectory || d.trajectory.length < 2) {
+        return d.position;
+      }
+      // relativeHour winds backward from 0 to -24h
+      // norm: 1.0 at 0h (latest pos), 0.0 at -24h (earliest pos)
+      const norm = Math.max(0, Math.min(1, (relativeHour + 24) / 24));
+      const traj = d.trajectory;
+      const exactIndex = norm * (traj.length - 1);
+      const i1 = Math.floor(exactIndex);
+      const i2 = Math.min(traj.length - 1, Math.ceil(exactIndex));
+      const t = exactIndex - i1;
+
+      const pt1 = traj[i1] ?? d.position;
+      const pt2 = traj[i2] ?? pt1;
+
+      return [
+        pt1[0] + t * (pt2[0] - pt1[0]),
+        pt1[1] + t * (pt2[1] - pt1[1]),
+      ];
+    };
+
     // 1. Normal vessel dots (ScatterplotLayer) - small, clean, subtle dots
     if (normalVessels.length > 0) {
       const normalDotsLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-swarm-dots",
         data: normalVessels,
-        getPosition: (d: SwarmVessel) => d.position,
+        getPosition: (d: SwarmVessel) => getSwarmPosition(d),
         getRadius: (d: SwarmVessel) => {
           const isSelected =
             selectedVessel &&
@@ -313,7 +337,11 @@ export default function MapView({
         stroked: true,
         filled: true,
         pickable: true,
+        transitions: {
+          getPosition: 200,
+        },
         updateTriggers: {
+          getPosition: [relativeHour],
           getRadius: [selectedVessel],
           getFillColor: [swarmPhase, isSuspectStage, selectedVessel, theme],
           getLineColor: [selectedVessel, theme],
@@ -355,7 +383,7 @@ export default function MapView({
       const suspectReticleLayer = new ScatterplotLayer<SwarmVessel>({
         id: "mission-suspect-beacon-rings",
         data: candidateSuspectVessels,
-        getPosition: (d: SwarmVessel) => d.position,
+        getPosition: (d: SwarmVessel) => getSwarmPosition(d),
         getRadius: (d: SwarmVessel) => (d.id === primaryCulprit?.id ? 1250 : 800),
         radiusUnits: "meters",
         radiusMinPixels: (d: SwarmVessel) => (d.id === primaryCulprit?.id ? 16 : 12),
@@ -370,7 +398,11 @@ export default function MapView({
               : [220, 38, 38, 255]
             : [245, 158, 11, 210],
         pickable: false,
+        transitions: {
+          getPosition: 200,
+        },
         updateTriggers: {
+          getPosition: [relativeHour],
           getRadius: [primaryCulprit],
           getLineColor: [primaryCulprit, theme],
         },
@@ -382,7 +414,7 @@ export default function MapView({
         const innerBeaconLayer = new ScatterplotLayer<SwarmVessel>({
           id: "mission-culprit-inner-beacon",
           data: [primaryCulprit],
-          getPosition: (d: SwarmVessel) => d.position,
+          getPosition: (d: SwarmVessel) => getSwarmPosition(d),
           getRadius: 600,
           radiusUnits: "meters",
           radiusMinPixels: 10,
@@ -393,14 +425,20 @@ export default function MapView({
           getLineColor: theme === "dark" ? [245, 158, 11, 240] : [220, 38, 38, 240],
           lineWidthMinPixels: 2,
           pickable: false,
-          updateTriggers: { getLineColor: [theme] },
+          transitions: {
+            getPosition: 200,
+          },
+          updateTriggers: {
+            getPosition: [relativeHour],
+            getLineColor: [theme],
+          },
         });
         extraLayers.push(innerBeaconLayer);
 
         const centerPipLayer = new ScatterplotLayer<SwarmVessel>({
           id: "mission-culprit-center-pip",
           data: [primaryCulprit],
-          getPosition: (d: SwarmVessel) => d.position,
+          getPosition: (d: SwarmVessel) => getSwarmPosition(d),
           getRadius: 200,
           radiusUnits: "meters",
           radiusMinPixels: 3.5,
@@ -411,7 +449,13 @@ export default function MapView({
           getLineColor: [255, 255, 255, 255],
           lineWidthMinPixels: 1,
           pickable: false,
-          updateTriggers: { getFillColor: [theme] },
+          transitions: {
+            getPosition: 200,
+          },
+          updateTriggers: {
+            getPosition: [relativeHour],
+            getFillColor: [theme],
+          },
         });
         extraLayers.push(centerPipLayer);
 
@@ -441,33 +485,36 @@ export default function MapView({
           );
         }
 
-        // Forward velocity course vector (heading 135° ~3.5km)
+        // Forward velocity course vector (heading 135° ~3.5km) anchored to dynamic vessel position
+        const curCulpritPos = getSwarmPosition(primaryCulprit);
         const headingRad = ((primaryCulprit.heading ?? 135) * Math.PI) / 180;
-        const cosLat = Math.cos((primaryCulprit.position[1] * Math.PI) / 180) || 1;
+        const cosLat = Math.cos((curCulpritPos[1] * Math.PI) / 180) || 1;
         const vecLen = 0.032;
         const forwardPt: [number, number] = [
-          primaryCulprit.position[0] + (Math.sin(headingRad) * vecLen) / cosLat,
-          primaryCulprit.position[1] + Math.cos(headingRad) * vecLen,
+          curCulpritPos[0] + (Math.sin(headingRad) * vecLen) / cosLat,
+          curCulpritPos[1] + Math.cos(headingRad) * vecLen,
         ];
         extraLayers.push(
           new PathLayer({
             id: "mission-culprit-heading-vector",
-            data: [{ path: [primaryCulprit.position, forwardPt] }],
+            data: [{ path: [curCulpritPos, forwardPt] }],
             getPath: (d: { path: [number, number][] }) => d.path,
             getColor: () => (theme === "dark" ? [254, 240, 138, 240] : [220, 38, 38, 240]),
             getWidth: 2.2,
             widthUnits: "pixels",
             pickable: false,
             parameters: { depthTest: false },
+            transitions: { getPath: 200 },
+            updateTriggers: { getPath: [relativeHour] },
           })
         );
       }
 
-      // 2d. Suspect Candidate Vessels - PROMINENT SHIP ICONS
+      // 2d. Suspect Candidate Vessels - PROMINENT SHIP ICONS (Dynamic backtrack motion)
       const suspectShipsLayer = new IconLayer<SwarmVessel>({
         id: "mission-suspect-ships",
         data: candidateSuspectVessels,
-        getPosition: (d: SwarmVessel) => d.position,
+        getPosition: (d: SwarmVessel) => getSwarmPosition(d),
         getIcon: (d: SwarmVessel) =>
           d.id === primaryCulprit?.id ? "ship-culprit" : "ship-amber",
         getSize: (d: SwarmVessel) => {
@@ -484,7 +531,11 @@ export default function MapView({
         iconMapping: SHIP_ICON_MAPPING,
         sizeUnits: "pixels",
         pickable: true,
+        transitions: {
+          getPosition: 200,
+        },
         updateTriggers: {
+          getPosition: [relativeHour],
           getSize: [dynamicIconSize, selectedVessel, primaryCulprit],
           getIcon: [primaryCulprit],
         },
@@ -500,6 +551,7 @@ export default function MapView({
           }
           const v = info.object as SwarmVessel;
           const isPrimary = v.id === primaryCulprit?.id;
+          const dynamicPos = getSwarmPosition(v);
           setTooltip({
             x: info.x,
             y: info.y,
@@ -514,9 +566,16 @@ export default function MapView({
               { label: "Type", value: v.typeLabel || "Crude Oil Tanker" },
               {
                 label: "Speed",
-                value: `${(v.speedKnots ?? 0).toFixed(1)} kn ${isPrimary ? "(Anomaly Drop)" : ""}`,
+                value: isPrimary
+                  ? (relativeHour <= -9 && relativeHour >= -15)
+                    ? "4.1 kn (Anomaly Drop at Spill Origin)"
+                    : relativeHour < -15
+                    ? "14.2 kn (Corridor Transit)"
+                    : "11.5 kn (Transit to Nhava Sheva)"
+                  : `${(v.speedKnots ?? 0).toFixed(1)} kn`,
               },
               { label: "Heading", value: `${(v.heading ?? 0).toFixed(0)}°` },
+              { label: "Position", value: `${dynamicPos[1].toFixed(4)}°N, ${dynamicPos[0].toFixed(4)}°E` },
               {
                 label: "Reason",
                 value: v.suspiciousReason || "Discharge corridor intersection at T-12h",
@@ -533,7 +592,7 @@ export default function MapView({
           new TextLayer<SwarmVessel>({
             id: "mission-culprit-text-callout",
             data: [primaryCulprit],
-            getPosition: (d: SwarmVessel) => d.position,
+            getPosition: (d: SwarmVessel) => getSwarmPosition(d),
             getText: () => "▲ PRIMARY CULPRIT · IND_TANKER_412 (94.2%)",
             getSize: 11.5,
             getColor: theme === "dark" ? [254, 240, 138, 255] : [15, 23, 42, 255],
@@ -548,8 +607,12 @@ export default function MapView({
             getBorderWidth: 1.5,
             backgroundPadding: [8, 4, 8, 4],
             pickable: true,
+            transitions: {
+              getPosition: 200,
+            },
             onClick: () => handleSelectVessel(primaryCulprit),
             updateTriggers: {
+              getPosition: [relativeHour],
               getColor: [theme],
               getBackgroundColor: [theme],
               getBorderColor: [theme],
@@ -563,7 +626,7 @@ export default function MapView({
           new TextLayer<SwarmVessel>({
             id: "mission-candidate-text-callouts",
             data: otherCandidates,
-            getPosition: (d: SwarmVessel) => d.position,
+            getPosition: (d: SwarmVessel) => getSwarmPosition(d),
             getText: (d: SwarmVessel) => `● CANDIDATE · ${d.name}`,
             getSize: 9.5,
             getColor: theme === "dark" ? [226, 232, 240, 240] : [51, 65, 85, 240],
@@ -578,10 +641,14 @@ export default function MapView({
             getBorderWidth: 1,
             backgroundPadding: [6, 3, 6, 3],
             pickable: true,
+            transitions: {
+              getPosition: 200,
+            },
             onClick: (info) => {
               if (info.object) handleSelectVessel(info.object as SwarmVessel);
             },
             updateTriggers: {
+              getPosition: [relativeHour],
               getColor: [theme],
               getBackgroundColor: [theme],
             },
@@ -590,12 +657,12 @@ export default function MapView({
       }
     }
 
-    // 3. Dark Vessel Ship Markers (IconLayer) - PROMINENT RED SHIP SILHOUETTES
+    // 3. Dark Vessel Ship Markers (IconLayer) - PROMINENT RED SHIP SILHOUETTES (Dynamic backtrack motion)
     if (darkVesselsInSwarm.length > 0) {
       const darkVesselsLayer = new IconLayer<SwarmVessel>({
         id: "mission-dark-vessel-ships",
         data: darkVesselsInSwarm,
-        getPosition: (d: SwarmVessel) => d.position,
+        getPosition: (d: SwarmVessel) => getSwarmPosition(d),
         getIcon: () => "ship-red",
         getSize: (d: SwarmVessel) => {
           const isSelected =
@@ -609,7 +676,11 @@ export default function MapView({
         iconMapping: SHIP_ICON_MAPPING,
         sizeUnits: "pixels",
         pickable: true,
+        transitions: {
+          getPosition: 200,
+        },
         updateTriggers: {
+          getPosition: [relativeHour],
           getSize: [dynamicIconSize, selectedVessel],
         },
         onClick: (info) => {

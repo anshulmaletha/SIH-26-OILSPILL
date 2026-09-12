@@ -13,15 +13,15 @@ interface DriftProjection {
   lat: number;
   lng: number;
   areaKm2: number;
-  label: string;
+  phaseName: string;
 }
 
 const DRIFT_PROJECTIONS: DriftProjection[] = [
-  { hour: 0,  lat: 19.350, lng: 71.853, areaKm2: 4.82, label: "T+0h  · Initial Detection (19.35°N, 71.85°E)" },
-  { hour: 6,  lat: 19.340, lng: 71.881, areaKm2: 5.4,  label: "T+6h  · OpenDrift Forward (19.34°N, 71.88°E)" },
-  { hour: 12, lat: 19.336, lng: 71.917, areaKm2: 6.8,  label: "T+12h · Advection Plume (19.34°N, 71.92°E)" },
-  { hour: 18, lat: 19.323, lng: 71.949, areaKm2: 8.5,  label: "T+18h · Dispersion Plume (19.32°N, 71.95°E)" },
-  { hour: 24, lat: 19.324, lng: 71.950, areaKm2: 10.2, label: "T+24h · Coastal Approach (19.32°N, 71.95°E)" },
+  { hour: 0,  lat: 19.350, lng: 71.853, areaKm2: 4.82, phaseName: "Initial SAR Detection" },
+  { hour: 6,  lat: 19.340, lng: 71.881, areaKm2: 5.4,  phaseName: "OpenDrift Forward Advection" },
+  { hour: 12, lat: 19.336, lng: 71.917, areaKm2: 6.8,  phaseName: "Advection Plume Dispersion" },
+  { hour: 18, lat: 19.323, lng: 71.949, areaKm2: 8.5,  phaseName: "Hydrodynamic Shear Spread" },
+  { hour: 24, lat: 19.324, lng: 71.950, areaKm2: 10.2, phaseName: "Coastal Approach Intercept" },
 ];
 
 const OPERATIONAL_SECTORS = [
@@ -176,7 +176,7 @@ export function ContainmentRoom() {
                 T+{forwardHours}h
               </span>
               <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: isDark ? "#94A3B8" : "#64748B" }}>
-                {currentDrift.areaKm2} km²
+                {forwardHours === 0 ? "4.82 km² (Observed)" : `${currentDrift.areaKm2} km² (Modeled)`}
               </span>
             </div>
 
@@ -189,48 +189,103 @@ export function ContainmentRoom() {
                   top: 0,
                   bottom: 0,
                   background: isDark ? "#F8FAFC" : "#0F172A",
-                  width: `${(forwardHours / 48) * 100}%`,
+                  width: `${(forwardHours / 24) * 100}%`,
                   transition: "width 0.5s linear",
                 }}
               />
             </div>
 
-            {/* Drift checkpoints */}
-            {DRIFT_PROJECTIONS.map((p) => (
-              <div
-                key={p.hour}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "5px 8px",
-                  marginBottom: 3,
-                  borderRadius: 3,
-                  background: forwardHours >= p.hour ? (isDark ? "#1E293B" : "#F1F5F9") : (isDark ? "#0F172A" : "#FFFFFF"),
-                  border: `1px solid ${forwardHours >= p.hour ? (isDark ? "#334155" : "#CBD5E1") : (isDark ? "#1E293B" : "#E2E8F0")}`,
-                }}
-              >
-                <span
+            {/* Drift checkpoints (Progressively calculated, never pre-revealed) */}
+            {DRIFT_PROJECTIONS.map((p) => {
+              const isCalculated = forwardHours >= p.hour;
+              const isCalculating = !isCalculated && forwardHours >= Math.max(0, p.hour - 6);
+              const isPending = !isCalculated && !isCalculating;
+
+              return (
+                <div
+                  key={p.hour}
                   style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 9,
-                    fontWeight: forwardHours >= p.hour ? 600 : 400,
-                    color: forwardHours >= p.hour ? (isDark ? "#F8FAFC" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "6px 8px",
+                    marginBottom: 3,
+                    borderRadius: 3,
+                    background: isCalculated
+                      ? (isDark ? "#1E293B" : "#F1F5F9")
+                      : isCalculating
+                      ? (isDark ? "#1E293B" : "#F8FAFC")
+                      : (isDark ? "#0F172A" : "#FFFFFF"),
+                    border: `1px solid ${
+                      isCalculated
+                        ? (isDark ? "#334155" : "#CBD5E1")
+                        : isCalculating
+                        ? (isDark ? "#0284C7" : "#38BDF8")
+                        : (isDark ? "#1E293B" : "#E2E8F0")
+                    }`,
+                    opacity: isPending ? 0.45 : 1,
+                    transition: "all 0.3s ease",
                   }}
                 >
-                  {p.label}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 9,
-                    color: isDark ? "#F8FAFC" : "#0F172A",
-                  }}
-                >
-                  {p.areaKm2} km²
-                </span>
-              </div>
-            ))}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: 9,
+                          fontWeight: isCalculated ? 700 : 500,
+                          color: isCalculated
+                            ? (isDark ? "#F8FAFC" : "#0F172A")
+                            : isCalculating
+                            ? (isDark ? "#38BDF8" : "#0284C7")
+                            : (isDark ? "#64748B" : "#94A3B8"),
+                        }}
+                      >
+                        T+{p.hour}h · {p.phaseName}
+                      </span>
+                      {isCalculated && (
+                        <span style={{ fontSize: 9, color: "#10B981", fontWeight: 700 }}>✓</span>
+                      )}
+                    </div>
+                    {/* Only reveal computed lat/lon when actually calculated! */}
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: 8,
+                        color: isCalculated
+                          ? (isDark ? "#94A3B8" : "#64748B")
+                          : isCalculating
+                          ? (isDark ? "#38BDF8" : "#0284C7")
+                          : (isDark ? "#475569" : "#CBD5E1"),
+                      }}
+                    >
+                      {isCalculated
+                        ? `(${p.lat.toFixed(2)}°N, ${p.lng.toFixed(2)}°E)`
+                        : isCalculating
+                        ? "⟳ Integrating forward advection step…"
+                        : "Awaiting simulation timestep…"}
+                    </span>
+                  </div>
+
+                  {/* Area output: Only show calculated number once reached! */}
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: 9,
+                      fontWeight: isCalculated ? 600 : 400,
+                      color: isCalculated
+                        ? (isDark ? "#F8FAFC" : "#0F172A")
+                        : isCalculating
+                        ? (isDark ? "#38BDF8" : "#0284C7")
+                        : (isDark ? "#64748B" : "#94A3B8"),
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isCalculated ? `${p.areaKm2} km²` : isCalculating ? "Computing…" : "—"}
+                  </span>
+                </div>
+              );
+            })}
           </section>
 
           {/* Advection & response metrics */}
@@ -257,10 +312,12 @@ export function ContainmentRoom() {
                   color: isDark ? "#F8FAFC" : "#0F172A",
                 }}
               >
-                ~0.45 km/h
+                {forwardHours === 0 ? "0.00 km/h" : "~0.45 km/h"}
               </span>
               <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 9, color: isDark ? "#94A3B8" : "#64748B" }}>
-                Eastward drift velocity (ERA5 3.8 m/s wind)
+                {forwardHours === 0
+                  ? "At rest (Initial detection T+0h baseline)"
+                  : "Eastward advection velocity (ERA5 3.8 m/s wind forcing)"}
               </span>
             </div>
             <div style={{ height: 3, background: isDark ? "#334155" : "#E2E8F0", marginTop: 6, position: "relative", borderRadius: 2, overflow: "hidden" }}>

@@ -79,7 +79,7 @@ export const SARPhaseOverlay: React.FC = () => {
         <span>
           {showAnomalyLock
             ? "ANOMALY IDENTIFIED · U-Net Segmentation Complete"
-            : "Sentinel-1A SAR Ingestion · C-Band VV Speckle Filter (5×5)"}
+            : "Sentinel-1A SAR Ingestion · C-Band Radar Speckle Filter (5×5)"}
         </span>
       </div>
 
@@ -115,7 +115,7 @@ export const SARPhaseOverlay: React.FC = () => {
           </div>
           <div style={{ fontSize: 9, color: isDark ? "#F8FAFC" : "#0F172A", lineHeight: 1.6 }}>
             <div>Centroid: 19.350°N, 71.853°E</div>
-            <div>Backscatter: σ° = -18.6 dB (VV)</div>
+            <div>Radar Damping: Δσ° = 4.8 dB (Threshold ≥ 4.5 dB)</div>
             <div>Vectorized Area: 4.82 km² · Perimeter: 14.8 km</div>
             <div>PyTorch U-Net Confidence: 94.0%</div>
             <div style={{ color: isDark ? "#F8FAFC" : "#0F172A", fontWeight: 700, marginTop: 4 }}>

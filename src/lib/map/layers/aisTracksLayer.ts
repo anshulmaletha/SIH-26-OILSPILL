@@ -20,6 +20,8 @@ export interface AisTrackLayerOptions {
   selectedTrackColor?: [number, number, number] | undefined; // custom RGB (restricted to cyan family)
   followTrack?: boolean | undefined;
   primarySuspectVesselId?: string | undefined; // vessel with highest score — gets subtle cyan halo ring
+  /** When false (default), only track lines and motion trails are returned to prevent duplicate rendering over MapView's swarm/candidate layers */
+  renderVesselMarkers?: boolean | undefined;
   onHover?: ((info: MapTooltipInfo | null) => void) | undefined;
   onSelectVessel?: ((vessel: VesselTrack) => void) | undefined;
 }
@@ -48,6 +50,7 @@ export function createAisTrackLayers({
   selectedTrackColor = CYAN_FULL,
   followTrack = false,
   primarySuspectVesselId,
+  renderVesselMarkers = false,
   onHover,
   onSelectVessel,
 }: AisTrackLayerOptions) {
@@ -382,6 +385,12 @@ export function createAisTrackLayers({
       if (info.object && onSelectVessel) onSelectVessel((info.object as ActiveVesselPosition).vessel);
     },
   });
+
+  // When MapView manages swarm/suspect vessel rendering, only return track paths and motion trails
+  // to avoid rendering duplicate ghost vessels on top of the same path
+  if (!renderVesselMarkers) {
+    return [tracks, motionTrailLayer];
+  }
 
   return [
     tracks,

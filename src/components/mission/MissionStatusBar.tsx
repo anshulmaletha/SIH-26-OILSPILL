@@ -160,18 +160,21 @@ const MissionStatusBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Vertical separator */}
-        <div
-          style={{
-            width: '1px',
-            height: '24px',
-            backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
-            marginLeft: '8px',
-            marginRight: '8px',
-            flexShrink: 0,
-          }}
-        />
+      </div>
 
+      {/* CENTER SECTION: MISSION SCENARIO & CLOCK POD (Zero-overlap flex container) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '4px 12px',
+          borderRadius: '4px',
+          backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(241, 245, 249, 0.85)',
+          border: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+          flexShrink: 0,
+        }}
+      >
         {/* Scenario Selector */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span
@@ -190,13 +193,14 @@ const MissionStatusBar: React.FC = () => {
             value={state.scenario}
             onChange={(e) => dispatch({ type: 'SET_SCENARIO', scenario: e.target.value as any })}
             style={{
-              backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+              backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
               color: isDark ? '#F8FAFC' : '#0F172A',
               border: isDark ? '1px solid #334155' : '1px solid #CBD5E1',
               borderRadius: '3px',
               fontFamily: "ui-monospace, monospace",
               fontSize: '10px',
               padding: '2px 6px',
+              maxWidth: '175px',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -206,44 +210,53 @@ const MissionStatusBar: React.FC = () => {
             <option value="no_candidates">Uncorrelated Sector (Null-Result)</option>
           </select>
         </div>
-      </div>
 
-      {/* CENTER SECTION */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '2px',
-          position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        }}
-      >
-        <span
+        {/* Pod Separator */}
+        <div
           style={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: '8px',
-            color: isDark ? '#94A3B8' : '#64748B',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            lineHeight: 1,
+            width: '1px',
+            height: '24px',
+            backgroundColor: isDark ? '#334155' : '#CBD5E1',
+            flexShrink: 0,
+          }}
+        />
+
+        {/* Mission Clock */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px',
+            minWidth: '120px',
           }}
         >
-          MISSION CLOCK
-        </span>
-        <span
-          style={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: '12px',
-            fontWeight: 600,
-            color: isDark ? '#F8FAFC' : '#0F172A',
-            lineHeight: 1,
-            letterSpacing: '0.05em',
-          }}
-        >
-          {formatZulu(state.simulatedTime)}
-        </span>
+          <span
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: '8px',
+              color: isDark ? '#94A3B8' : '#64748B',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              lineHeight: 1,
+            }}
+          >
+            MISSION CLOCK
+          </span>
+          <span
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: '11px',
+              fontWeight: 600,
+              color: isDark ? '#F8FAFC' : '#0F172A',
+              lineHeight: 1,
+              letterSpacing: '0.05em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatZulu(state.simulatedTime)}
+          </span>
+        </div>
       </div>
 
       {/* RIGHT SECTION */}

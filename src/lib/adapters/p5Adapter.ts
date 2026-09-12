@@ -39,11 +39,11 @@ export const DEFAULT_P5_DATA: P5Output = {
         [71.9, 19.1],
       ],
       pings: [
-        { timestamp: "2026-05-14T18:00:00Z", relativeHour: -12, position: [70.8, 20.1], sogKnots: 14.2, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
-        { timestamp: "2026-05-14T21:00:00Z", relativeHour: -9, position: [71.2, 19.65], sogKnots: 4.1, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
+        { timestamp: "2026-05-14T06:00:00Z", relativeHour: -24, position: [70.8, 20.1], sogKnots: 14.2, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
+        { timestamp: "2026-05-14T12:00:00Z", relativeHour: -18, position: [71.0, 19.88], sogKnots: 13.8, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
+        { timestamp: "2026-05-14T18:00:00Z", relativeHour: -12, position: [71.2, 19.65], sogKnots: 4.1, cogDegrees: 135, headingDegrees: 135, navStatus: "Speed Anomaly" },
         { timestamp: "2026-05-15T00:00:00Z", relativeHour: -6, position: [71.55, 19.4], sogKnots: 13.8, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
-        { timestamp: "2026-05-15T03:00:00Z", relativeHour: -3, position: [71.75, 19.25], sogKnots: 14.0, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
-        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [71.9, 19.1], sogKnots: 13.9, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
+        { timestamp: "2026-05-15T06:00:00Z", relativeHour: 0, position: [71.9, 19.1], sogKnots: 11.5, cogDegrees: 135, headingDegrees: 135, navStatus: "Underway" },
       ],
     },
     {

@@ -192,11 +192,11 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     flag: "India",
     vesselType: "tanker",
     typeLabel: "Crude Oil Tanker (VLCC)",
-    position: [71.20, 19.65],
+    position: [71.90, 19.10],
     heading: 135,
     course: 135,
-    speedKnots: 4.1,
-    navStatus: "Underway using Engine (Speed Anomaly)",
+    speedKnots: 11.5,
+    navStatus: "Underway using Engine",
     destination: "NHAVA SHEVA PORT",
     eta: "2026-05-15 14:00 UTC",
     lastSeen: "06:00:00 UTC",
@@ -209,10 +209,11 @@ const CANDIDATE_VESSELS: SwarmVessel[] = [
     threatTag: "CRITICAL PROBABILITY (0.912)",
     minZoom: 0,
     trajectory: [
-      [70.80, 20.10],
-      [70.95, 19.92],
-      [71.10, 19.78],
-      [71.20, 19.65],
+      [70.80, 20.10], // T-24h
+      [71.00, 19.88], // T-18h
+      [71.20, 19.65], // T-12h: Speed drop (14.2 → 4.1 kn) & discharge location
+      [71.55, 19.40], // T-6h
+      [71.90, 19.10], // T0: Present SAR detection position
     ],
   },
   {
