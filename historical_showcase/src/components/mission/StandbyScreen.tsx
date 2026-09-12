@@ -67,110 +67,64 @@ export const StandbyScreen: React.FC = () => {
           alignItems: "center",
         }}
       >
-        {/* Incident badge */}
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: "#5A7A94",
-            border: "1px solid #1C2A38",
-            padding: "4px 10px",
-            borderRadius: 2,
-            letterSpacing: "0.08em",
-          }}
-        >
-          INC-2026-MUM-001
-        </div>
-
-        {/* Incident title */}
-        <div
-          style={{
-            fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            fontSize: 28,
-            fontWeight: 300,
-            color: "#E2E8F0",
-            letterSpacing: "-0.02em",
-            marginTop: 12,
-            textAlign: "center",
-          }}
-        >
-          MUMBAI OFFSHORE CORRIDOR
-        </div>
-
-        {/* Subtitle */}
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: "#3A5268",
-            marginTop: 10,
-            textAlign: "center",
-            letterSpacing: "0.02em",
-          }}
-        >
-          Sentinel-1A SAR Detection&nbsp; ·&nbsp; OpenDrift Backtrack&nbsp; ·&nbsp; AIS Attribution&nbsp; ·&nbsp; Containment Ops
-        </div>
-
-        {/* Coordinates */}
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: "#22D3EE",
-            marginTop: 8,
-            letterSpacing: "0.04em",
-          }}
-        >
-          Lat 19.35°N&nbsp;&nbsp;|&nbsp;&nbsp;Lon 71.85°E&nbsp;&nbsp;|&nbsp;&nbsp;Area 14.2 km²
-        </div>
-
-        {/* Divider */}
-        <div
-          style={{
-            width: 320,
-            height: 1,
-            backgroundColor: "#1C2A38",
-            margin: "24px 0",
-          }}
-        />
-
-        {/* Start button */}
-        <button
-          onClick={() => dispatch({ type: "INITIATE" })}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            background: hovered ? "rgba(34,211,238,0.063)" : "#111822",
-            border: "1px solid #22D3EE",
-            color: "#22D3EE",
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 13,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            padding: "14px 32px",
-            cursor: "pointer",
-            borderRadius: 2,
-            transition: "background 0.2s ease",
-            outline: "none",
-          }}
-        >
-          {/* Pulsing cyan dot */}
-          <span
+        {/* Scenario Picker */}
+        <div style={{ display: "flex", gap: "24px", marginTop: "20px" }}>
+          
+          {/* Mumbai Live Demo Card */}
+          <div
+            onClick={() => dispatch({ type: "SET_SCENARIO", scenario: "active" })}
             style={{
-              display: "inline-block",
-              width: 5,
-              height: 5,
-              borderRadius: "50%",
-              backgroundColor: "#22D3EE",
-              flexShrink: 0,
-              animation: "standby-dot-pulse 1.4s ease-in-out infinite",
+              width: "280px",
+              background: "#0A0E14",
+              border: "1px solid #1C2A38",
+              borderRadius: "4px",
+              padding: "20px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
             }}
-          />
-          [ INITIATE SAR MISSION ANALYSIS ]
-        </button>
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#22D3EE"; e.currentTarget.style.background = "rgba(34,211,238,0.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1C2A38"; e.currentTarget.style.background = "#0A0E14"; }}
+          >
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#5A7A94", marginBottom: "8px" }}>LIVE DEMO</div>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, color: "#E2E8F0", textAlign: "center", marginBottom: "12px" }}>MUMBAI OFFSHORE</div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#9CA3AF", textAlign: "center", lineHeight: 1.4, marginBottom: "16px" }}>
+              Real-time pipeline.<br/>Dark Vessel Tracking<br/>Multi-factor Scoring
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#22D3EE" }}>[ INITIATE ]</div>
+          </div>
+
+          {/* Kerala Historical Card */}
+          <div
+            onClick={() => dispatch({ type: "SET_SCENARIO", scenario: "kerala" })}
+            style={{
+              width: "280px",
+              background: "#0A0E14",
+              border: "1px solid #1C2A38",
+              borderRadius: "4px",
+              padding: "20px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#F59E0B"; e.currentTarget.style.background = "rgba(245,158,11,0.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1C2A38"; e.currentTarget.style.background = "#0A0E14"; }}
+          >
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#5A7A94", marginBottom: "8px" }}>HISTORICAL VALIDATION</div>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, color: "#E2E8F0", textAlign: "center", marginBottom: "12px" }}>MSC ELSA 3 (KERALA)</div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#9CA3AF", textAlign: "center", lineHeight: 1.4, marginBottom: "16px" }}>
+              Physics geometry verification.<br/>No live tracking.<br/>Origin Error: 4.8km
+            </div>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#F59E0B" }}>[ INITIATE ]</div>
+          </div>
+
+        </div>
       </div>
 
       {/* Bottom left: version */}

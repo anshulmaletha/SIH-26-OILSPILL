@@ -183,40 +183,27 @@ const MissionStatusBar: React.FC = () => {
           }}
         />
 
-        {/* Scenario Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '8px',
-              color: '#5A7A94',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-            }}
-          >
-            SCENARIO
-          </span>
-          <select
-            value={state.scenario}
-            onChange={(e) => dispatch({ type: 'SET_SCENARIO', scenario: e.target.value as any })}
+        {/* Return to Menu Button */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginLeft: '12px' }}>
+          <button
+            onClick={() => dispatch({ type: 'RESET_MISSION' })}
             style={{
               backgroundColor: '#111822',
-              color: '#22D3EE',
+              color: '#9CA3AF',
               border: '1px solid #1C2A38',
               borderRadius: '2px',
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '10px',
-              padding: '2px 6px',
-              outline: 'none',
+              padding: '4px 8px',
               cursor: 'pointer',
+              textTransform: 'uppercase',
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#F87171'; e.currentTarget.style.borderColor = '#F87171'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.borderColor = '#1C2A38'; }}
           >
-            <option value="kerala">Kerala Historical Simulation (MSC Elsa 3)</option>
-            <option value="active">Mumbai Offshore (Attributed)</option>
-            <option value="rejected_lookalike">Look-Alike Rejection Test</option>
-            <option value="no_candidates">Uncorrelated Sector (Null-Result)</option>
-          </select>
+            End Mission
+          </button>
         </div>
       </div>
 

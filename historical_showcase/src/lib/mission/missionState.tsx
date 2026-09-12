@@ -88,6 +88,7 @@ export type MissionAction =
   | { type: "TOGGLE_AUTOPLAY" }
   | { type: "SET_SPEED"; speed: 1 | 2 | 4 }
   | { type: "SET_SCENARIO"; scenario: MissionScenario }
+  | { type: "RESET_MISSION" }
   | { type: "TICK"; deltaMs: number };
 
 const MISSION_START_ISO = "2026-05-15T06:00:00Z";
@@ -126,6 +127,15 @@ function reducer(state: MissionState, action: MissionAction): MissionState {
         stageElapsedMs: 0,
         initiated: true,
         autoPlay: true,
+      };
+
+    case "RESET_MISSION":
+      return {
+        ...state,
+        currentStage: "STANDBY",
+        stageElapsedMs: 0,
+        initiated: false,
+        autoPlay: false,
       };
 
     case "NEXT_STAGE": {
