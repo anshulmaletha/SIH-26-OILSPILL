@@ -1,4 +1,5 @@
-import { H3HexagonLayer, PathLayer } from "@deck.gl/geo-layers";
+import { H3HexagonLayer } from "@deck.gl/geo-layers";
+import { PathLayer } from "@deck.gl/layers";
 import { LAYER_IDS } from "../config";
 import type { H3CellDensityWithAge, H3CellDensity } from "../../adapters/p4Adapter";
 import { getDensityColor } from "../../adapters/p4Adapter";
